@@ -1,0 +1,148 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.7 0.2 195);
+  --primary-foreground: oklch(0.145 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.65 0.25 280);
+  --accent-foreground: oklch(0.145 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --chart-1: oklch(0.65 0.25 280);
+  --chart-2: oklch(0.7 0.2 195);
+  --chart-3: oklch(0.75 0.2 150);
+  --chart-4: oklch(0.7 0.22 50);
+  --chart-5: oklch(0.65 0.24 340);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.7 0.2 195);
+  --sidebar-primary-foreground: oklch(0.145 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+  --vitaai: oklch(0.7 0.2 195);
+  --vitaai-foreground: oklch(0.145 0 0);
+  --execuwell: oklch(0.65 0.25 280);
+  --execuwell-foreground: oklch(0.145 0 0);
+  --success: oklch(0.7 0.2 150);
+  --success-foreground: oklch(0.145 0 0);
+  --warning: oklch(0.75 0.2 70);
+  --warning-foreground: oklch(0.145 0 0);
+}
+
+@theme inline {
+  /* Typography */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  /* Core Colors - Dark Theme */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Muted backgrounds and borders */
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  /* Card backgrounds */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  /* Borders */
+  --color-border: var(--border);
+
+  /* Input fields */
+  --color-input: var(--input);
+
+  /* Primary accent - Cyan for health + business */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  /* Secondary accent - Subtle gray */
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  /* Accent highlights - Purple/Violet */
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  /* Destructive/Error */
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  /* Success */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
+  /* Warning */
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  /* Brand Colors */
+  --color-vitaai: var(--vitaai);
+  --color-vitaai-foreground: var(--vitaai-foreground);
+  --color-execuwell: var(--execuwell);
+  --color-execuwell-foreground: var(--execuwell-foreground);
+
+  /* Ring/Focus */
+  --color-ring: var(--ring);
+
+  /* Radius */
+  --radius: var(--radius);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* Base styles */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus visible styles */
+*:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+}

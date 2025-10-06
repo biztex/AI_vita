@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",                 // modern JS features
+    "module": "ES2022",                 // use ES module syntax ("import/export")
+    "moduleResolution": "Bundler",      // better with tsx/vite/modern Node
+    "outDir": "dist",                   // compiled output folder
+    "esModuleInterop": true,            // allows default import from CJS libs
+    "strict": true,                     // enable strict type checking
+    "skipLibCheck": true                // faster build (optional)
+  },
+  "include": ["src/**/*"]               // compile everything inside src/
+}
