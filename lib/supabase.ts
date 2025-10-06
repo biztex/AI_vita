@@ -10,7 +10,7 @@ export const signUp = async (email: string, password: string, userData?: { name?
   console.log('signUp', email, password, userData);
   
   let role = 'user'
-  if(email == 'admin@example.com'){
+  if(email == 'admin@gmail.com'){
     role = 'admin'
   }
   const { data, error } = await supabase.auth.signUp({
