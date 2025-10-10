@@ -1,5 +1,10 @@
-export function errorHandler(err, _req, res, _next) {
-    const status = err.status || 500;
-    res.status(status).json({ error: err.message || "error" });
-  }
+import { Router } from "express";
+
+const r = Router();
+
+r.get("/", (_req, res) => {
+  res.json({ ok: true });
+});
+
+export default r;
   

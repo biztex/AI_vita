@@ -1,37 +1,47 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
-import { prisma } from "../prisma.js";
+import { prisma } from "../prisma.ts";
 
 const JWKS = createRemoteJWKSet(new URL(process.env.SUPABASE_JWKS_URL!));
 const ISSUER = process.env.SUPABASE_ISSUER!;
 const AUD = process.env.SUPABASE_AUDIENCE!;
 
+console.log("JWKS", JWKS);
+console.log("ISSUER", ISSUER);
+console.log("AUD", AUD);
+
 export async function verifyToken(authHeader?: string) {
   if (!authHeader?.startsWith("Bearer ")) throw Object.assign(new Error("unauthorized"), { status: 401 });
-  const token = authHeader.slice(7);
-  const { payload } = await jwtVerify(token, JWKS, { issuer: ISSUER, audience: AUD });
-  return payload;
+  // if(authHeader?.split(" ")[0] !== "Bearer" && authHeader !== undefined) throw Object.assign(new Error("unauthorized"), { status: 401 });
+    const token = authHeader?.split(" ")[1];
+    const { payload } = await jwtVerify(token, JWKS, { issuer: ISSUER, audience: AUD });
+    return payload;
 }
 
 export function requireAuth() {
   return async (req: any, _res: any, next: any) => {
     try {
       const payload = await verifyToken(req.headers.authorization);
+      console.log("payload", payload);
       const sub = String(payload.sub);
       const email = payload.email as string | undefined;
       const meta = (payload.user_metadata as any) || {};
       const role = meta.role === "admin" ? "admin" : "user";
-
+      console.log('role',role);
       await prisma.appUser.upsert({
         where: { supabaseUserId: sub },
-        update: { email, role: role.toUpperCase() as any },
+        update: {
+          email,
+          role: role.toUpperCase() as any,
+          subscription: meta.subscription ? (String(meta.subscription).toUpperCase() as any) : undefined,
+        },
         create: {
           supabaseUserId: sub,
           email,
           role: role.toUpperCase() as any,
-          subscription: meta.subscription ?? undefined,
+          subscription: meta.subscription ? (String(meta.subscription).toUpperCase() as any) : undefined,
         },
       });
-
+      
       req.user = { id: sub, email, role };
       next();
     } catch (e: any) {

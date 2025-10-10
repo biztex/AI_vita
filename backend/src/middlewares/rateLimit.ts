@@ -1,4 +1,4 @@
-import { redis } from "../redis.js";
+import { redis } from "../redis.ts";
 export function rateLimit(keyFn: (req: any) => string, limit = 60, windowSec = 60) {
   return async (req: any, _res: any, next: any) => {
     const key = keyFn(req);

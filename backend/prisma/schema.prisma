@@ -1,5 +1,11 @@
-generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
 model AppUser {
   supabaseUserId  String  @id
@@ -47,10 +53,41 @@ model PersonalityResult {
   owner     AppUser  @relation(fields: [ownerId], references: [supabaseUserId])
 }
 
-enum Role { USER ADMIN }
-enum Subscription { vitaai execuwell integrated }
-enum Service { vitaai execuwell }
-enum Sender { user assistant }
-enum MessageKind { text voice image }
-enum TestType { _16personalities strengthsfinder }
-enum Status { PENDING RECEIVED VERIFIED REJECTED }
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Subscription {
+  VITAAI
+  EXECUWELL
+  INTEGRATED
+}
+
+enum Service {
+  VITAAI
+  EXECUWELL
+}
+
+enum Sender {
+  USER
+  ASSISTANT
+}
+
+enum MessageKind {
+  TEXT
+  VOICE
+  IMAGE
+}
+
+enum TestType {
+  SIXTEEN_PERSONALITIES
+  STRENGTHSFINDER
+}
+
+enum Status {
+  PENDING
+  RECEIVED
+  VERIFIED
+  REJECTED
+}

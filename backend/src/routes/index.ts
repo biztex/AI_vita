@@ -1,8 +1,8 @@
 import express from "express";
-import health from "./health.js";
-import chat from "./chat.js";
-import personality from "./personality.js";
-import admin from "./admin.js";
+import health from "./health.ts";
+import chat from "./chat.ts";
+import personality from "./personality.ts";
+import admin from "./admin.ts";
 
 const router = express.Router();
 router.use("/health", health);

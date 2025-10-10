@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { AuthProvider } from "@/lib/auth-context"
 import { ScrollToTop } from "@/components/scroll-to-top"
+import { ThemeProvider } from "@/components/theme-provider"
 
 const inter = Inter({
   variable: "--font-sans",
@@ -28,14 +29,21 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} antialiased dark`}>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} antialiased`} suppressHydrationWarning>
       <body className="flex min-h-screen flex-col">
-        <AuthProvider>
-          <ScrollToTop />
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </AuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <ScrollToTop />
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

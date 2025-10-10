@@ -11,6 +11,8 @@ export const signUp = async (email: string, password: string, userData?: { name?
   
   let role = 'user'
   if(email == 'admin@gmail.com'){
+    console.log('admin');
+    
     role = 'admin'
   }
   const { data, error } = await supabase.auth.signUp({
@@ -34,6 +36,7 @@ export const signIn = async (email: string, password: string) => {
     password,
   })
 
+  console.log('signIn', data, error);
   return { data, error }
 }
 

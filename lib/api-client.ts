@@ -12,7 +12,7 @@ class APIClient {
   private authToken: string | null = null
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
+    this.baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
   }
 
   setAuthToken(token: string | null) {
@@ -113,48 +113,26 @@ class APIClient {
       }),
   }
 
-  // Chat endpoints
+  // Chat endpoints (mapped to backend /chat)
   chats = {
-    sendVitaAI: (message: string, attachments?: any[]) =>
-      this.request<{ response: string; conversationId: string }>("/chats/vitaai", {
+    send: (service: "VITAAI" | "EXECUWELL", content: string) =>
+      this.request<{ conversationId: string; message: string }>("/chat", {
         method: "POST",
-        body: { message, attachments },
+        body: { service, content },
       }),
 
-    sendExecuWell: (message: string, attachments?: any[]) =>
-      this.request<{ response: string; conversationId: string }>("/chats/execuwell", {
-        method: "POST",
-        body: { message, attachments },
-      }),
-
-    search: (query?: Record<string, string>) =>
-      this.request<{ conversations: any[]; total: number }>("/chats/search", { query }),
-
-    getConversation: (id: string) => this.request<any>(`/chats/${id}`),
+    // Convenience helpers to keep existing call sites working
+    sendVitaAI: (message: string) => this.chats.send("VITAAI", message),
+    sendExecuWell: (message: string) => this.chats.send("EXECUWELL", message),
   }
 
-  // Diagnosis endpoints
-  diagnosis = {
-    uploadGenetic: (file: File) => {
-      // Note: This would need FormData handling in a real implementation
-      return this.request<{ success: boolean }>("/diagnosis/genetic", {
+  // Personality upload mapped to backend /personality
+  personality = {
+    upload: (testType: "SIXTEEN_PERSONALITIES" | "STRENGTHSFINDER", fileKey: string) =>
+      this.request<{ ok: true }>("/personality", {
         method: "POST",
-        body: { file },
-      })
-    },
-
-    uploadPersonality: (file: File) => {
-      return this.request<{ success: boolean }>("/diagnosis/personality", {
-        method: "POST",
-        body: { file },
-      })
-    },
-
-    status: () =>
-      this.request<{
-        genetic: { uploaded: boolean; date?: string }
-        personality: { uploaded: boolean; date?: string }
-      }>("/diagnosis/status"),
+        body: { testType, fileKey },
+      }),
   }
 
   // Reports endpoints

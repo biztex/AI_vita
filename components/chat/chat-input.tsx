@@ -2,11 +2,10 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Send, Mic, ImageIcon, Square } from "lucide-react"
+import { Send, Mic, MicOff, ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type ChatInputProps = {
@@ -17,8 +16,19 @@ type ChatInputProps = {
 export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
   const [message, setMessage] = useState("")
   const [isRecording, setIsRecording] = useState(false)
-  const [activeTab, setActiveTab] = useState("text")
+  const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const recognitionRef = useRef<any>(null)
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort()
+        } catch {}
+      }
+    }
+  }, [])
 
   const handleSendText = () => {
     if (message.trim() && !disabled) {
@@ -34,27 +44,72 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
     }
   }
 
+  const startRecognition = () => {
+    if (disabled || isRecording) return
+    const SpeechRecognition: any =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+
+    if (!SpeechRecognition) {
+      console.warn("Web Speech API not supported in this browser.")
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = "ja-JP" // default to Japanese; adjust as needed
+    recognition.interimResults = true
+    recognition.continuous = true
+
+    recognition.onresult = (event: any) => {
+      let transcript = ""
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript
+      }
+      setMessage((prev) => {
+        // Replace current message while recording so user can see live text
+        return transcript
+      })
+    }
+
+    recognition.onend = () => {
+      setIsRecording(false)
+      recognitionRef.current = null
+    }
+
+    recognition.onerror = () => {
+      setIsRecording(false)
+      recognitionRef.current = null
+    }
+
+    try {
+      recognition.start()
+      recognitionRef.current = recognition
+      setIsRecording(true)
+    } catch (e) {
+      console.warn("Failed to start recognition", e)
+    }
+  }
+
+  const stopRecognition = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop()
+      } catch {}
+      recognitionRef.current = null
+    }
+    setIsRecording(false)
+  }
+
   const toggleRecording = () => {
-    if (disabled) return
-    setIsRecording(!isRecording)
-    if (!isRecording) {
-      // Start recording
-      console.log("[v0] Starting voice recording")
-      // Mock: send after 2 seconds
-      setTimeout(() => {
-        onSendMessage("Voice message transcribed", "voice")
-        setIsRecording(false)
-      }, 2000)
+    if (isRecording) {
+      stopRecognition()
     } else {
-      // Stop recording
-      console.log("[v0] Stopping voice recording")
+      startRecognition()
     }
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && !disabled) {
-      console.log("[v0] File selected:", file.name)
       onSendMessage(`Uploaded: ${file.name}`, "image", file)
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
@@ -62,79 +117,111 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
     }
   }
 
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!disabled) setIsDragging(true)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!disabled) setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    if (disabled) return
+    const file = e.dataTransfer.files?.[0]
+    if (file) {
+      onSendMessage(`Uploaded: ${file.name}`, "image", file)
+    }
+  }
+
   return (
-    <div className="border-t border-border bg-background p-4">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-3 grid w-full grid-cols-3">
-          <TabsTrigger value="text">テキスト</TabsTrigger>
-          <TabsTrigger value="voice">音声</TabsTrigger>
-          <TabsTrigger value="image">画像</TabsTrigger>
-        </TabsList>
+    <div
+      className={cn(
+        "border-t border-blue-200 bg-gradient-to-r from-blue-50/50 to-purple-50/50 p-4",
+        isDragging && "bg-gradient-to-r from-blue-100 to-purple-100"
+      )}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <div className="flex items-end gap-3">
+        <div className="flex-1">
+          <Textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={isRecording ? "🎤 音声認識中... 話しかけてください" : "💬 メッセージを入力..."}
+            className="min-h-[60px] resize-none border-2 border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200/50 bg-white/80 backdrop-blur-sm"
+            disabled={disabled}
+          />
+        </div>
 
-        {/* Text Input */}
-        <TabsContent value="text" className="mt-0">
-          <div className="flex gap-2">
-            <Textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="メッセージを入力..."
-              className="min-h-[60px] resize-none"
-              disabled={disabled}
-            />
-            <Button onClick={handleSendText} disabled={!message.trim() || disabled} size="icon" className="h-[60px]">
-              <Send className="h-4 w-4" />
-              <span className="sr-only">メッセージを送信</span>
-            </Button>
-          </div>
-        </TabsContent>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf"
+            onChange={handleFileSelect}
+            className="hidden"
+            disabled={disabled}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled}
+            className="h-[60px] w-[60px] border-2 border-green-300 hover:border-green-400 hover:bg-green-50 text-green-600 hover:text-green-700 transition-all duration-200"
+          >
+            <ImageIcon className="h-5 w-5" />
+            <span className="sr-only">ファイルを選択</span>
+          </Button>
 
-        {/* Voice Input */}
-        <TabsContent value="voice" className="mt-0">
-          <div className="flex flex-col items-center justify-center space-y-4 py-8">
-            <Button
-              onClick={toggleRecording}
-              disabled={disabled}
-              size="lg"
-              variant={isRecording ? "destructive" : "default"}
-              className={cn("h-20 w-20 rounded-full", isRecording && "animate-pulse")}
-            >
-              {isRecording ? <Square className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
-              <span className="sr-only">{isRecording ? "録音停止" : "録音開始"}</span>
-            </Button>
-            <p className="text-sm text-muted-foreground">
-              {isRecording ? "録音中...クリックして停止" : "クリックして録音開始"}
-            </p>
-          </div>
-        </TabsContent>
+          <Button
+            type="button"
+            variant={isRecording ? "destructive" : "default"}
+            size="icon"
+            onClick={toggleRecording}
+            disabled={disabled}
+            className={cn(
+              "h-[60px] w-[60px] transition-all duration-200",
+              isRecording 
+                ? "bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-200 animate-pulse" 
+                : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg shadow-blue-200 hover:shadow-blue-300"
+            )}
+          >
+            {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            <span className="sr-only">{isRecording ? "録音停止" : "録音開始"}</span>
+          </Button>
 
-        {/* Image Upload */}
-        <TabsContent value="image" className="mt-0">
-          <div className="flex flex-col items-center justify-center space-y-4 rounded-lg border-2 border-dashed border-border py-12">
-            <ImageIcon className="h-12 w-12 text-muted-foreground" />
-            <div className="text-center">
-              <p className="mb-2 text-sm font-medium">PDF/画像をドロップまたはクリックしてアップロード</p>
-              <p className="text-xs text-muted-foreground">対応形式: PDF、PNG、JPG（最大10MB）</p>
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,.pdf"
-              onChange={handleFileSelect}
-              className="hidden"
-              disabled={disabled}
-            />
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={disabled}
-              variant="outline"
-              className="bg-transparent"
-            >
-              ファイル選択
-            </Button>
-          </div>
-        </TabsContent>
-      </Tabs>
+          <Button 
+            onClick={handleSendText} 
+            disabled={!message.trim() || disabled} 
+            size="icon" 
+            className="h-[60px] w-[60px] bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all duration-200"
+          >
+            <Send className="h-5 w-5" />
+            <span className="sr-only">メッセージを送信</span>
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-3 text-center text-sm text-blue-600/70 font-medium">
+        📁 ドラッグ＆ドロップでPDF/画像をアップロード（対応: PDF、PNG、JPG 最大10MB）
+      </div>
     </div>
   )
 }

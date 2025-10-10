@@ -33,11 +33,18 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-[0_3px_9px_rgba(255,255,255,0.3)]">
+    <header className="sticky top-0 z-50 w-full border-b border-primary/20 bg-gradient-to-r from-background/95 to-accent/5 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-lg shadow-primary/10">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2">
-          <span className="text-xl font-bold">VitaAI / ExecuWell</span>
+        <Link href="/" className="flex items-center space-x-2 group">
+          <div className="flex items-center space-x-2">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-r from-primary to-accent flex items-center justify-center">
+              <span className="text-white font-bold text-sm">V</span>
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent group-hover:from-accent group-hover:to-primary transition-all duration-300">
+              VitaAI / ExecuWell
+            </span>
+          </div>
         </Link>
 
         {/* Navigation */}
@@ -50,8 +57,10 @@ export function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  pathname === item.href ? "text-foreground" : "text-muted-foreground"
+                className={`text-sm font-medium transition-all duration-200 hover:text-primary hover:scale-105 ${
+                  pathname === item.href 
+                    ? "text-primary font-semibold bg-primary/10 px-3 py-1 rounded-lg" 
+                    : "text-muted-foreground hover:bg-accent/10 px-3 py-1 rounded-lg"
                 }`}
               >
                 {item.label}
@@ -66,25 +75,25 @@ export function Header() {
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar>
-                      <AvatarFallback className="bg-primary text-primary-foreground">
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-primary/10 transition-all duration-200 hover:scale-105">
+                    <Avatar className="ring-2 ring-primary/20 hover:ring-primary/40 transition-all duration-200">
+                      <AvatarFallback className="bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
                         {user.name?.charAt(0).toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-background">
+                <DropdownMenuContent align="end" className="w-56 bg-card/95 backdrop-blur border-primary/20 shadow-xl">
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium text-white">{user.name}</p>
-                      <p className="text-xs text-muted-foreground text-white">{user.email}</p>
+                      <p className="text-sm font-medium text-foreground">{user.name}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
                   </div>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-primary/20" />
                   <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center text-white">
-                      <User className="mr-2 h-4 w-4 text-white" />
+                    <Link href="/profile" className="flex items-center text-foreground hover:bg-primary/10 transition-colors">
+                      <User className="mr-2 h-4 w-4 text-primary" />
                       プロフィール
                     </Link>
                   </DropdownMenuItem>
@@ -94,9 +103,9 @@ export function Header() {
                       設定
                     </Link>
                   </DropdownMenuItem> */}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="text-destructive text-white">
-                    <LogOut className="mr-2 h-4 w-4 text-white" />
+                  <DropdownMenuSeparator className="bg-primary/20" />
+                  <DropdownMenuItem onClick={logout} className="text-destructive hover:bg-destructive/10 transition-colors">
+                    <LogOut className="mr-2 h-4 w-4" />
                     ログアウト
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -106,10 +115,10 @@ export function Header() {
           ) : (
             <div className="flex items-center gap-2">
               <div className="hidden items-center space-x-2 sm:flex">
-                <Button variant="ghost" asChild>
+                <Button variant="ghost" asChild className="hover:bg-primary/10 transition-all duration-200">
                   <Link href="/auth/login">ログイン</Link>
                 </Button>
-                <Button asChild>
+                <Button asChild className="bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary text-primary-foreground transition-all duration-200 hover:scale-105 shadow-lg shadow-primary/25">
                   <Link href="/auth/register">無料登録</Link>
                 </Button>
               </div>

@@ -39,19 +39,30 @@ function ExecuWellChatContent() {
     }
     setMessages((prev) => [...prev, userMessage])
 
-    // Simulate AI response
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      // Call backend ExecuWell chat
+      const { apiClient } = await import("@/lib/api-client")
+      const resp = await apiClient.chats.send("EXECUWELL", content)
 
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content:
-        "現在の市場トレンドに基づくと、テクノロジーセクターはAIとクラウドインフラストラクチャで強い勢いを示しています。主要指標は、エンタープライズSaaS採用の継続的な成長を示唆しています。3つの特定分野の監視をお勧めします：従来産業へのAI統合、サイバーセキュリティ投資、持続可能なテクノロジーイニシアチブ。これらのセクターの詳細な内訳をご希望ですか？",
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: resp.message,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      }
+      setMessages((prev) => [...prev, aiMessage])
+    } catch (e: any) {
+      const errMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "エラーが発生しました。しばらくしてから再度お試しください。",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      }
+      setMessages((prev) => [...prev, errMessage])
+    } finally {
+      setIsLoading(false)
     }
-    setMessages((prev) => [...prev, aiMessage])
-    setIsLoading(false)
   }
 
   return (
@@ -59,24 +70,24 @@ function ExecuWellChatContent() {
       {/* Main Chat Area */}
       <div className="flex flex-1 flex-col">
         {/* Chat Header */}
-        <div className="flex items-center justify-between border-b border-border bg-muted/30 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4">
           <div className="flex items-center space-x-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <Briefcase className="h-5 w-5 text-primary" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg">
+              <Briefcase className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold">ExecuWell</h1>
-              <p className="text-sm text-muted-foreground">ビジネスインテリジェンスパートナー</p>
+              <h1 className="text-lg font-semibold text-emerald-800">ExecuWell</h1>
+              <p className="text-sm text-emerald-600">ビジネスインテリジェンスパートナー</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100">
             <Settings className="h-5 w-5" />
             <span className="sr-only">チャット設定</span>
           </Button>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 space-y-6 overflow-y-auto p-6">
+        <div className="flex-1 space-y-6 overflow-y-auto p-6 bg-gradient-to-b from-white to-emerald-50/30">
           {messages.map((message) => (
             <ChatMessage
               key={message.id}
@@ -89,13 +100,13 @@ function ExecuWellChatContent() {
           ))}
           {isLoading && (
             <div className="flex gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                <Briefcase className="h-4 w-4 text-primary" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg">
+                <Briefcase className="h-4 w-4 text-white" />
               </div>
-              <div className="flex items-center space-x-2 rounded-2xl bg-muted px-4 py-3">
-                <div className="h-2 w-2 animate-bounce rounded-full bg-foreground [animation-delay:-0.3s]" />
-                <div className="h-2 w-2 animate-bounce rounded-full bg-foreground [animation-delay:-0.15s]" />
-                <div className="h-2 w-2 animate-bounce rounded-full bg-foreground" />
+              <div className="flex items-center space-x-2 rounded-2xl bg-gradient-to-r from-emerald-100 to-teal-100 px-4 py-3 border border-emerald-200">
+                <div className="h-2 w-2 animate-bounce rounded-full bg-emerald-500 [animation-delay:-0.3s]" />
+                <div className="h-2 w-2 animate-bounce rounded-full bg-teal-500 [animation-delay:-0.15s]" />
+                <div className="h-2 w-2 animate-bounce rounded-full bg-emerald-500" />
               </div>
             </div>
           )}
