@@ -1,5 +1,28 @@
 // Centralized API client for all backend communication
 
+export type ConversationSummary = {
+  id: string
+  service: "VITAAI" | "EXECUWELL"
+  title: string | null
+  createdAt: string
+  lastMessage: {
+    content: string
+    sender: "USER" | "ASSISTANT"
+    createdAt: string
+  } | null
+  messageCount: number
+}
+
+export type ConversationMessage = {
+  id: string
+  sender: "USER" | "ASSISTANT"
+  content: string
+  kind: "TEXT" | "VOICE" | "IMAGE"
+  createdAt: string
+  service: "VITAAI" | "EXECUWELL"
+  conversationTitle: string | null
+}
+
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
   body?: any
@@ -115,15 +138,34 @@ class APIClient {
 
   // Chat endpoints (mapped to backend /chat)
   chats = {
-    send: (service: "VITAAI" | "EXECUWELL", content: string) =>
-      this.request<{ conversationId: string; message: string }>("/chat", {
+    send: (service: "VITAAI" | "EXECUWELL", content: string, conversationId?: string, title?: string) =>
+      this.request<{ conversationId: string; message: string; service: string; timestamp: string }>("/chat", {
         method: "POST",
-        body: { service, content },
+        body: { service, content, conversationId, title },
+      }),
+
+    getConversations: (service?: "VITAAI" | "EXECUWELL") =>
+      this.request<{ conversations: ConversationSummary[]; timestamp: string }>("/chat/conversations", {
+        query: service ? { service } : {},
+      }),
+
+    getConversation: (conversationId: string) =>
+      this.request<{ conversationId: string; messages: ConversationMessage[]; timestamp: string }>(`/chat/conversation/${conversationId}`),
+
+    updateConversationTitle: (conversationId: string, title: string) =>
+      this.request<{ conversationId: string; title: string; timestamp: string }>(`/chat/conversation/${conversationId}`, {
+        method: "PATCH",
+        body: { title },
+      }),
+
+    deleteConversation: (conversationId: string) =>
+      this.request<{ success: boolean; message: string; timestamp: string }>(`/chat/conversation/${conversationId}`, {
+        method: "DELETE",
       }),
 
     // Convenience helpers to keep existing call sites working
-    sendVitaAI: (message: string) => this.chats.send("VITAAI", message),
-    sendExecuWell: (message: string) => this.chats.send("EXECUWELL", message),
+    sendVitaAI: (message: string, conversationId?: string, title?: string) => this.chats.send("VITAAI", message, conversationId, title),
+    sendExecuWell: (message: string, conversationId?: string, title?: string) => this.chats.send("EXECUWELL", message, conversationId, title),
   }
 
   // Personality upload mapped to backend /personality

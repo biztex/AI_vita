@@ -1,13 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { useAuth } from "@/lib/auth-context"
 import { ChatMessage } from "@/components/chat/chat-message"
 import { ChatInput } from "@/components/chat/chat-input"
 import { ChatInfoPanel } from "@/components/chat/chat-info-panel"
+import { ChatSidebar } from "@/components/chat/chat-sidebar"
+import { ChatMobileSidebar } from "@/components/chat/chat-mobile-sidebar"
 import { Button } from "@/components/ui/button"
 import { Activity, Settings } from "lucide-react"
+import { apiClient, ConversationMessage } from "@/lib/api-client"
 
 type Message = {
   id: string
@@ -18,16 +21,58 @@ type Message = {
 
 function VitaAIChatContent() {
   const { user } = useAuth()
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content:
-        "こんにちは！私はVitaAI、あなた専用の健康インテリジェンスアシスタントです。遺伝子データの理解、パーソナライズされた健康推奨事項の提供、ウェルビーイングに関する質問への回答をお手伝いします。今日はどのようにお手伝いできますか？",
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    },
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false)
+
+  // Load conversation when conversationId changes
+  const loadConversation = async (conversationId: string) => {
+    setIsLoadingConversation(true)
+    try {
+      const response = await apiClient.chats.getConversation(conversationId)
+      const formattedMessages: Message[] = response.messages.map((msg: ConversationMessage) => ({
+        id: msg.id,
+        role: msg.sender === "USER" ? "user" : "assistant",
+        content: msg.content,
+        timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      }))
+      setMessages(formattedMessages)
+    } catch (error) {
+      console.error("Failed to load conversation:", error)
+      setMessages([])
+    } finally {
+      setIsLoadingConversation(false)
+    }
+  }
+
+  // Handle conversation selection
+  const handleConversationSelect = (conversationId: string | null) => {
+    setCurrentConversationId(conversationId)
+    if (conversationId) {
+      loadConversation(conversationId)
+    } else {
+      setMessages([])
+    }
+  }
+
+  // Handle new conversation
+  const handleNewConversation = (conversationId: string) => {
+    setCurrentConversationId(conversationId)
+    loadConversation(conversationId)
+  }
+
+  // Load initial conversation or show welcome message
+  useEffect(() => {
+    if (!currentConversationId && messages.length === 0) {
+      setMessages([{
+        id: "welcome",
+        role: "assistant",
+        content: "こんにちは！私はVitaAI、あなた専用の健康インテリジェンスアシスタントです。遺伝子データの理解、パーソナライズされた健康推奨事項の提供、ウェルビーイングに関する質問への回答をお手伝いします。今日はどのようにお手伝いできますか？",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      }])
+    }
+  }, [currentConversationId, messages.length])
 
   const handleSendMessage = async (content: string, type: "text" | "voice" | "image", file?: File) => {
     // Add user message
@@ -41,9 +86,13 @@ function VitaAIChatContent() {
 
     setIsLoading(true)
     try {
-      // Call backend VitaAI chat
-      const { apiClient } = await import("@/lib/api-client")
-      const resp = await apiClient.chats.send("VITAAI", content)
+      // Call backend VitaAI chat with conversation ID
+      const resp = await apiClient.chats.send("VITAAI", content, currentConversationId || undefined)
+
+      // Update conversation ID if this was a new conversation
+      if (!currentConversationId) {
+        setCurrentConversationId(resp.conversationId)
+      }
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -67,11 +116,32 @@ function VitaAIChatContent() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex md:w-80">
+        <ChatSidebar
+          service="VITAAI"
+          currentConversationId={currentConversationId || undefined}
+          onConversationSelect={handleConversationSelect}
+          onNewConversation={handleNewConversation}
+          className="w-full"
+        />
+      </div>
+
       {/* Main Chat Area */}
       <div className="flex flex-1 flex-col">
         {/* Chat Header */}
-        <div className="flex items-center justify-between border-b border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 px-4 md:px-6 py-4">
           <div className="flex items-center space-x-3">
+            {/* Mobile sidebar trigger */}
+            <div className="md:hidden">
+              <ChatMobileSidebar
+                service="VITAAI"
+                currentConversationId={currentConversationId || undefined}
+                onConversationSelect={handleConversationSelect}
+                onNewConversation={handleNewConversation}
+              />
+            </div>
+            
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg">
               <Activity className="h-5 w-5 text-white" />
             </div>
@@ -87,28 +157,41 @@ function VitaAIChatContent() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 space-y-6 overflow-y-auto p-6 bg-gradient-to-b from-white to-blue-50/30">
-          {messages.map((message) => (
-            <ChatMessage
-              key={message.id}
-              role={message.role}
-              content={message.content}
-              timestamp={message.timestamp}
-              userName={user?.name}
-              service="vitaai"
-            />
-          ))}
-          {isLoading && (
-            <div className="flex gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg">
-                <Activity className="h-4 w-4 text-white" />
-              </div>
-              <div className="flex items-center space-x-2 rounded-2xl bg-gradient-to-r from-blue-100 to-purple-100 px-4 py-3 border border-blue-200">
-                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-500 [animation-delay:-0.3s]" />
-                <div className="h-2 w-2 animate-bounce rounded-full bg-purple-500 [animation-delay:-0.15s]" />
-                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-500" />
+        <div className="flex-1 space-y-6 overflow-y-auto p-4 md:p-6 bg-gradient-to-b from-white to-blue-50/30">
+          {isLoadingConversation ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg mx-auto mb-4">
+                  <Activity className="h-4 w-4 text-white animate-pulse" />
+                </div>
+                <p className="text-sm text-blue-600">会話を読み込み中...</p>
               </div>
             </div>
+          ) : (
+            <>
+              {messages.map((message) => (
+                <ChatMessage
+                  key={message.id}
+                  role={message.role}
+                  content={message.content}
+                  timestamp={message.timestamp}
+                  userName={user?.name}
+                  service="vitaai"
+                />
+              ))}
+              {isLoading && (
+                <div className="flex gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg">
+                    <Activity className="h-4 w-4 text-white" />
+                  </div>
+                  <div className="flex items-center space-x-2 rounded-2xl bg-gradient-to-r from-blue-100 to-purple-100 px-4 py-3 border border-blue-200">
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-blue-500 [animation-delay:-0.3s]" />
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-purple-500 [animation-delay:-0.15s]" />
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-blue-500" />
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
