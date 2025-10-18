@@ -5,9 +5,9 @@ const JWKS = createRemoteJWKSet(new URL(process.env.SUPABASE_JWKS_URL!));
 const ISSUER = process.env.SUPABASE_ISSUER!;
 const AUD = process.env.SUPABASE_AUDIENCE!;
 
-console.log("JWKS", JWKS);
-console.log("ISSUER", ISSUER);
-console.log("AUD", AUD);
+// console.log("JWKS", JWKS);
+// console.log("ISSUER", ISSUER);
+// console.log("AUD", AUD);
 
 export async function verifyToken(authHeader?: string) {
   if (!authHeader?.startsWith("Bearer ")) throw Object.assign(new Error("unauthorized"), { status: 401 });
@@ -21,12 +21,12 @@ export function requireAuth() {
   return async (req: any, _res: any, next: any) => {
     try {
       const payload = await verifyToken(req.headers.authorization);
-      console.log("payload", payload);
+      // console.log("payload", payload);
       const sub = String(payload.sub);
       const email = payload.email as string | undefined;
       const meta = (payload.user_metadata as any) || {};
       const role = meta.role === "admin" ? "admin" : "user";
-      console.log('role',role);
+      // console.log('role',role);
       await prisma.appUser.upsert({
         where: { supabaseUserId: sub },
         update: {

@@ -25,7 +25,7 @@ const mockConversations: Conversation[] = [
     userName: "John Doe",
     service: "vitaai",
     messageCount: 15,
-    lastMessage: "Thank you for the health recommendations!",
+    lastMessage: "健康に関するアドバイスをありがとうございます！",
     date: "2024-02-10",
   },
   {
@@ -34,7 +34,7 @@ const mockConversations: Conversation[] = [
     userName: "Jane Smith",
     service: "execuwell",
     messageCount: 8,
-    lastMessage: "Can you provide more details on the market trends?",
+    lastMessage: "市場のトレンドについてもっと詳しく教えてください",
     date: "2024-02-09",
   },
   {
@@ -43,7 +43,7 @@ const mockConversations: Conversation[] = [
     userName: "John Doe",
     service: "execuwell",
     messageCount: 12,
-    lastMessage: "What are the key indicators for Q1?",
+    lastMessage: "Q1の重要な指標について教えてください",
     date: "2024-02-08",
   },
 ]
@@ -63,8 +63,8 @@ export default function AdminChatsPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold">Chat Management</h1>
-        <p className="text-muted-foreground">View and monitor user conversations</p>
+        <h1 className="mb-2 text-3xl font-bold">チャット管理</h1>
+        <p className="text-muted-foreground">ユーザーの会話を表示・監視</p>
       </div>
 
       <Card>
@@ -88,7 +88,7 @@ export default function AdminChatsPage() {
                 <SelectValue placeholder="Filter by service" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Services</SelectItem>
+                <SelectItem value="all">すべてのサービス</SelectItem>
                 <SelectItem value="vitaai">VitaAI</SelectItem>
                 <SelectItem value="execuwell">ExecuWell</SelectItem>
               </SelectContent>
@@ -110,14 +110,14 @@ export default function AdminChatsPage() {
                       </div>
                       <p className="text-sm text-muted-foreground">{conv.lastMessage}</p>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span>{conv.messageCount} messages</span>
+                        <span>{conv.messageCount} メッセージ</span>
                         <span>•</span>
                         <span>{conv.date}</span>
                       </div>
                     </div>
                     <Button variant="outline" size="sm" className="bg-transparent">
                       <Eye className="mr-2 h-4 w-4" />
-                      View
+                      表示
                     </Button>
                   </div>
                 </CardContent>
@@ -127,7 +127,7 @@ export default function AdminChatsPage() {
 
           {filteredConversations.length === 0 && (
             <div className="py-12 text-center">
-              <p className="text-muted-foreground">No conversations found. Try adjusting your filters.</p>
+              <p className="text-muted-foreground">会話が見つかりません。フィルターを調整してください。</p>
             </div>
           )}
         </CardContent>

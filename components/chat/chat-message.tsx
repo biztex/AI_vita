@@ -5,12 +5,13 @@ import { Activity, Briefcase } from "lucide-react"
 type ChatMessageProps = {
   role: "user" | "assistant"
   content: string
+  kind?: "TEXT" | "VOICE" | "IMAGE"
   timestamp?: string
   userName?: string
   service?: "vitaai" | "execuwell"
 }
 
-export function ChatMessage({ role, content, timestamp, userName, service = "vitaai" }: ChatMessageProps) {
+export function ChatMessage({ role, content, kind = "TEXT", timestamp, userName, service = "vitaai" }: ChatMessageProps) {
   const isUser = role === "user"
   const Icon = service === "vitaai" ? Activity : Briefcase
 
@@ -32,7 +33,11 @@ export function ChatMessage({ role, content, timestamp, userName, service = "vit
               : "bg-gradient-to-r from-gray-50 to-blue-50 text-gray-800 border border-blue-100",
           )}
         >
-          <p className="text-sm leading-relaxed">{content}</p>
+          {kind === "VOICE" ? (
+            <audio src={`/backend/${content}`} controls className="max-w-full" />
+          ) : (
+            <p className="text-sm leading-relaxed">{content}</p>
+          )}
         </div>
         {timestamp && <span className="text-xs text-blue-500/70 font-medium">{timestamp}</span>}
       </div>

@@ -35,7 +35,7 @@ class APIClient {
   private authToken: string | null = null
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+    this.baseURL = process.env.NEXT_PUBLIC_API_URL || "https://bestselection.life/backend/"
   }
 
   setAuthToken(token: string | null) {
@@ -166,6 +166,71 @@ class APIClient {
     // Convenience helpers to keep existing call sites working
     sendVitaAI: (message: string, conversationId?: string, title?: string) => this.chats.send("VITAAI", message, conversationId, title),
     sendExecuWell: (message: string, conversationId?: string, title?: string) => this.chats.send("EXECUWELL", message, conversationId, title),
+
+    // Voice send (multipart)
+    sendVoice: async (
+      service: "VITAAI" | "EXECUWELL",
+      audioFile: File,
+      conversationId?: string,
+      title?: string
+    ) => {
+      const url = `${this.baseURL}/chat/voice`;
+      const formData = new FormData();
+      formData.append("service", service);
+      if (conversationId) formData.append("conversationId", conversationId);
+      if (title) formData.append("title", title);
+      formData.append("audio", audioFile);
+
+      const headers: Record<string, string> = {};
+      if (this.authToken) headers["Authorization"] = `Bearer ${this.authToken}`;
+      // NOTE: Do not set Content-Type for FormData; browser will set boundary
+
+      const resp = await fetch(url, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        throw new Error(data?.error || data?.message || `HTTP ${resp.status}`);
+      }
+      return data as { conversationId: string; message: string; transcript: string; audioPath: string; service: string; timestamp: string };
+    },
+
+    // Step 1: upload audio only
+    uploadVoice: async (
+      service: "VITAAI" | "EXECUWELL",
+      audioFile: File,
+      conversationId?: string,
+      title?: string
+    ) => {
+      const url = `${this.baseURL}/chat/voice/upload`;
+      const formData = new FormData();
+      formData.append("service", service);
+      if (conversationId) formData.append("conversationId", conversationId);
+      if (title) formData.append("title", title);
+      formData.append("audio", audioFile);
+
+      const headers: Record<string, string> = {};
+      if (this.authToken) headers["Authorization"] = `Bearer ${this.authToken}`;
+
+      const resp = await fetch(url, { method: "POST", headers, body: formData });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.error || data?.message || `HTTP ${resp.status}`);
+      return data as { conversationId: string; audioPath: string; service: string; timestamp: string };
+    },
+
+    // Step 2: process audio at path (transcribe + AI)
+    processVoice: async (
+      service: "VITAAI" | "EXECUWELL",
+      conversationId: string,
+      audioPath: string
+    ) => {
+      return this.request<{ conversationId: string; message: string; transcript: string; service: string; timestamp: string }>("/chat/voice/process", {
+        method: "POST",
+        body: { service, conversationId, audioPath },
+      });
+    },
   }
 
   // Personality upload mapped to backend /personality

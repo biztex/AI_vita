@@ -1,16 +1,40 @@
 import { Router } from "express";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../middlewares/auth.js";
 import { processChat, validateChatInput, getOrCreateConversation, saveMessage, getConversationHistory } from "../services/chatService.js";
+import OpenAI from "openai";
+import { ENV } from "../env.js";
 // import { rateLimit } from "../middlewares/rateLimit.ts";
 
 const r = Router();
+
+// Ensure upload directory exists
+const uploadRoot = path.resolve('upload');
+const audioDir = path.join(uploadRoot, 'audio');
+fs.mkdirSync(audioDir, { recursive: true });
+
+// Configure disk storage to persist files under upload/audio
+const storage = multer.diskStorage({
+  destination: (_req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
+    cb(null, audioDir);
+  },
+  filename: (_req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
+    const ext = path.extname(file.originalname || '') || (file.mimetype?.includes('mp4') ? '.mp4' : '.webm');
+    const base = Date.now().toString();
+    cb(null, `${base}${ext}`);
+  },
+});
+const upload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 } });
+const openai = new OpenAI({ apiKey: ENV.OPENAI_API_KEY });
 
 // rateLimit((req) => `chat:${req.user.id}`, 30, 60),
 
 r.post("/", requireAuth(), async (req: any, res: any, next: any) => {
   try {
-    console.log(req.body);
+    // console.log(req.body);
     const { service, content, conversationId, title } = req.body;
     
     // Validate input
@@ -242,3 +266,126 @@ r.delete("/conversation/:conversationId", requireAuth(), async (req: any, res: a
 });
 
 export default r;
+
+// Voice upload and transcription (single-step legacy)
+r.post("/voice", requireAuth(), upload.single("audio"), async (req: any, res: any, next: any) => {
+  try {
+    const { service, conversationId, title } = req.body as { service: "VITAAI" | "EXECUWELL"; conversationId?: string; title?: string };
+
+    if (!service || !["VITAAI", "EXECUWELL"].includes(service)) {
+      return res.status(400).json({ error: "無効なサービスタイプです。VITAAIまたはEXECUWELLである必要があります" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: "音声ファイルが必要です" });
+    }
+
+    // Public path to serve this audio (served at /uploads mapping)
+    const relativePath = `/uploads/audio/${path.basename(req.file.path)}`;
+
+    // Transcribe via Whisper using file stream
+    const transcriptResp = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(req.file.path) as any,
+      model: "whisper-1",
+      language: "en",
+    } as any);
+    console.log('transcriptResp', transcriptResp);
+    const transcript: string = (transcriptResp as any).text || (transcriptResp as any).transcript || "";
+    if (!transcript || transcript.trim().length === 0) {
+      return res.status(400).json({ error: "音声の文字起こしに失敗しました" });
+    }
+    // console.log(transcript);
+
+    const activeConversationId = await getOrCreateConversation(req.user.id, service, conversationId, title);
+    // Save user message as AUDIO kind with content = path
+    await saveMessage(activeConversationId, 'USER', relativePath, 'VOICE');
+
+    const reply = await processChat(service, transcript, req.user.id, activeConversationId);
+    await saveMessage(activeConversationId, 'ASSISTANT', reply);
+
+    res.json({
+      conversationId: activeConversationId,
+      message: reply,
+      transcript,
+      audioPath: relativePath,
+      service,
+      timestamp: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error('Voice chat error:', e);
+    next(e);
+  }
+});
+
+// Step 1: Upload audio and save VOICE message with file path
+r.post("/voice/upload", requireAuth(), upload.single("audio"), async (req: any, res: any, next: any) => {
+  try {
+    const { service, conversationId, title } = req.body as { service: "VITAAI" | "EXECUWELL"; conversationId?: string; title?: string };
+
+    if (!service || !["VITAAI", "EXECUWELL"].includes(service)) {
+      return res.status(400).json({ error: "無効なサービスタイプです。VITAAIまたはEXECUWELLである必要があります" });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: "音声ファイルが必要です" });
+    }
+
+    const relativePath = `/uploads/audio/${path.basename(req.file.path)}`;
+    const activeConversationId = await getOrCreateConversation(req.user.id, service, conversationId, title);
+    await saveMessage(activeConversationId, 'USER', relativePath, 'VOICE');
+
+    res.json({
+      conversationId: activeConversationId,
+      audioPath: relativePath,
+      service,
+      timestamp: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error('Voice upload error:', e);
+    next(e);
+  }
+});
+
+// Step 2: Process uploaded audio (transcribe + AI reply)
+r.post("/voice/process", requireAuth(), async (req: any, res: any, next: any) => {
+  try {
+    const { service, conversationId, audioPath } = req.body as { service: "VITAAI" | "EXECUWELL"; conversationId: string; audioPath: string };
+    if (!service || !["VITAAI", "EXECUWELL"].includes(service)) {
+      return res.status(400).json({ error: "無効なサービスタイプです。VITAAIまたはEXECUWELLである必要があります" });
+    }
+    if (!conversationId || !audioPath) {
+      return res.status(400).json({ error: "会話IDと音声パスが必要です" });
+    }
+
+    // Resolve local file system path securely
+    const baseDir = path.resolve('upload/audio');
+    const fileName = path.basename(audioPath);
+    const absolutePath = path.join(baseDir, fileName);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ error: "音声ファイルが見つかりません" });
+    }
+
+    const transcriptResp = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(absolutePath) as any,
+      model: "whisper-1",
+      language: "en",
+    } as any);
+    const transcript: string = (transcriptResp as any).text || (transcriptResp as any).transcript || "";
+    if (!transcript || transcript.trim().length === 0) {
+      return res.status(400).json({ error: "音声の文字起こしに失敗しました" });
+    }
+
+    const reply = await processChat(service, transcript, req.user.id, conversationId);
+    await saveMessage(conversationId, 'ASSISTANT', reply);
+
+    res.json({
+      conversationId,
+      message: reply,
+      transcript,
+      service,
+      timestamp: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error('Voice process error:', e);
+    next(e);
+  }
+});

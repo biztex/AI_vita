@@ -7,22 +7,22 @@ import { Users, MessageSquare, FileText, LayoutDashboard } from "lucide-react"
 
 const sidebarItems = [
   {
-    title: "Overview",
+    title: "概要",
     href: "/admin",
     icon: LayoutDashboard,
   },
   {
-    title: "Users",
+    title: "ユーザー",
     href: "/admin/users",
     icon: Users,
   },
   {
-    title: "Chats",
+    title: "会話",
     href: "/admin/chats",
     icon: MessageSquare,
   },
   {
-    title: "Reports",
+    title: "レポート",
     href: "/admin/reports",
     icon: FileText,
   },
@@ -35,8 +35,8 @@ export function AdminSidebar() {
     <aside className="w-64 border-r border-border bg-muted/30">
       <div className="flex h-full flex-col">
         <div className="border-b border-border p-6">
-          <h2 className="text-lg font-semibold">Admin Panel</h2>
-          <p className="text-sm text-muted-foreground">Manage your platform</p>
+          <h2 className="text-lg font-semibold">管理パネル</h2>
+          <p className="text-sm text-muted-foreground">プラットフォームを管理</p>
         </div>
         <nav className="flex-1 space-y-1 p-4">
           {sidebarItems.map((item) => {

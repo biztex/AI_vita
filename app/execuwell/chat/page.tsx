@@ -16,6 +16,7 @@ type Message = {
   id: string
   role: "user" | "assistant"
   content: string
+  kind?: "TEXT" | "VOICE" | "IMAGE"
   timestamp: string
 }
 
@@ -35,6 +36,7 @@ function ExecuWellChatContent() {
         id: msg.id,
         role: msg.sender === "USER" ? "user" : "assistant",
         content: msg.content,
+      kind: msg.kind,
         timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       }))
       setMessages(formattedMessages)
@@ -80,14 +82,29 @@ function ExecuWellChatContent() {
       id: Date.now().toString(),
       role: "user",
       content,
+      kind: type === "voice" ? "VOICE" : undefined,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     }
     setMessages((prev) => [...prev, userMessage])
 
     setIsLoading(true)
     try {
-      // Call backend ExecuWell chat with conversation ID
-      const resp = await apiClient.chats.send("EXECUWELL", content, currentConversationId || undefined)
+      let resp: { conversationId: string; message: string; timestamp: string }
+      if (type === "voice" && file) {
+        // Step 1: upload, show audio bubble immediately
+        const upload = await apiClient.chats.uploadVoice("EXECUWELL", file, currentConversationId || undefined)
+        if (!currentConversationId) {
+          setCurrentConversationId(upload.conversationId)
+        }
+        setMessages((prev) => prev.map((m) => m.id === userMessage.id ? { ...m, content: upload.audioPath, kind: "VOICE" } : m))
+
+        // Step 2: process (transcribe + AI)
+        const processed = await apiClient.chats.processVoice("EXECUWELL", upload.conversationId, upload.audioPath)
+        resp = { conversationId: processed.conversationId, message: processed.message, timestamp: processed.timestamp }
+      } else {
+        // Call backend ExecuWell chat with conversation ID
+        resp = await apiClient.chats.send("EXECUWELL", content, currentConversationId || undefined)
+      }
 
       // Update conversation ID if this was a new conversation
       if (!currentConversationId) {
@@ -174,6 +191,7 @@ function ExecuWellChatContent() {
                   key={message.id}
                   role={message.role}
                   content={message.content}
+                  kind={message.kind}
                   timestamp={message.timestamp}
                   userName={user?.name}
                   service="execuwell"

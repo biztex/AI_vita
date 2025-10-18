@@ -70,7 +70,7 @@ export function ChatSidebar({
   }
 
   // Filter conversations based on search query
-  const filteredConversations = conversations.filter(conv =>
+  const filteredConversations = conversations?.filter(conv =>
     conv.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     conv.lastMessage?.content.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -235,7 +235,7 @@ export function ChatSidebar({
                 </div>
               ))}
             </div>
-          ) : filteredConversations.length === 0 ? (
+          ) : filteredConversations?.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
               <p className="text-sm">
@@ -254,7 +254,7 @@ export function ChatSidebar({
             </div>
           ) : (
             <div className="space-y-1">
-              {filteredConversations.map((conversation) => (
+              {filteredConversations?.map((conversation) => (
                 <div
                   key={conversation.id}
                   className={cn(

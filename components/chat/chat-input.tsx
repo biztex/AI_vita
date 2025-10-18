@@ -18,14 +18,20 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const recognitionRef = useRef<any>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<BlobPart[]>([])
+  const streamRef = useRef<MediaStream | null>(null)
 
   useEffect(() => {
     return () => {
-      if (recognitionRef.current) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         try {
-          recognitionRef.current.abort()
+          mediaRecorderRef.current.stop()
         } catch {}
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop())
+        streamRef.current = null
       }
     }
   }, [])
@@ -44,66 +50,60 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
     }
   }
 
-  const startRecognition = () => {
+  const startRecording = async () => {
     if (disabled || isRecording) return
-    const SpeechRecognition: any =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-
-    if (!SpeechRecognition) {
-      console.warn("Web Speech API not supported in this browser.")
-      return
-    }
-
-    const recognition = new SpeechRecognition()
-    recognition.lang = "ja-JP" // default to Japanese; adjust as needed
-    recognition.interimResults = true
-    recognition.continuous = true
-
-    recognition.onresult = (event: any) => {
-      let transcript = ""
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript
-      }
-      setMessage((prev) => {
-        // Replace current message while recording so user can see live text
-        return transcript
-      })
-    }
-
-    recognition.onend = () => {
-      setIsRecording(false)
-      recognitionRef.current = null
-    }
-
-    recognition.onerror = () => {
-      setIsRecording(false)
-      recognitionRef.current = null
-    }
-
     try {
-      recognition.start()
-      recognitionRef.current = recognition
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      const options: MediaRecorderOptions = {}
+      // Prefer webm if supported
+      if (MediaRecorder.isTypeSupported("audio/webm")) {
+        options.mimeType = "audio/webm"
+      } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+        options.mimeType = "audio/mp4"
+      }
+      const recorder = new MediaRecorder(stream, options)
+      audioChunksRef.current = []
+      recorder.ondataavailable = (event: BlobEvent) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+      recorder.onstop = async () => {
+        const mimeType = recorder.mimeType || "audio/webm"
+        const blob = new Blob(audioChunksRef.current, { type: mimeType })
+        const fileName = mimeType.includes("mp4") ? "voice.mp4" : "voice.webm"
+        const file = new File([blob], fileName, { type: mimeType })
+        onSendMessage("[Voice message]", "voice", file)
+        audioChunksRef.current = []
+      }
+      mediaRecorderRef.current = recorder
+      recorder.start()
       setIsRecording(true)
     } catch (e) {
-      console.warn("Failed to start recognition", e)
+      console.warn("Failed to start recording", e)
+      setIsRecording(false)
     }
   }
 
-  const stopRecognition = () => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop()
-      } catch {}
-      recognitionRef.current = null
+  const stopRecording = () => {
+    try {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop()
+      }
+    } catch {}
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop())
+      streamRef.current = null
     }
     setIsRecording(false)
   }
 
   const toggleRecording = () => {
     if (isRecording) {
-      stopRecognition()
+      stopRecording()
     } else {
-      startRecognition()
+      startRecording()
     }
   }
 
@@ -163,7 +163,7 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isRecording ? "🎤 音声認識中... 話しかけてください" : "💬 メッセージを入力..."}
+            placeholder={isRecording ? "🎤 録音中... 停止で送信" : "💬 メッセージを入力..."}
             className="min-h-[60px] resize-none border-2 border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200/50 bg-white/80 backdrop-blur-sm"
             disabled={disabled}
           />
