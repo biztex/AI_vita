@@ -149,41 +149,31 @@ function VitaAIChatContent() {
       {/* Main Chat Area */}
       <div className="flex flex-1 flex-col">
         {/* Chat Header */}
-        <div className="flex items-center justify-between border-b border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 px-4 md:px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border/50 bg-gradient-to-r from-background/95 to-background/90 backdrop-blur-sm px-4 md:px-6 py-4">
           <div className="flex items-center space-x-3">
-            {/* Mobile sidebar trigger */}
-            <div className="md:hidden">
-              <ChatMobileSidebar
-                service="VITAAI"
-                currentConversationId={currentConversationId || undefined}
-                onConversationSelect={handleConversationSelect}
-                onNewConversation={handleNewConversation}
-              />
-            </div>
-            
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg">
-              <Activity className="h-5 w-5 text-white" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-vitaai to-success shadow-lg hover:shadow-xl hover:shadow-vitaai/30 transition-all duration-300 hover:scale-105">
+              <Activity className="h-6 w-6 text-vitaai-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-blue-800">VitaAI</h1>
-              <p className="text-sm text-blue-600">健康インテリジェンスアシスタント</p>
+              <h1 className="text-lg font-semibold text-vitaai">VitaAI</h1>
+              <p className="text-sm text-muted-foreground">健康インテリジェンスアシスタント</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-800 hover:bg-blue-100">
+          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-vitaai hover:bg-vitaai/10 transition-all duration-300 hover:scale-105">
             <Settings className="h-5 w-5" />
             <span className="sr-only">チャット設定</span>
           </Button>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 space-y-6 overflow-y-auto p-4 md:p-6 bg-gradient-to-b from-white to-blue-50/30">
+        <div className="flex-1 space-y-6 overflow-y-auto p-4 md:p-6 bg-gradient-to-b from-background to-background/50">
           {isLoadingConversation ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg mx-auto mb-4">
-                  <Activity className="h-4 w-4 text-white animate-pulse" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-vitaai to-success shadow-lg mx-auto mb-4 animate-pulse">
+                  <Activity className="h-6 w-6 text-vitaai-foreground" />
                 </div>
-                <p className="text-sm text-blue-600">会話を読み込み中...</p>
+                <p className="text-sm text-muted-foreground font-medium">会話を読み込み中...</p>
               </div>
             </div>
           ) : (
@@ -200,14 +190,15 @@ function VitaAIChatContent() {
                 />
               ))}
               {isLoading && (
-                <div className="flex gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg">
-                    <Activity className="h-4 w-4 text-white" />
+                <div className="flex gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-r from-vitaai to-success shadow-lg">
+                    <Activity className="h-5 w-5 text-vitaai-foreground animate-pulse" />
                   </div>
-                  <div className="flex items-center space-x-2 rounded-2xl bg-gradient-to-r from-blue-100 to-purple-100 px-4 py-3 border border-blue-200">
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-blue-500 [animation-delay:-0.3s]" />
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-purple-500 [animation-delay:-0.15s]" />
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-blue-500" />
+                  <div className="flex items-center space-x-2 rounded-2xl bg-gradient-to-r from-card to-card/80 px-5 py-4 border border-border/50 shadow-sm">
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-vitaai [animation-delay:-0.3s]" />
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-success [animation-delay:-0.15s]" />
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-vitaai" />
+                    <span className="ml-2 text-sm text-muted-foreground font-medium">AIが考えています...</span>
                   </div>
                 </div>
               )}
@@ -221,6 +212,14 @@ function VitaAIChatContent() {
 
       {/* Info Panel */}
       {user && <ChatInfoPanel user={user} service="vitaai" />}
+
+      {/* Mobile Sidebar */}
+      <ChatMobileSidebar
+        service="VITAAI"
+        currentConversationId={currentConversationId || undefined}
+        onConversationSelect={handleConversationSelect}
+        onNewConversation={handleNewConversation}
+      />
     </div>
   )
 }

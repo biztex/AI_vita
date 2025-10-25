@@ -147,41 +147,31 @@ function ExecuWellChatContent() {
       {/* Main Chat Area */}
       <div className="flex flex-1 flex-col">
         {/* Chat Header */}
-        <div className="flex items-center justify-between border-b border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 px-4 md:px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border/50 bg-gradient-to-r from-background/95 to-background/90 backdrop-blur-sm px-4 md:px-6 py-4">
           <div className="flex items-center space-x-3">
-            {/* Mobile sidebar trigger */}
-            <div className="md:hidden">
-              <ChatMobileSidebar
-                service="EXECUWELL"
-                currentConversationId={currentConversationId || undefined}
-                onConversationSelect={handleConversationSelect}
-                onNewConversation={handleNewConversation}
-              />
-            </div>
-            
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg">
-              <Briefcase className="h-5 w-5 text-white" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-execuwell to-accent shadow-lg hover:shadow-xl hover:shadow-execuwell/30 transition-all duration-300 hover:scale-105">
+              <Briefcase className="h-6 w-6 text-execuwell-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-emerald-800">ExecuWell</h1>
-              <p className="text-sm text-emerald-600">ビジネスインテリジェンスパートナー</p>
+              <h1 className="text-lg font-semibold text-execuwell">ExecuWell</h1>
+              <p className="text-sm text-muted-foreground">ビジネスインテリジェンスパートナー</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100">
+          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-execuwell hover:bg-execuwell/10 transition-all duration-300 hover:scale-105">
             <Settings className="h-5 w-5" />
             <span className="sr-only">チャット設定</span>
           </Button>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 space-y-6 overflow-y-auto p-4 md:p-6 bg-gradient-to-b from-white to-emerald-50/30">
+        <div className="flex-1 space-y-6 overflow-y-auto p-4 md:p-6 bg-gradient-to-b from-background to-background/50">
           {isLoadingConversation ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg mx-auto mb-4">
-                  <Briefcase className="h-4 w-4 text-white animate-pulse" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-execuwell to-accent shadow-lg mx-auto mb-4 animate-pulse">
+                  <Briefcase className="h-6 w-6 text-execuwell-foreground" />
                 </div>
-                <p className="text-sm text-emerald-600">会話を読み込み中...</p>
+                <p className="text-sm text-muted-foreground font-medium">会話を読み込み中...</p>
               </div>
             </div>
           ) : (
@@ -198,14 +188,15 @@ function ExecuWellChatContent() {
                 />
               ))}
               {isLoading && (
-                <div className="flex gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg">
-                    <Briefcase className="h-4 w-4 text-white" />
+                <div className="flex gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-r from-execuwell to-accent shadow-lg">
+                    <Briefcase className="h-5 w-5 text-execuwell-foreground animate-pulse" />
                   </div>
-                  <div className="flex items-center space-x-2 rounded-2xl bg-gradient-to-r from-emerald-100 to-teal-100 px-4 py-3 border border-emerald-200">
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-emerald-500 [animation-delay:-0.3s]" />
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-teal-500 [animation-delay:-0.15s]" />
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-emerald-500" />
+                  <div className="flex items-center space-x-2 rounded-2xl bg-gradient-to-r from-card to-card/80 px-5 py-4 border border-border/50 shadow-sm">
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-execuwell [animation-delay:-0.3s]" />
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-accent [animation-delay:-0.15s]" />
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-execuwell" />
+                    <span className="ml-2 text-sm text-muted-foreground font-medium">AIが考えています...</span>
                   </div>
                 </div>
               )}
@@ -219,6 +210,14 @@ function ExecuWellChatContent() {
 
       {/* Info Panel */}
       {user && <ChatInfoPanel user={user} service="execuwell" />}
+
+      {/* Mobile Sidebar */}
+      <ChatMobileSidebar
+        service="EXECUWELL"
+        currentConversationId={currentConversationId || undefined}
+        onConversationSelect={handleConversationSelect}
+        onNewConversation={handleNewConversation}
+      />
     </div>
   )
 }

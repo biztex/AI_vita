@@ -26,8 +26,8 @@ function DashboardContent() {
         {/* VitaAI Card */}
         <Card className="group relative overflow-hidden border-2 transition-all hover:border-primary text-center">
           <CardHeader className="flex flex-col items-center justify-center">
-            <div className="mb-4 flex h-36 w-32 items-center justify-center rounded-2xl text-center">
-              <Image src="/img/ai-doctor.png" alt="vitaai" width='200' height='300' />
+            <div className="mb-4 flex h-40 w-40 items-center justify-center rounded-2xl text-center">
+              <Image src="/img/ai-doctor.png" alt="vitaai" />
               {/* <Activity className="h-7 w-7 text-primary" /> */} 
             </div>
             <CardTitle className="text-2xl">VitaAI</CardTitle>
@@ -49,9 +49,9 @@ function DashboardContent() {
         {/* ExecuWell Card */}
         <Card className="group relative overflow-hidden border-2 transition-all hover:border-primary">
           <CardHeader className="flex flex-col items-center justify-center">
-            <div className="mb-4 flex h-36 w-32 items-center justify-center rounded-2xl">
+            <div className="mb-4 flex h-40 w-40 items-center justify-center rounded-2xl">
               {/* <Briefcase className="h-7 w-7 text-primary" /> */}
-              <Image src="/img/management.png" alt="execuwell" width='200' height='300' />
+              <Image src="/img/management.png" alt="execuwell" />
 
             </div>
             <CardTitle className="text-2xl">ExecuWell</CardTitle>

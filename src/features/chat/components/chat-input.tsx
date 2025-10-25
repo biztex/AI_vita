@@ -5,7 +5,7 @@ import type React from "react"
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Send, Mic, MicOff, ImageIcon } from "lucide-react"
+import { Send, Mic, MicOff, ImageIcon, Paperclip, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type ChatInputProps = {
@@ -17,10 +17,12 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
   const [message, setMessage] = useState("")
   const [isRecording, setIsRecording] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [isTyping, setIsTyping] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<BlobPart[]>([])
   const streamRef = useRef<MediaStream | null>(null)
+  const typingTimeoutRef = useRef<NodeJS.Timeout>()
 
   useEffect(() => {
     return () => {
@@ -33,6 +35,9 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
         streamRef.current.getTracks().forEach((t) => t.stop())
         streamRef.current = null
       }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+      }
     }
   }, [])
 
@@ -40,6 +45,7 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
     if (message.trim() && !disabled) {
       onSendMessage(message, "text")
       setMessage("")
+      setIsTyping(false)
     }
   }
 
@@ -48,6 +54,19 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
       e.preventDefault()
       handleSendText()
     }
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value)
+    setIsTyping(true)
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false)
+    }, 1000)
   }
 
   const startRecording = async () => {
@@ -149,8 +168,9 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
   return (
     <div
       className={cn(
-        "border-t border-blue-200 bg-gradient-to-r from-blue-50/50 to-purple-50/50 p-4",
-        isDragging && "bg-gradient-to-r from-blue-100 to-purple-100"
+        "border-t border-border/50 bg-gradient-to-r from-background/95 to-background/90 backdrop-blur-sm p-4 transition-all duration-300",
+        isDragging && "bg-gradient-to-r from-primary/10 to-accent/10 border-primary/50",
+        isTyping && "border-primary/30"
       )}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
@@ -158,15 +178,26 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
       onDrop={handleDrop}
     >
       <div className="flex items-end gap-3">
-        <div className="flex-1">
+        <div className="flex-1 relative">
           <Textarea
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder={isRecording ? "🎤 録音中... 停止で送信" : "💬 メッセージを入力..."}
-            className="min-h-[60px] resize-none border-2 border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200/50 bg-white/80 backdrop-blur-sm"
+            placeholder={isRecording ? "🎤 録音中... 停止で送信" : "💬 AIに質問してください..."}
+            className={cn(
+              "min-h-[60px] resize-none border-2 transition-all duration-300 bg-background/80 backdrop-blur-sm",
+              "focus:border-primary focus:ring-2 focus:ring-primary/20",
+              isRecording && "border-destructive/50 bg-destructive/5",
+              isTyping && "border-primary/50 bg-primary/5"
+            )}
             disabled={disabled}
           />
+          {isTyping && (
+            <div className="absolute top-2 right-2 flex items-center gap-1 text-primary">
+              <Sparkles className="h-3 w-3 animate-pulse" />
+              <span className="text-xs font-medium">入力中...</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -178,15 +209,16 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
             className="hidden"
             disabled={disabled}
           />
+          
           <Button
             type="button"
             variant="outline"
             size="icon"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled}
-            className="h-[60px] w-[60px] border-2 border-green-300 hover:border-green-400 hover:bg-green-50 text-green-600 hover:text-green-700 transition-all duration-200"
+            className="h-[60px] w-[60px] border-2 border-border/50 hover:border-primary/50 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-105"
           >
-            <ImageIcon className="h-5 w-5" />
+            <Paperclip className="h-5 w-5" />
             <span className="sr-only">ファイルを選択</span>
           </Button>
 
@@ -197,10 +229,10 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
             onClick={toggleRecording}
             disabled={disabled}
             className={cn(
-              "h-[60px] w-[60px] transition-all duration-200",
+              "h-[60px] w-[60px] transition-all duration-300",
               isRecording 
-                ? "bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-200 animate-pulse" 
-                : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg shadow-blue-200 hover:shadow-blue-300"
+                ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg shadow-destructive/25 animate-pulse hover:scale-105" 
+                : "bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-105"
             )}
           >
             {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
@@ -211,7 +243,7 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
             onClick={handleSendText} 
             disabled={!message.trim() || disabled} 
             size="icon" 
-            className="h-[60px] w-[60px] bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all duration-200"
+            className="h-[60px] w-[60px] bg-gradient-to-r from-success to-success/90 hover:from-success/90 hover:to-success text-success-foreground shadow-lg shadow-success/25 hover:shadow-success/40 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             <Send className="h-5 w-5" />
             <span className="sr-only">メッセージを送信</span>
@@ -219,8 +251,20 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
         </div>
       </div>
 
-      <div className="mt-3 text-center text-sm text-blue-600/70 font-medium">
-        📁 ドラッグ＆ドロップでPDF/画像をアップロード（対応: PDF、PNG、JPG 最大10MB）
+      <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1">
+            <Paperclip className="h-3 w-3" />
+            <span>ドラッグ＆ドロップでファイルをアップロード</span>
+          </span>
+          <span className="text-xs">PDF、PNG、JPG 最大10MB</span>
+        </div>
+        {isRecording && (
+          <div className="flex items-center gap-2 text-destructive">
+            <div className="h-2 w-2 rounded-full bg-destructive animate-pulse"></div>
+            <span className="font-medium">録音中...</span>
+          </div>
+        )}
       </div>
     </div>
   )

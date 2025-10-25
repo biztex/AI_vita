@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Activity, Briefcase } from "lucide-react"
+import { Activity, Briefcase, Bot, User, Volume2, Play, Pause } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
 
 type ChatMessageProps = {
   role: "user" | "assistant"
@@ -14,39 +15,132 @@ type ChatMessageProps = {
 export function ChatMessage({ role, content, kind = "TEXT", timestamp, userName, service = "vitaai" }: ChatMessageProps) {
   const isUser = role === "user"
   const Icon = service === "vitaai" ? Activity : Briefcase
+  const [isPlaying, setIsPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  const handlePlayPause = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause()
+      } else {
+        audioRef.current.play()
+      }
+      setIsPlaying(!isPlaying)
+    }
+  }
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (audio) {
+      const handleEnded = () => setIsPlaying(false)
+      const handlePlay = () => setIsPlaying(true)
+      const handlePause = () => setIsPlaying(false)
+      
+      audio.addEventListener('ended', handleEnded)
+      audio.addEventListener('play', handlePlay)
+      audio.addEventListener('pause', handlePause)
+      
+      return () => {
+        audio.removeEventListener('ended', handleEnded)
+        audio.removeEventListener('play', handlePlay)
+        audio.removeEventListener('pause', handlePause)
+      }
+    }
+  }, [])
 
   return (
-    <div className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}>
+    <div className={cn("flex gap-4 group", isUser ? "justify-end" : "justify-start")}>
       {!isUser && (
-        <Avatar className="h-8 w-8 ring-2 ring-blue-200">
-          <AvatarFallback className="bg-gradient-to-r from-blue-100 to-purple-100">
-            <Icon className="h-4 w-4 text-blue-600" />
-          </AvatarFallback>
-        </Avatar>
+        <div className="flex flex-col items-center gap-2">
+          <Avatar className="h-10 w-10 ring-2 ring-primary/20 hover:ring-primary/40 transition-all duration-300 group-hover:scale-105">
+            <AvatarFallback className={cn(
+              "bg-gradient-to-br shadow-lg",
+              service === "vitaai" 
+                ? "from-vitaai to-success text-vitaai-foreground" 
+                : "from-execuwell to-accent text-execuwell-foreground"
+            )}>
+              <Icon className="h-5 w-5" />
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Bot className="h-3 w-3" />
+            <span className="font-medium">{service === "vitaai" ? "VitaAI" : "ExecuWell"}</span>
+          </div>
+        </div>
       )}
-      <div className={cn("flex max-w-[80%] flex-col gap-1", isUser && "items-end")}>
+      
+      <div className={cn("flex max-w-[80%] flex-col gap-2", isUser && "items-end")}>
         <div
           className={cn(
-            "rounded-2xl px-4 py-3 shadow-sm",
+            "rounded-2xl px-5 py-4 shadow-sm transition-all duration-300 group-hover:shadow-md",
             isUser 
-              ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-blue-200" 
-              : "bg-gradient-to-r from-gray-50 to-blue-50 text-gray-800 border border-blue-100",
+              ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-primary/20 hover:shadow-primary/30" 
+              : cn(
+                  "bg-gradient-to-r from-card to-card/80 text-card-foreground border border-border/50 hover:border-border/80",
+                  service === "vitaai" 
+                    ? "hover:shadow-vitaai/10" 
+                    : "hover:shadow-execuwell/10"
+                ),
           )}
         >
           {kind === "VOICE" ? (
-            <audio src={`/backend/${content}`} controls className="max-w-full" />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handlePlayPause}
+                className={cn(
+                  "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 hover:scale-110",
+                  isPlaying 
+                    ? "bg-destructive/20 text-destructive hover:bg-destructive/30" 
+                    : "bg-primary/20 text-primary hover:bg-primary/30"
+                )}
+              >
+                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              </button>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-1">
+                  <Volume2 className="h-4 w-4" />
+                  <span>音声メッセージ</span>
+                </div>
+                <audio 
+                  ref={audioRef}
+                  src={`/backend/${content}`} 
+                  className="w-full"
+                  preload="metadata"
+                />
+              </div>
+            </div>
           ) : (
-            <p className="text-sm leading-relaxed">{content}</p>
+            <div className="prose prose-sm max-w-none">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
+            </div>
           )}
         </div>
-        {timestamp && <span className="text-xs text-blue-500/70 font-medium">{timestamp}</span>}
+        
+        {timestamp && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground font-medium">{timestamp}</span>
+            {!isUser && (
+              <div className="flex items-center gap-1">
+                <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse"></div>
+                <span className="text-xs text-success font-medium">AI</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+      
       {isUser && (
-        <Avatar className="h-8 w-8 ring-2 ring-emerald-200">
-          <AvatarFallback className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white">
-            {userName?.charAt(0).toUpperCase() || "U"}
-          </AvatarFallback>
-        </Avatar>
+        <div className="flex flex-col items-center gap-2">
+          <Avatar className="h-10 w-10 ring-2 ring-primary/20 hover:ring-primary/40 transition-all duration-300 group-hover:scale-105">
+            <AvatarFallback className="bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
+              {userName?.charAt(0).toUpperCase() || "U"}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <User className="h-3 w-3" />
+            <span className="font-medium">あなた</span>
+          </div>
+        </div>
       )}
     </div>
   )
