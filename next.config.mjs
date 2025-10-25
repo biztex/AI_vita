@@ -6,10 +6,7 @@ const nextConfig = {
     'http://localhost:3000' // your local dev server
   ],
 
-  // ✅ ESLint config is also top-level
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // ESLint config removed - no longer supported in Next.js 16
 
   // ✅ TypeScript config — still fine at top level
   typescript: {
