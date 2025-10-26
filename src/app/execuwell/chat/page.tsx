@@ -8,6 +8,7 @@ import { ChatInput } from "@/features/chat/components/chat-input"
 import { ChatInfoPanel } from "@/features/chat/components/chat-info-panel"
 import { ChatSidebar } from "@/features/chat/components/chat-sidebar"
 import { ChatMobileSidebar } from "@/features/chat/components/chat-mobile-sidebar"
+import { PersonalityAssessmentModal } from "@/features/personality/components/personality-assessment-modal"
 import { Button } from "@/components/ui/button"
 import { Briefcase, Settings } from "lucide-react"
 import { apiClient, ConversationMessage } from "@/lib/api"
@@ -26,6 +27,8 @@ function ExecuWellChatContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [isLoadingConversation, setIsLoadingConversation] = useState(false)
+  const [showPersonalityModal, setShowPersonalityModal] = useState(false)
+  const [hasCheckedPersonality, setHasCheckedPersonality] = useState(false)
 
   // Load conversation when conversationId changes
   const loadConversation = async (conversationId: string) => {
@@ -64,9 +67,34 @@ function ExecuWellChatContent() {
     loadConversation(conversationId)
   }
 
+  // Check for personality results on mount
+  useEffect(() => {
+    const checkPersonalityResults = async () => {
+      if (hasCheckedPersonality) return
+      try {
+        const response = await apiClient.personality.getResults()
+        const results = response.results
+        // Check if user has all 4 personality test results
+        const requiredTests = ["SIXTEEN_PERSONALITIES", "ENNEAGRAM", "DISC", "CLIFTONSTRENGTHS"]
+        const completedTests = results.map(r => r.testType)
+        const hasAllTests = requiredTests.every(test => completedTests.includes(test))
+        
+        if (!hasAllTests) {
+          setShowPersonalityModal(true)
+        }
+        setHasCheckedPersonality(true)
+      } catch (error) {
+        console.error("Failed to check personality results:", error)
+        setHasCheckedPersonality(true)
+      }
+    }
+    
+    checkPersonalityResults()
+  }, [hasCheckedPersonality])
+
   // Load initial conversation or show welcome message
   useEffect(() => {
-    if (!currentConversationId && messages.length === 0) {
+    if (!currentConversationId && messages.length === 0 && !showPersonalityModal) {
       setMessages([{
         id: "welcome",
         role: "assistant",
@@ -74,7 +102,7 @@ function ExecuWellChatContent() {
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       }])
     }
-  }, [currentConversationId, messages.length])
+  }, [currentConversationId, messages.length, showPersonalityModal])
 
   const handleSendMessage = async (content: string, type: "text" | "voice" | "image", file?: File) => {
     // Add user message
@@ -131,7 +159,16 @@ function ExecuWellChatContent() {
     }
   }
 
+  const handlePersonalityComplete = async () => {
+    setShowPersonalityModal(false)
+  }
+
   return (
+    <>
+      <PersonalityAssessmentModal 
+        isOpen={showPersonalityModal} 
+        onComplete={handlePersonalityComplete}
+      />
     <div className="flex h-[calc(100vh-4rem)]">
       {/* Desktop Sidebar */}
       <div className="hidden md:flex md:w-80">
@@ -219,6 +256,7 @@ function ExecuWellChatContent() {
         onNewConversation={handleNewConversation}
       />
     </div>
+    </>
   )
 }
 

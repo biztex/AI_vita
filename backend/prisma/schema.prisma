@@ -46,7 +46,8 @@ model PersonalityResult {
   id        String   @id @default(uuid())
   ownerId   String
   testType  TestType
-  fileKey   String
+  result    String?  // Store the actual test result (e.g., "INFP", "Type 5", etc.)
+  fileKey   String?
   status    Status   @default(RECEIVED)
   createdAt DateTime @default(now())
 
@@ -83,6 +84,9 @@ enum MessageKind {
 enum TestType {
   SIXTEEN_PERSONALITIES
   STRENGTHSFINDER
+  ENNEAGRAM
+  DISC
+  CLIFTONSTRENGTHS
 }
 
 enum Status {

@@ -219,12 +219,22 @@ class APIClient {
     },
   }
 
-  // Personality upload mapped to backend /personality
+  // Personality endpoints mapped to backend /personality
   personality = {
-    upload: (testType: "SIXTEEN_PERSONALITIES" | "STRENGTHSFINDER", fileKey: string) =>
+    getResults: () =>
+      this.request<{ results: Array<{
+        id: string
+        testType: string
+        result: string | null
+        fileKey: string | null
+        status: string
+        createdAt: string
+      }> }>("/personality"),
+
+    upload: (testType: "SIXTEEN_PERSONALITIES" | "STRENGTHSFINDER" | "ENNEAGRAM" | "DISC" | "CLIFTONSTRENGTHS", result: string, fileKey?: string) =>
       this.request<{ ok: true }>("/personality", {
         method: "POST",
-        body: { testType, fileKey },
+        body: { testType, result, fileKey },
       }),
   }
 
