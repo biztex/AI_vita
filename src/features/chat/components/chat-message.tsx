@@ -7,12 +7,13 @@ type ChatMessageProps = {
   role: "user" | "assistant"
   content: string
   kind?: "TEXT" | "VOICE" | "IMAGE"
+  voiceUrl?: string
   timestamp?: string
   userName?: string
   service?: "vitaai" | "execuwell"
 }
 
-export function ChatMessage({ role, content, kind = "TEXT", timestamp, userName, service = "vitaai" }: ChatMessageProps) {
+export function ChatMessage({ role, content, kind = "TEXT", voiceUrl, timestamp, userName, service = "vitaai" }: ChatMessageProps) {
   const isUser = role === "user"
   const Icon = service === "vitaai" ? Activity : Briefcase
   const [isPlaying, setIsPlaying] = useState(false)
@@ -84,29 +85,33 @@ export function ChatMessage({ role, content, kind = "TEXT", timestamp, userName,
           )}
         >
           {kind === "VOICE" ? (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handlePlayPause}
-                className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 hover:scale-110",
-                  isPlaying 
-                    ? "bg-destructive/20 text-destructive hover:bg-destructive/30" 
-                    : "bg-primary/20 text-primary hover:bg-primary/30"
-                )}
-              >
-                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-              </button>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-1">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handlePlayPause}
+                  className={cn(
+                    "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 hover:scale-110 shrink-0",
+                    isPlaying 
+                      ? "bg-destructive/20 text-destructive hover:bg-destructive/30" 
+                      : "bg-primary/20 text-primary hover:bg-primary/30"
+                  )}
+                >
+                  {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                </button>
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                   <Volume2 className="h-4 w-4" />
                   <span>音声メッセージ</span>
                 </div>
-                <audio 
-                  ref={audioRef}
-                  src={`/backend/${content}`} 
-                  className="w-full"
-                  preload="metadata"
-                />
+              </div>
+              <audio 
+                ref={audioRef}
+                src={voiceUrl ? `/backend${voiceUrl}` : undefined}
+                className="hidden"
+                preload="metadata"
+              />
+              {/* Display transcribed text */}
+              <div className="prose prose-sm max-w-none">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground/90">{content}</p>
               </div>
             </div>
           ) : (

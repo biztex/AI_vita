@@ -279,14 +279,16 @@ export async function saveMessage(
   conversationId: string,
   sender: 'USER' | 'ASSISTANT',
   content: string,
-  kind: 'TEXT' | 'VOICE' | 'IMAGE' = 'TEXT'
+  kind: 'TEXT' | 'VOICE' | 'IMAGE' = 'TEXT',
+  voiceUrl?: string
 ): Promise<void> {
   await prisma.chatMessage.create({
     data: {
       conversationId,
       sender: sender as any,
       kind: kind as any,
-      content: content.trim()
+      content: content.trim(),
+      voiceUrl: voiceUrl
     }
   });
 }
@@ -319,6 +321,7 @@ export async function getConversationHistory(conversationId: string, userId: str
     sender: msg.sender,
     content: msg.content,
     kind: msg.kind,
+    voiceUrl: msg.voiceUrl || null,
     createdAt: msg.createdAt,
     service: msg.conversation.service,
     conversationTitle: msg.conversation.title

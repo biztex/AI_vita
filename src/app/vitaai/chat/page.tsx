@@ -17,6 +17,7 @@ type Message = {
   role: "user" | "assistant"
   content: string
   kind?: "TEXT" | "VOICE" | "IMAGE"
+  voiceUrl?: string
   timestamp: string
 }
 
@@ -37,7 +38,8 @@ function VitaAIChatContent() {
         id: msg.id,
         role: msg.sender === "USER" ? "user" : "assistant",
         content: msg.content,
-      kind: msg.kind,
+        kind: msg.kind,
+        voiceUrl: msg.voiceUrl,
         timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       }))
       setMessages(formattedMessages)
@@ -184,6 +186,7 @@ function VitaAIChatContent() {
                   role={message.role}
                   content={message.content}
                   kind={message.kind}
+                  voiceUrl={message.voiceUrl}
                   timestamp={message.timestamp}
                   userName={user?.name}
                   service="vitaai"

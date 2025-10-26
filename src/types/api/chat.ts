@@ -16,6 +16,7 @@ export type ConversationMessage = {
   sender: "USER" | "ASSISTANT"
   content: string
   kind: "TEXT" | "VOICE" | "IMAGE"
+  voiceUrl?: string
   createdAt: string
   service: "VITAAI" | "EXECUWELL"
   conversationTitle: string | null

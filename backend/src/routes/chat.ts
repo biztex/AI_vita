@@ -7,6 +7,10 @@ import { requireAuth } from "../middlewares/auth.js";
 import { processChat, validateChatInput, getOrCreateConversation, saveMessage, getConversationHistory } from "../services/chatService.js";
 import OpenAI from "openai";
 import { ENV } from "../env.js";
+
+const openai = new OpenAI({
+  apiKey: ENV.OPENAI_API_KEY
+});
 // import { rateLimit } from "../middlewares/rateLimit.ts";
 
 const r = Router();
@@ -28,7 +32,6 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 } });
-const openai = new OpenAI({ apiKey: ENV.OPENAI_API_KEY });
 
 // rateLimit((req) => `chat:${req.user.id}`, 30, 60),
 
@@ -331,7 +334,8 @@ r.post("/voice/upload", requireAuth(), upload.single("audio"), async (req: any, 
 
     const relativePath = `/uploads/audio/${path.basename(req.file.path)}`;
     const activeConversationId = await getOrCreateConversation(req.user.id, service, conversationId, title);
-    await saveMessage(activeConversationId, 'USER', relativePath, 'VOICE');
+    // Save voice message with URL and placeholder content
+    await saveMessage(activeConversationId, 'USER', '音声メッセージを処理中...', 'VOICE', relativePath);
 
     res.json({
       conversationId: activeConversationId,
@@ -373,6 +377,19 @@ r.post("/voice/process", requireAuth(), async (req: any, res: any, next: any) =>
     if (!transcript || transcript.trim().length === 0) {
       return res.status(400).json({ error: "音声の文字起こしに失敗しました" });
     }
+
+    // Update the voice message with transcribed text
+    await prisma.chatMessage.updateMany({
+      where: {
+        conversationId: conversationId,
+        sender: 'USER',
+        kind: 'VOICE',
+        voiceUrl: audioPath
+      },
+      data: {
+        content: transcript
+      }
+    });
 
     const reply = await processChat(service, transcript, req.user.id, conversationId);
     await saveMessage(conversationId, 'ASSISTANT', reply);

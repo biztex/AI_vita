@@ -37,6 +37,7 @@ model ChatMessage {
   kind            MessageKind
   content         String
   attachmentUrl   String?
+  voiceUrl        String?  // URL for voice messages to play audio
   createdAt       DateTime @default(now())
 
   conversation    ChatConversation @relation(fields: [conversationId], references: [id])
