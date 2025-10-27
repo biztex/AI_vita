@@ -61,7 +61,7 @@ export function ChatMessage({ role, content, kind = "TEXT", voiceUrl, timestamp,
               </div> */}
               <audio 
                 controls
-                className="w-full h-10"
+                className="h-10"
                 preload="metadata"
               >
                 <source src={voiceUrl ? `/backend${voiceUrl}` : undefined} type="audio/mpeg" />
