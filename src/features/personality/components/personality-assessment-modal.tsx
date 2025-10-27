@@ -71,6 +71,17 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
       testType: "ENNEAGRAM",
       completed: false,
       result: "",
+      options: [
+        { id: "1", name: "THE REFORMER", code: "1", description: "The Rational, Idealistic Type: Principled, Purposeful, Self-Controlled, and Perfectionistic", color: "bg-orange-500" },
+        { id: "2", name: "THE HELPER", code: "2", description: "The Caring, Interpersonal Type: Demonstrative, Generous, People-Pleasing, and Possessive", color: "bg-orange-500" },
+        { id: "3", name: "THE ACHIEVER", code: "3", description: "The Success-Oriented, Pragmatic Type: Adaptive, Excelling, Driven, and Image-Conscious", color: "bg-orange-500" },
+        { id: "4", name: "THE INDIVIDUALIST", code: "4", description: "The Sensitive, Withdrawn Type: Expressive, Dramatic, Self-Absorbed, and Temperamental", color: "bg-orange-500" },
+        { id: "5", name: "THE INVESTIGATOR", code: "5", description: "The Intense, Cerebral Type: Perceptive, Innovative, Secretive, and Isolated", color: "bg-orange-500" },
+        { id: "6", name: "THE LOYALIST", code: "6", description: "The Committed, Security-Oriented Type: Engaging, Responsible, Anxious, and Suspicious", color: "bg-orange-500" },
+        { id: "7", name: "THE ENTHUSIAST", code: "7", description: "The Busy, Fun-Loving Type: Spontaneous, Versatile, Distractible, and Scattered", color: "bg-orange-500" },
+        { id: "8", name: "THE CHALLENGER", code: "8", description: "The Powerful, Dominating Type: Self-Confident, Decisive, Willful, and Confrontational", color: "bg-orange-500" },
+        { id: "9", name: "THE PEACEMAKER", code: "9", description: "The Easygoing, Self-Effacing Type: Receptive, Reassuring, Agreeable, and Complacent", color: "bg-orange-500" },
+      ]
     },
     {
       id: 3,
