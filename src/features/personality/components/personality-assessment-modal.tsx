@@ -322,9 +322,29 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
               <div className="space-y-4">
                 <div className="text-center mb-3">
                   <h3 className="text-base font-semibold mb-1">{currentStepData.name}</h3>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mb-2">
                     あなたの性格タイプを選択してください
                   </p>
+                  <div className="flex items-center justify-center gap-2 text-xs">
+                    <span className="text-muted-foreground">テストリンク:</span>
+                    <span className="text-blue-600 underline">{currentStepData.link}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopyLink(currentStepData.link)}
+                      className="h-5 w-5 p-0 hover:bg-gray-100"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => window.open(currentStepData.link, "_blank")}
+                      className="h-5 w-5 p-0 hover:bg-gray-100"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
                 
                 {currentStep === 1 ? (
@@ -654,33 +674,31 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
             ) : (
               // Original input interface for other steps
               <div className="space-y-3">
-                <div className="p-2 border rounded bg-muted/50">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium">テストリンク</span>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleCopyLink(currentStepData.link)}
-                        className="flex items-center gap-1 text-xs px-2 py-1 h-6"
-                      >
-                        <Copy className="h-2 w-2" />
-                        コピー
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(currentStepData.link, "_blank")}
-                        className="flex items-center gap-1 text-xs px-2 py-1 h-6"
-                      >
-                        <ExternalLink className="h-2 w-2" />
-                        開く
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground break-all">
-                    {currentStepData.link}
+                <div className="text-center mb-3">
+                  <h3 className="text-base font-semibold mb-1">{currentStepData.name}</h3>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    外部サイトでテストを完了し、結果を入力してください
                   </p>
+                  <div className="flex items-center justify-center gap-2 text-xs">
+                    <span className="text-muted-foreground">テストリンク:</span>
+                    <span className="text-blue-600 underline">{currentStepData.link}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopyLink(currentStepData.link)}
+                      className="h-5 w-5 p-0 hover:bg-gray-100"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => window.open(currentStepData.link, "_blank")}
+                      className="h-5 w-5 p-0 hover:bg-gray-100"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div>
