@@ -15,6 +15,15 @@ type TestStep = {
   testType: "SIXTEEN_PERSONALITIES" | "ENNEAGRAM" | "DISC" | "CLIFTONSTRENGTHS"
   completed: boolean
   result: string
+  options?: PersonalityOption[]
+}
+
+type PersonalityOption = {
+  id: string
+  name: string
+  code: string
+  description: string
+  color: string
 }
 
 interface PersonalityAssessmentModalProps {
@@ -32,6 +41,28 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
       testType: "SIXTEEN_PERSONALITIES",
       completed: false,
       result: "",
+      options: [
+        // 分析家 (Analyst) - Purple
+        { id: "INTJ", name: "建築家", code: "INTJ", description: "建築家", color: "bg-purple-600" },
+        { id: "INTP", name: "論理学者", code: "INTP", description: "論理学者", color: "bg-purple-600" },
+        { id: "ENTJ", name: "指揮官", code: "ENTJ", description: "指揮官", color: "bg-purple-600" },
+        { id: "ENTP", name: "討論者", code: "ENTP", description: "討論者", color: "bg-purple-600" },
+        // 外交官 (Diplomat) - Green
+        { id: "INFJ", name: "提唱者", code: "INFJ", description: "提唱者", color: "bg-green-600" },
+        { id: "INFP", name: "仲介者", code: "INFP", description: "仲介者", color: "bg-green-600" },
+        { id: "ENFJ", name: "主人公", code: "ENFJ", description: "主人公", color: "bg-green-600" },
+        { id: "ENFP", name: "運動家", code: "ENFP", description: "運動家", color: "bg-green-600" },
+        // 番人 (Sentinel) - Blue
+        { id: "ISTJ", name: "ロジスティシャン", code: "ISTJ", description: "ロジスティシャン", color: "bg-blue-600" },
+        { id: "ISFJ", name: "擁護者", code: "ISFJ", description: "擁護者", color: "bg-blue-600" },
+        { id: "ESTJ", name: "幹部", code: "ESTJ", description: "幹部", color: "bg-blue-600" },
+        { id: "ESFJ", name: "領事", code: "ESFJ", description: "領事", color: "bg-blue-600" },
+        // 探検家 (Explorer) - Orange
+        { id: "ISTP", name: "巨匠", code: "ISTP", description: "巨匠", color: "bg-orange-600" },
+        { id: "ISFP", name: "冒険家", code: "ISFP", description: "冒険家", color: "bg-orange-600" },
+        { id: "ESTP", name: "起業家", code: "ESTP", description: "起業家", color: "bg-orange-600" },
+        { id: "ESFP", name: "エンターテイナー", code: "ESFP", description: "エンターテイナー", color: "bg-orange-600" },
+      ]
     },
     {
       id: 2,
@@ -68,10 +99,10 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
     window.open(link, "_blank")
   }
 
-  const handleResultChange = (stepId: number, value: string) => {
+  const handleOptionSelect = (stepId: number, optionId: string) => {
     setSteps((prev) =>
       prev.map((step) =>
-        step.id === stepId ? { ...step, result: value } : step
+        step.id === stepId ? { ...step, result: optionId } : step
       )
     )
   }
@@ -219,47 +250,185 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
         {/* Current Step Content */}
         {currentStepData && (
           <div className="space-y-4 animate-in fade-in duration-300">
-            <div className="p-4 border rounded-lg bg-muted/50">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold">{currentStepData.name}</h3>
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                外部サイトでテストを完了し、結果を入力してください
-              </p>
-              
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleOpenLink(currentStepData.link)}
-                  className="flex-1"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  テストを開く
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleCopyLink(currentStepData.link)}
-                  className="flex-1"
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  リンクをコピー
-                </Button>
-              </div>
-            </div>
+            {currentStepData.options ? (
+              // Selection interface for 16 Personalities
+              <div className="space-y-4">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold mb-2">{currentStepData.name}</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    あなたの性格タイプを選択してください
+                  </p>
+                </div>
+                
+                {/* Group options by color/category */}
+                <div className="space-y-6">
+                  {/* 分析家 (Analyst) - Purple */}
+                  <div>
+                    <h4 className="text-sm font-medium text-purple-600 mb-3">分析家 (Analyst)</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      {currentStepData.options.filter(opt => opt.color === "bg-purple-600").map((option) => (
+                        <button
+                          key={option.id}
+                          onClick={() => handleOptionSelect(currentStep, option.id)}
+                          className={cn(
+                            "relative p-4 rounded-lg text-white transition-all duration-200 hover:scale-105",
+                            option.color,
+                            currentStepData.result === option.id 
+                              ? "ring-2 ring-white ring-offset-2 ring-offset-purple-600" 
+                              : "hover:opacity-90"
+                          )}
+                        >
+                          <div className="text-center">
+                            <div className="font-medium text-sm">{option.name}</div>
+                            <div className="text-xs opacity-90 mt-1">{option.code}</div>
+                          </div>
+                          {currentStepData.result === option.id && (
+                            <div className="absolute top-2 right-2">
+                              <Check className="h-5 w-5 text-white" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                テスト結果
-              </label>
-              <Input
-                placeholder={`例: INFP、Type 5、DISC、Strengthsなど`}
-                value={currentStepData.result}
-                onChange={(e) => handleResultChange(currentStep, e.target.value)}
-                className="w-full"
-              />
-            </div>
+                  {/* 外交官 (Diplomat) - Green */}
+                  <div>
+                    <h4 className="text-sm font-medium text-green-600 mb-3">外交官 (Diplomat)</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      {currentStepData.options.filter(opt => opt.color === "bg-green-600").map((option) => (
+                        <button
+                          key={option.id}
+                          onClick={() => handleOptionSelect(currentStep, option.id)}
+                          className={cn(
+                            "relative p-4 rounded-lg text-white transition-all duration-200 hover:scale-105",
+                            option.color,
+                            currentStepData.result === option.id 
+                              ? "ring-2 ring-white ring-offset-2 ring-offset-green-600" 
+                              : "hover:opacity-90"
+                          )}
+                        >
+                          <div className="text-center">
+                            <div className="font-medium text-sm">{option.name}</div>
+                            <div className="text-xs opacity-90 mt-1">{option.code}</div>
+                          </div>
+                          {currentStepData.result === option.id && (
+                            <div className="absolute top-2 right-2">
+                              <Check className="h-5 w-5 text-white" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 番人 (Sentinel) - Blue */}
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-600 mb-3">番人 (Sentinel)</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      {currentStepData.options.filter(opt => opt.color === "bg-blue-600").map((option) => (
+                        <button
+                          key={option.id}
+                          onClick={() => handleOptionSelect(currentStep, option.id)}
+                          className={cn(
+                            "relative p-4 rounded-lg text-white transition-all duration-200 hover:scale-105",
+                            option.color,
+                            currentStepData.result === option.id 
+                              ? "ring-2 ring-white ring-offset-2 ring-offset-blue-600" 
+                              : "hover:opacity-90"
+                          )}
+                        >
+                          <div className="text-center">
+                            <div className="font-medium text-sm">{option.name}</div>
+                            <div className="text-xs opacity-90 mt-1">{option.code}</div>
+                          </div>
+                          {currentStepData.result === option.id && (
+                            <div className="absolute top-2 right-2">
+                              <Check className="h-5 w-5 text-white" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 探検家 (Explorer) - Orange */}
+                  <div>
+                    <h4 className="text-sm font-medium text-orange-600 mb-3">探検家 (Explorer)</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      {currentStepData.options.filter(opt => opt.color === "bg-orange-600").map((option) => (
+                        <button
+                          key={option.id}
+                          onClick={() => handleOptionSelect(currentStep, option.id)}
+                          className={cn(
+                            "relative p-4 rounded-lg text-white transition-all duration-200 hover:scale-105",
+                            option.color,
+                            currentStepData.result === option.id 
+                              ? "ring-2 ring-white ring-offset-2 ring-offset-orange-600" 
+                              : "hover:opacity-90"
+                          )}
+                        >
+                          <div className="text-center">
+                            <div className="font-medium text-sm">{option.name}</div>
+                            <div className="text-xs opacity-90 mt-1">{option.code}</div>
+                          </div>
+                          {currentStepData.result === option.id && (
+                            <div className="absolute top-2 right-2">
+                              <Check className="h-5 w-5 text-white" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Original input interface for other steps
+              <div className="space-y-4">
+                <div className="p-4 border rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold">{currentStepData.name}</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    外部サイトでテストを完了し、結果を入力してください
+                  </p>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenLink(currentStepData.link)}
+                      className="flex-1"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      テストを開く
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyLink(currentStepData.link)}
+                      className="flex-1"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      リンクをコピー
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    テスト結果
+                  </label>
+                  <Input
+                    placeholder={`例: Type 5、DISC、Strengthsなど`}
+                    value={currentStepData.result}
+                    onChange={(e) => handleOptionSelect(currentStep, e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
