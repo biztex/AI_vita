@@ -251,13 +251,14 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
   const completedCount = steps.filter((s) => s.completed).length
 
   return (
-    <Dialog open={isOpen}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>パーソナリティ評価</DialogTitle>
-          <DialogDescription>
-            ExecuWellと効果的にチャットするために、パーソナリティ評価を行う必要があります。
-            以下の4つのテストを完了してください。
+    <Dialog open={isOpen} onOpenChange={() => {}}>
+      <DialogContent className="w-[800px] h-[600px] max-w-none max-h-none overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="text-lg font-bold text-center">
+            性格診断テスト
+          </DialogTitle>
+          <DialogDescription className="text-center text-sm text-muted-foreground">
+            あなたの性格を理解するために、以下のテストを完了してください
           </DialogDescription>
         </DialogHeader>
 
@@ -314,33 +315,34 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
 
         {/* Current Step Content */}
         {currentStepData && (
-          <div className="space-y-4 animate-in fade-in duration-300">
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto space-y-3 animate-in fade-in duration-300">
             {currentStepData.options ? (
               // Selection interface for personality tests
               <div className="space-y-4">
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold mb-2">{currentStepData.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                <div className="text-center mb-3">
+                  <h3 className="text-base font-semibold mb-1">{currentStepData.name}</h3>
+                  <p className="text-xs text-muted-foreground">
                     あなたの性格タイプを選択してください
                   </p>
                 </div>
                 
                 {currentStep === 1 ? (
                   // 16 Personalities - Grouped by categories
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {/* 分析家 (Analyst) - Purple */}
                     <div>
-                      <h4 className="text-sm font-medium text-purple-600 mb-3">分析家 (Analyst)</h4>
-                      <div className="grid grid-cols-2 gap-3">
+                      <h4 className="text-xs font-medium text-purple-600 mb-2">分析家 (Analyst)</h4>
+                      <div className="grid grid-cols-2 gap-2">
                         {currentStepData.options.filter(opt => opt.color === "bg-purple-600").map((option) => (
                           <button
                             key={option.id}
                             onClick={() => handleOptionSelect(currentStep, option.id)}
                             className={cn(
-                              "relative p-4 rounded-lg text-white transition-all duration-200 hover:scale-105",
+                              "relative p-2 rounded text-white transition-all duration-200 hover:scale-105",
                               option.color,
                               currentStepData.result === option.id 
-                                ? "ring-2 ring-white ring-offset-2 ring-offset-purple-600" 
+                                ? "ring-1 ring-white ring-offset-1 ring-offset-purple-600" 
                                 : "hover:opacity-90"
                             )}
                           >
@@ -360,8 +362,8 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
 
                     {/* 外交官 (Diplomat) - Green */}
                     <div>
-                      <h4 className="text-sm font-medium text-green-600 mb-3">外交官 (Diplomat)</h4>
-                      <div className="grid grid-cols-2 gap-3">
+                      <h4 className="text-xs font-medium text-green-600 mb-2">外交官 (Diplomat)</h4>
+                      <div className="grid grid-cols-2 gap-2">
                         {currentStepData.options.filter(opt => opt.color === "bg-green-600").map((option) => (
                           <button
                             key={option.id}
@@ -390,8 +392,8 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
 
                     {/* 番人 (Sentinel) - Blue */}
                     <div>
-                      <h4 className="text-sm font-medium text-blue-600 mb-3">番人 (Sentinel)</h4>
-                      <div className="grid grid-cols-2 gap-3">
+                      <h4 className="text-xs font-medium text-blue-600 mb-2">番人 (Sentinel)</h4>
+                      <div className="grid grid-cols-2 gap-2">
                         {currentStepData.options.filter(opt => opt.color === "bg-blue-600").map((option) => (
                           <button
                             key={option.id}
@@ -420,8 +422,8 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
 
                     {/* 探検家 (Explorer) - Orange */}
                     <div>
-                      <h4 className="text-sm font-medium text-orange-600 mb-3">探検家 (Explorer)</h4>
-                      <div className="grid grid-cols-2 gap-3">
+                      <h4 className="text-xs font-medium text-orange-600 mb-2">探検家 (Explorer)</h4>
+                      <div className="grid grid-cols-2 gap-2">
                         {currentStepData.options.filter(opt => opt.color === "bg-orange-600").map((option) => (
                           <button
                             key={option.id}
@@ -450,37 +452,37 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                   </div>
                 ) : currentStep === 2 ? (
                   // Enneagram - Vertical list
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {currentStepData.options.map((option) => (
                       <button
                         key={option.id}
                         onClick={() => handleOptionSelect(currentStep, option.id)}
                         className={cn(
-                          "relative w-full p-4 rounded-lg border transition-all duration-200 hover:shadow-md",
+                          "relative w-full p-2 rounded border transition-all duration-200 hover:shadow-sm",
                           "bg-white hover:bg-gray-50",
                           currentStepData.result === option.id 
                             ? "border-green-500 bg-green-50" 
                             : "border-gray-200"
                         )}
                       >
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-start gap-2">
                           <div className={cn(
-                            "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-lg",
+                            "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-sm",
                             option.color
                           )}>
                             {option.code}
                           </div>
                           <div className="flex-1 text-left">
-                            <div className="font-semibold text-orange-500 text-lg mb-1">
+                            <div className="font-semibold text-orange-500 text-sm mb-1">
                               {option.name}
                             </div>
-                            <div className="text-sm text-gray-600">
+                            <div className="text-xs text-gray-600">
                               {option.description}
                             </div>
                           </div>
                           {currentStepData.result === option.id && (
                             <div className="flex-shrink-0">
-                              <Check className="h-6 w-6 text-green-500" />
+                              <Check className="h-4 w-4 text-green-500" />
                             </div>
                           )}
                         </div>
@@ -489,13 +491,13 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                   </div>
                 ) : currentStep === 3 ? (
                   // DISC - 2x2 grid
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2">
                     {currentStepData.options.map((option) => (
                       <button
                         key={option.id}
                         onClick={() => handleOptionSelect(currentStep, option.id)}
                         className={cn(
-                          "relative p-6 rounded-lg border transition-all duration-200 hover:shadow-md",
+                          "relative p-3 rounded border transition-all duration-200 hover:shadow-sm",
                           "bg-white hover:bg-gray-50",
                           currentStepData.result === option.id 
                             ? "border-green-500 bg-green-50" 
@@ -504,21 +506,21 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                       >
                         <div className="text-center">
                           <div className={cn(
-                            "w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-3",
+                            "w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm mx-auto mb-2",
                             option.color
                           )}>
                             {option.code}
                           </div>
-                          <div className="font-semibold text-lg mb-2">
+                          <div className="font-semibold text-sm mb-1">
                             {option.name}
                           </div>
-                          <div className="text-sm text-gray-600 text-left">
+                          <div className="text-xs text-gray-600 text-left">
                             {option.description}
                           </div>
                         </div>
                         {currentStepData.result === option.id && (
-                          <div className="absolute top-3 right-3">
-                            <Check className="h-6 w-6 text-green-500" />
+                          <div className="absolute top-2 right-2">
+                            <Check className="h-4 w-4 text-green-500" />
                           </div>
                         )}
                       </button>
@@ -526,30 +528,30 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                   </div>
                 ) : (
                   // CliftonStrengths - 2x2 categories
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-2 gap-3">
                     {/* Strategic Thinking */}
-                    <div className="space-y-3">
-                      <div className="h-1 bg-green-500 rounded"></div>
-                      <h4 className="font-semibold text-green-600 text-sm">STRATEGIC THINKING</h4>
-                      <div className="space-y-1">
+                    <div className="space-y-2">
+                      <div className="h-0.5 bg-green-500 rounded"></div>
+                      <h4 className="font-semibold text-green-600 text-xs">STRATEGIC THINKING</h4>
+                      <div className="space-y-0.5">
                         {currentStepData.options.filter(opt => opt.category === "STRATEGIC THINKING").map((option) => (
                           <button
                             key={option.id}
                             onClick={() => handleOptionSelect(currentStep, option.id)}
                             className={cn(
-                              "w-full text-left p-2 rounded transition-all duration-200 hover:bg-gray-50",
+                              "w-full text-left p-1 rounded transition-all duration-200 hover:bg-gray-50",
                               currentStepData.result === option.id 
-                                ? "bg-green-50 border-l-4 border-green-500" 
+                                ? "bg-green-50 border-l-2 border-green-500" 
                                 : ""
                             )}
                           >
                             <div className="flex items-center justify-between">
-                              <span className="underline">{option.name}</span>
-                              <span className="text-gray-400">&gt;</span>
+                              <span className="underline text-xs">{option.name}</span>
+                              <span className="text-gray-400 text-xs">&gt;</span>
                             </div>
                             {currentStepData.result === option.id && (
-                              <div className="absolute right-2">
-                                <Check className="h-4 w-4 text-green-500" />
+                              <div className="absolute right-1">
+                                <Check className="h-3 w-3 text-green-500" />
                               </div>
                             )}
                           </button>
@@ -558,10 +560,10 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                     </div>
 
                     {/* Relationship Building */}
-                    <div className="space-y-3">
-                      <div className="h-1 bg-blue-500 rounded"></div>
-                      <h4 className="font-semibold text-blue-600 text-sm">RELATIONSHIP BUILDING</h4>
-                      <div className="space-y-1">
+                    <div className="space-y-2">
+                      <div className="h-0.5 bg-blue-500 rounded"></div>
+                      <h4 className="font-semibold text-blue-600 text-xs">RELATIONSHIP BUILDING</h4>
+                      <div className="space-y-0.5">
                         {currentStepData.options.filter(opt => opt.category === "RELATIONSHIP BUILDING").map((option) => (
                           <button
                             key={option.id}
@@ -588,10 +590,10 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                     </div>
 
                     {/* Influencing */}
-                    <div className="space-y-3">
-                      <div className="h-1 bg-orange-500 rounded"></div>
-                      <h4 className="font-semibold text-orange-600 text-sm">INFLUENCING</h4>
-                      <div className="space-y-1">
+                    <div className="space-y-2">
+                      <div className="h-0.5 bg-orange-500 rounded"></div>
+                      <h4 className="font-semibold text-orange-600 text-xs">INFLUENCING</h4>
+                      <div className="space-y-0.5">
                         {currentStepData.options.filter(opt => opt.category === "INFLUENCING").map((option) => (
                           <button
                             key={option.id}
@@ -618,10 +620,10 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                     </div>
 
                     {/* Executing */}
-                    <div className="space-y-3">
-                      <div className="h-1 bg-purple-500 rounded"></div>
-                      <h4 className="font-semibold text-purple-600 text-sm">EXECUTING</h4>
-                      <div className="space-y-1">
+                    <div className="space-y-2">
+                      <div className="h-0.5 bg-purple-500 rounded"></div>
+                      <h4 className="font-semibold text-purple-600 text-xs">EXECUTING</h4>
+                      <div className="space-y-0.5">
                         {currentStepData.options.filter(opt => opt.category === "EXECUTING").map((option) => (
                           <button
                             key={option.id}
@@ -651,86 +653,70 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
               </div>
             ) : (
               // Original input interface for other steps
-              <div className="space-y-4">
-                <div className="p-4 border rounded-lg bg-muted/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold">{currentStepData.name}</h3>
+              <div className="space-y-3">
+                <div className="p-2 border rounded bg-muted/50">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium">テストリンク</span>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyLink(currentStepData.link)}
+                        className="flex items-center gap-1 text-xs px-2 py-1 h-6"
+                      >
+                        <Copy className="h-2 w-2" />
+                        コピー
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(currentStepData.link, "_blank")}
+                        className="flex items-center gap-1 text-xs px-2 py-1 h-6"
+                      >
+                        <ExternalLink className="h-2 w-2" />
+                        開く
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    外部サイトでテストを完了し、結果を入力してください
+                  <p className="text-xs text-muted-foreground break-all">
+                    {currentStepData.link}
                   </p>
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenLink(currentStepData.link)}
-                      className="flex-1"
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      テストを開く
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCopyLink(currentStepData.link)}
-                      className="flex-1"
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      リンクをコピー
-                    </Button>
-                  </div>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">
+                  <label className="text-xs font-medium mb-1 block">
                     テスト結果
                   </label>
                   <Input
                     placeholder={`例: Type 5、DISC、Strengthsなど`}
                     value={currentStepData.result}
                     onChange={(e) => handleOptionSelect(currentStep, e.target.value)}
-                    className="w-full"
+                    className="w-full text-xs h-8"
                   />
                 </div>
               </div>
             )}
+            </div>
           </div>
         )}
 
         {/* Action Buttons */}
-        <div className="flex justify-between mt-6">
+        <div className="flex justify-between pt-3 border-t flex-shrink-0">
           <Button
             variant="outline"
-            onClick={handleBack}
-            disabled={currentStep === 1}
+            onClick={handleSkip}
+            className="flex items-center gap-1 text-xs px-3 py-1 h-7"
           >
-            戻る
+            スキップ
           </Button>
-          
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleSkip}
-              disabled={currentStepData?.result === "スキップ"}
-            >
-              スキップ
-            </Button>
-            <Button
-              onClick={handleNext}
-              className="min-w-[120px]"
-              disabled={!currentStepData?.result.trim()}
-            >
-              {currentStep === 4 ? (
-                <>
-                  <span>チャットを開始</span>
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              ) : (
-                <span>次へ</span>
-              )}
-            </Button>
-          </div>
+          <Button
+            onClick={handleNext}
+            disabled={!currentStepData?.result.trim()}
+            className="flex items-center gap-1 text-xs px-3 py-1 h-7"
+          >
+            {currentStep === 4 ? "完了" : "次へ"}
+            {currentStep < 4 && <ArrowRight className="h-3 w-3" />}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
