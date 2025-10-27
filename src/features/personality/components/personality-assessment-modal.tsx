@@ -547,31 +547,30 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                     ))}
                   </div>
                 ) : (
-                  // CliftonStrengths - 2x2 categories
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Strategic Thinking */}
-                    <div className="space-y-2">
-                      <div className="h-0.5 bg-green-500 rounded"></div>
-                      <h4 className="font-semibold text-green-600 text-xs">STRATEGIC THINKING</h4>
-                      <div className="space-y-0.5">
+                  // CliftonStrengths - Grouped by categories like 16 Personalities
+                  <div className="space-y-4">
+                    {/* Strategic Thinking - Green */}
+                    <div>
+                      <h4 className="text-xs font-medium text-green-600 mb-2">STRATEGIC THINKING</h4>
+                      <div className="grid grid-cols-2 gap-2">
                         {currentStepData.options.filter(opt => opt.category === "STRATEGIC THINKING").map((option) => (
                           <button
                             key={option.id}
                             onClick={() => handleOptionSelect(currentStep, option.id)}
                             className={cn(
-                              "w-full text-left p-1 rounded transition-all duration-200 hover:bg-gray-50",
+                              "relative p-2 rounded text-white transition-all duration-200 hover:scale-105",
+                              option.color,
                               currentStepData.result === option.id 
-                                ? "bg-green-50 border-l-2 border-green-500" 
-                                : ""
+                                ? "ring-1 ring-white ring-offset-1 ring-offset-green-600" 
+                                : "hover:opacity-90"
                             )}
                           >
-                            <div className="flex items-center justify-between">
-                              <span className="underline text-xs">{option.name}</span>
-                              <span className="text-gray-400 text-xs">&gt;</span>
+                            <div className="text-center">
+                              <div className="font-medium text-xs">{option.name}</div>
                             </div>
                             {currentStepData.result === option.id && (
-                              <div className="absolute right-1">
-                                <Check className="h-3 w-3 text-green-500" />
+                              <div className="absolute top-1 right-1">
+                                <Check className="h-3 w-3 text-white" />
                               </div>
                             )}
                           </button>
@@ -579,29 +578,28 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                       </div>
                     </div>
 
-                    {/* Relationship Building */}
-                    <div className="space-y-2">
-                      <div className="h-0.5 bg-blue-500 rounded"></div>
-                      <h4 className="font-semibold text-blue-600 text-xs">RELATIONSHIP BUILDING</h4>
-                      <div className="space-y-0.5">
+                    {/* Relationship Building - Blue */}
+                    <div>
+                      <h4 className="text-xs font-medium text-blue-600 mb-2">RELATIONSHIP BUILDING</h4>
+                      <div className="grid grid-cols-2 gap-2">
                         {currentStepData.options.filter(opt => opt.category === "RELATIONSHIP BUILDING").map((option) => (
                           <button
                             key={option.id}
                             onClick={() => handleOptionSelect(currentStep, option.id)}
                             className={cn(
-                              "w-full text-left p-2 rounded transition-all duration-200 hover:bg-gray-50",
+                              "relative p-2 rounded text-white transition-all duration-200 hover:scale-105",
+                              option.color,
                               currentStepData.result === option.id 
-                                ? "bg-blue-50 border-l-4 border-blue-500" 
-                                : ""
+                                ? "ring-1 ring-white ring-offset-1 ring-offset-blue-600" 
+                                : "hover:opacity-90"
                             )}
                           >
-                            <div className="flex items-center justify-between">
-                              <span className="underline">{option.name}</span>
-                              <span className="text-gray-400">&gt;</span>
+                            <div className="text-center">
+                              <div className="font-medium text-xs">{option.name}</div>
                             </div>
                             {currentStepData.result === option.id && (
-                              <div className="absolute right-2">
-                                <Check className="h-4 w-4 text-blue-500" />
+                              <div className="absolute top-1 right-1">
+                                <Check className="h-3 w-3 text-white" />
                               </div>
                             )}
                           </button>
@@ -609,29 +607,28 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                       </div>
                     </div>
 
-                    {/* Influencing */}
-                    <div className="space-y-2">
-                      <div className="h-0.5 bg-orange-500 rounded"></div>
-                      <h4 className="font-semibold text-orange-600 text-xs">INFLUENCING</h4>
-                      <div className="space-y-0.5">
+                    {/* Influencing - Orange */}
+                    <div>
+                      <h4 className="text-xs font-medium text-orange-600 mb-2">INFLUENCING</h4>
+                      <div className="grid grid-cols-2 gap-2">
                         {currentStepData.options.filter(opt => opt.category === "INFLUENCING").map((option) => (
                           <button
                             key={option.id}
                             onClick={() => handleOptionSelect(currentStep, option.id)}
                             className={cn(
-                              "w-full text-left p-2 rounded transition-all duration-200 hover:bg-gray-50",
+                              "relative p-2 rounded text-white transition-all duration-200 hover:scale-105",
+                              option.color,
                               currentStepData.result === option.id 
-                                ? "bg-orange-50 border-l-4 border-orange-500" 
-                                : ""
+                                ? "ring-1 ring-white ring-offset-1 ring-offset-orange-600" 
+                                : "hover:opacity-90"
                             )}
                           >
-                            <div className="flex items-center justify-between">
-                              <span className="underline">{option.name}</span>
-                              <span className="text-gray-400">&gt;</span>
+                            <div className="text-center">
+                              <div className="font-medium text-xs">{option.name}</div>
                             </div>
                             {currentStepData.result === option.id && (
-                              <div className="absolute right-2">
-                                <Check className="h-4 w-4 text-orange-500" />
+                              <div className="absolute top-1 right-1">
+                                <Check className="h-3 w-3 text-white" />
                               </div>
                             )}
                           </button>
@@ -639,29 +636,28 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                       </div>
                     </div>
 
-                    {/* Executing */}
-                    <div className="space-y-2">
-                      <div className="h-0.5 bg-purple-500 rounded"></div>
-                      <h4 className="font-semibold text-purple-600 text-xs">EXECUTING</h4>
-                      <div className="space-y-0.5">
+                    {/* Executing - Purple */}
+                    <div>
+                      <h4 className="text-xs font-medium text-purple-600 mb-2">EXECUTING</h4>
+                      <div className="grid grid-cols-2 gap-2">
                         {currentStepData.options.filter(opt => opt.category === "EXECUTING").map((option) => (
                           <button
                             key={option.id}
                             onClick={() => handleOptionSelect(currentStep, option.id)}
                             className={cn(
-                              "w-full text-left p-2 rounded transition-all duration-200 hover:bg-gray-50",
+                              "relative p-2 rounded text-white transition-all duration-200 hover:scale-105",
+                              option.color,
                               currentStepData.result === option.id 
-                                ? "bg-purple-50 border-l-4 border-purple-500" 
-                                : ""
+                                ? "ring-1 ring-white ring-offset-1 ring-offset-purple-600" 
+                                : "hover:opacity-90"
                             )}
                           >
-                            <div className="flex items-center justify-between">
-                              <span className="underline">{option.name}</span>
-                              <span className="text-gray-400">&gt;</span>
+                            <div className="text-center">
+                              <div className="font-medium text-xs">{option.name}</div>
                             </div>
                             {currentStepData.result === option.id && (
-                              <div className="absolute right-2">
-                                <Check className="h-4 w-4 text-purple-500" />
+                              <div className="absolute top-1 right-1">
+                                <Check className="h-3 w-3 text-white" />
                               </div>
                             )}
                           </button>
