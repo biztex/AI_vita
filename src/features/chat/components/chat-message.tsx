@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Activity, Briefcase, Bot, User, Volume2, Play, Pause } from "lucide-react"
-import { useState, useRef, useEffect } from "react"
+import { Activity, Briefcase, Bot, User, Volume2 } from "lucide-react"
 
 type ChatMessageProps = {
   role: "user" | "assistant"
@@ -16,38 +15,6 @@ type ChatMessageProps = {
 export function ChatMessage({ role, content, kind = "TEXT", voiceUrl, timestamp, userName, service = "vitaai" }: ChatMessageProps) {
   const isUser = role === "user"
   const Icon = service === "vitaai" ? Activity : Briefcase
-  const [isPlaying, setIsPlaying] = useState(false)
-  const audioRef = useRef<HTMLAudioElement>(null)
-
-  const handlePlayPause = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause()
-      } else {
-        audioRef.current.play()
-      }
-      setIsPlaying(!isPlaying)
-    }
-  }
-
-  useEffect(() => {
-    const audio = audioRef.current
-    if (audio) {
-      const handleEnded = () => setIsPlaying(false)
-      const handlePlay = () => setIsPlaying(true)
-      const handlePause = () => setIsPlaying(false)
-      
-      audio.addEventListener('ended', handleEnded)
-      audio.addEventListener('play', handlePlay)
-      audio.addEventListener('pause', handlePause)
-      
-      return () => {
-        audio.removeEventListener('ended', handleEnded)
-        audio.removeEventListener('play', handlePlay)
-        audio.removeEventListener('pause', handlePause)
-      }
-    }
-  }, [])
 
   return (
     <div className={cn("flex gap-4 group", isUser ? "justify-end" : "justify-start")}>
@@ -74,45 +41,38 @@ export function ChatMessage({ role, content, kind = "TEXT", voiceUrl, timestamp,
         <div
           className={cn(
             "rounded-2xl px-5 py-4 shadow-sm transition-all duration-300 group-hover:shadow-md",
-            isUser 
-              ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-primary/20 hover:shadow-primary/30" 
-              : cn(
-                  "bg-gradient-to-r from-card to-card/80 text-card-foreground border border-border/50 hover:border-border/80",
-                  service === "vitaai" 
-                    ? "hover:shadow-vitaai/10" 
-                    : "hover:shadow-execuwell/10"
-                ),
+            kind === "VOICE" 
+              ? "bg-transparent shadow-none" 
+              : isUser 
+                ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-primary/20 hover:shadow-primary/30" 
+                : cn(
+                    "bg-gradient-to-r from-card to-card/80 text-card-foreground border border-border/50 hover:border-border/80",
+                    service === "vitaai" 
+                      ? "hover:shadow-vitaai/10" 
+                      : "hover:shadow-execuwell/10"
+                  ),
           )}
         >
           {kind === "VOICE" ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handlePlayPause}
-                  className={cn(
-                    "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 hover:scale-110 shrink-0",
-                    isPlaying 
-                      ? "bg-destructive/20 text-destructive hover:bg-destructive/30" 
-                      : "bg-primary/20 text-primary hover:bg-primary/30"
-                  )}
-                >
-                  {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                </button>
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Volume2 className="h-4 w-4" />
-                  <span>音声メッセージ</span>
-                </div>
-              </div>
+              {/* <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Volume2 className="h-4 w-4" />
+                <span>音声メッセージ</span>
+              </div> */}
               <audio 
-                ref={audioRef}
-                src={voiceUrl ? `/backend${voiceUrl}` : undefined}
-                className="hidden"
+                controls
+                className="w-full h-10"
                 preload="metadata"
-              />
+              >
+                <source src={voiceUrl ? `/backend${voiceUrl}` : undefined} type="audio/mpeg" />
+                <source src={voiceUrl ? `/backend${voiceUrl}` : undefined} type="audio/wav" />
+                <source src={voiceUrl ? `/backend${voiceUrl}` : undefined} type="audio/webm" />
+                {/* お使いのブラウザは音声の再生をサポートしていません。 */}
+              </audio>
               {/* Display transcribed text */}
-              <div className="prose prose-sm max-w-none">
+              {/* <div className="prose prose-sm max-w-none">
                 <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground/90">{content}</p>
-              </div>
+              </div> */}
             </div>
           ) : (
             <div className="prose prose-sm max-w-none">
