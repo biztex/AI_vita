@@ -25,6 +25,7 @@ type PersonalityOption = {
   code: string
   description: string
   color: string
+  category?: string
 }
 
 interface PersonalityAssessmentModalProps {
@@ -105,6 +106,49 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
       testType: "CLIFTONSTRENGTHS",
       completed: false,
       result: "",
+      options: [
+        // Strategic Thinking - Green
+        { id: "Analytical", name: "Analytical", code: "Analytical", description: "", color: "bg-green-500", category: "STRATEGIC THINKING" },
+        { id: "Context", name: "Context", code: "Context", description: "", color: "bg-green-500", category: "STRATEGIC THINKING" },
+        { id: "Futuristic", name: "Futuristic", code: "Futuristic", description: "", color: "bg-green-500", category: "STRATEGIC THINKING" },
+        { id: "Ideation", name: "Ideation", code: "Ideation", description: "", color: "bg-green-500", category: "STRATEGIC THINKING" },
+        { id: "Input", name: "Input", code: "Input", description: "", color: "bg-green-500", category: "STRATEGIC THINKING" },
+        { id: "Intellection", name: "Intellection", code: "Intellection", description: "", color: "bg-green-500", category: "STRATEGIC THINKING" },
+        { id: "Learner", name: "Learner", code: "Learner", description: "", color: "bg-green-500", category: "STRATEGIC THINKING" },
+        { id: "Strategic", name: "Strategic", code: "Strategic", description: "", color: "bg-green-500", category: "STRATEGIC THINKING" },
+        
+        // Relationship Building - Blue
+        { id: "Adaptability", name: "Adaptability", code: "Adaptability", description: "", color: "bg-blue-500", category: "RELATIONSHIP BUILDING" },
+        { id: "Connectedness", name: "Connectedness", code: "Connectedness", description: "", color: "bg-blue-500", category: "RELATIONSHIP BUILDING" },
+        { id: "Developer", name: "Developer", code: "Developer", description: "", color: "bg-blue-500", category: "RELATIONSHIP BUILDING" },
+        { id: "Empathy", name: "Empathy", code: "Empathy", description: "", color: "bg-blue-500", category: "RELATIONSHIP BUILDING" },
+        { id: "Harmony", name: "Harmony", code: "Harmony", description: "", color: "bg-blue-500", category: "RELATIONSHIP BUILDING" },
+        { id: "Includer", name: "Includer", code: "Includer", description: "", color: "bg-blue-500", category: "RELATIONSHIP BUILDING" },
+        { id: "Individualization", name: "Individualization", code: "Individualization", description: "", color: "bg-blue-500", category: "RELATIONSHIP BUILDING" },
+        { id: "Positivity", name: "Positivity", code: "Positivity", description: "", color: "bg-blue-500", category: "RELATIONSHIP BUILDING" },
+        { id: "Relator", name: "Relator", code: "Relator", description: "", color: "bg-blue-500", category: "RELATIONSHIP BUILDING" },
+        
+        // Influencing - Orange
+        { id: "Activator", name: "Activator", code: "Activator", description: "", color: "bg-orange-500", category: "INFLUENCING" },
+        { id: "Command", name: "Command", code: "Command", description: "", color: "bg-orange-500", category: "INFLUENCING" },
+        { id: "Communication", name: "Communication", code: "Communication", description: "", color: "bg-orange-500", category: "INFLUENCING" },
+        { id: "Competition", name: "Competition", code: "Competition", description: "", color: "bg-orange-500", category: "INFLUENCING" },
+        { id: "Maximizer", name: "Maximizer", code: "Maximizer", description: "", color: "bg-orange-500", category: "INFLUENCING" },
+        { id: "Self-Assurance", name: "Self-Assurance", code: "Self-Assurance", description: "", color: "bg-orange-500", category: "INFLUENCING" },
+        { id: "Significance", name: "Significance", code: "Significance", description: "", color: "bg-orange-500", category: "INFLUENCING" },
+        { id: "Woo", name: "Woo", code: "Woo", description: "", color: "bg-orange-500", category: "INFLUENCING" },
+        
+        // Executing - Purple
+        { id: "Achiever", name: "Achiever", code: "Achiever", description: "", color: "bg-purple-500", category: "EXECUTING" },
+        { id: "Arranger", name: "Arranger", code: "Arranger", description: "", color: "bg-purple-500", category: "EXECUTING" },
+        { id: "Belief", name: "Belief", code: "Belief", description: "", color: "bg-purple-500", category: "EXECUTING" },
+        { id: "Consistency", name: "Consistency", code: "Consistency", description: "", color: "bg-purple-500", category: "EXECUTING" },
+        { id: "Deliberative", name: "Deliberative", code: "Deliberative", description: "", color: "bg-purple-500", category: "EXECUTING" },
+        { id: "Discipline", name: "Discipline", code: "Discipline", description: "", color: "bg-purple-500", category: "EXECUTING" },
+        { id: "Focus", name: "Focus", code: "Focus", description: "", color: "bg-purple-500", category: "EXECUTING" },
+        { id: "Responsibility", name: "Responsibility", code: "Responsibility", description: "", color: "bg-purple-500", category: "EXECUTING" },
+        { id: "Restorative", name: "Restorative", code: "Restorative", description: "", color: "bg-purple-500", category: "EXECUTING" },
+      ]
     },
   ])
 
@@ -443,7 +487,7 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                       </button>
                     ))}
                   </div>
-                ) : (
+                ) : currentStep === 3 ? (
                   // DISC - 2x2 grid
                   <div className="grid grid-cols-2 gap-4">
                     {currentStepData.options.map((option) => (
@@ -479,6 +523,129 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                         )}
                       </button>
                     ))}
+                  </div>
+                ) : (
+                  // CliftonStrengths - 2x2 categories
+                  <div className="grid grid-cols-2 gap-6">
+                    {/* Strategic Thinking */}
+                    <div className="space-y-3">
+                      <div className="h-1 bg-green-500 rounded"></div>
+                      <h4 className="font-semibold text-green-600 text-sm">STRATEGIC THINKING</h4>
+                      <div className="space-y-1">
+                        {currentStepData.options.filter(opt => opt.category === "STRATEGIC THINKING").map((option) => (
+                          <button
+                            key={option.id}
+                            onClick={() => handleOptionSelect(currentStep, option.id)}
+                            className={cn(
+                              "w-full text-left p-2 rounded transition-all duration-200 hover:bg-gray-50",
+                              currentStepData.result === option.id 
+                                ? "bg-green-50 border-l-4 border-green-500" 
+                                : ""
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="underline">{option.name}</span>
+                              <span className="text-gray-400">></span>
+                            </div>
+                            {currentStepData.result === option.id && (
+                              <div className="absolute right-2">
+                                <Check className="h-4 w-4 text-green-500" />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Relationship Building */}
+                    <div className="space-y-3">
+                      <div className="h-1 bg-blue-500 rounded"></div>
+                      <h4 className="font-semibold text-blue-600 text-sm">RELATIONSHIP BUILDING</h4>
+                      <div className="space-y-1">
+                        {currentStepData.options.filter(opt => opt.category === "RELATIONSHIP BUILDING").map((option) => (
+                          <button
+                            key={option.id}
+                            onClick={() => handleOptionSelect(currentStep, option.id)}
+                            className={cn(
+                              "w-full text-left p-2 rounded transition-all duration-200 hover:bg-gray-50",
+                              currentStepData.result === option.id 
+                                ? "bg-blue-50 border-l-4 border-blue-500" 
+                                : ""
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="underline">{option.name}</span>
+                              <span className="text-gray-400">></span>
+                            </div>
+                            {currentStepData.result === option.id && (
+                              <div className="absolute right-2">
+                                <Check className="h-4 w-4 text-blue-500" />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Influencing */}
+                    <div className="space-y-3">
+                      <div className="h-1 bg-orange-500 rounded"></div>
+                      <h4 className="font-semibold text-orange-600 text-sm">INFLUENCING</h4>
+                      <div className="space-y-1">
+                        {currentStepData.options.filter(opt => opt.category === "INFLUENCING").map((option) => (
+                          <button
+                            key={option.id}
+                            onClick={() => handleOptionSelect(currentStep, option.id)}
+                            className={cn(
+                              "w-full text-left p-2 rounded transition-all duration-200 hover:bg-gray-50",
+                              currentStepData.result === option.id 
+                                ? "bg-orange-50 border-l-4 border-orange-500" 
+                                : ""
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="underline">{option.name}</span>
+                              <span className="text-gray-400">></span>
+                            </div>
+                            {currentStepData.result === option.id && (
+                              <div className="absolute right-2">
+                                <Check className="h-4 w-4 text-orange-500" />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Executing */}
+                    <div className="space-y-3">
+                      <div className="h-1 bg-purple-500 rounded"></div>
+                      <h4 className="font-semibold text-purple-600 text-sm">EXECUTING</h4>
+                      <div className="space-y-1">
+                        {currentStepData.options.filter(opt => opt.category === "EXECUTING").map((option) => (
+                          <button
+                            key={option.id}
+                            onClick={() => handleOptionSelect(currentStep, option.id)}
+                            className={cn(
+                              "w-full text-left p-2 rounded transition-all duration-200 hover:bg-gray-50",
+                              currentStepData.result === option.id 
+                                ? "bg-purple-50 border-l-4 border-purple-500" 
+                                : ""
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="underline">{option.name}</span>
+                              <span className="text-gray-400">></span>
+                            </div>
+                            {currentStepData.result === option.id && (
+                              <div className="absolute right-2">
+                                <Check className="h-4 w-4 text-purple-500" />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
