@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Check, Copy, ExternalLink, ArrowRight } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
 type TestStep = {
   id: number
@@ -127,7 +128,9 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
 
     // Save the current step result to backend
     try {
-      await apiClient.personality.upload(current.testType, current.result)
+      if (current) {
+        await apiClient.personality.upload(current.testType, current.result)
+      }
     } catch (error) {
       console.error("Failed to save personality result:", error)
     }
@@ -152,6 +155,7 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
 
   const handleSkip = async () => {
     const current = steps.find((s) => s.id === currentStep)
+    if (!current) return
     
     // Save as skipped result
     try {
@@ -262,7 +266,7 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
         {currentStepData && (
           <div className="space-y-4 animate-in fade-in duration-300">
             {currentStepData.options ? (
-              // Selection interface for 16 Personalities
+              // Selection interface for personality tests
               <div className="space-y-4">
                 <div className="text-center">
                   <h3 className="text-lg font-semibold mb-2">{currentStepData.name}</h3>
@@ -271,128 +275,169 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                   </p>
                 </div>
                 
-                {/* Group options by color/category */}
-                <div className="space-y-6">
-                  {/* 分析家 (Analyst) - Purple */}
-                  <div>
-                    <h4 className="text-sm font-medium text-purple-600 mb-3">分析家 (Analyst)</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      {currentStepData.options.filter(opt => opt.color === "bg-purple-600").map((option) => (
-                        <button
-                          key={option.id}
-                          onClick={() => handleOptionSelect(currentStep, option.id)}
-                          className={cn(
-                            "relative p-4 rounded-lg text-white transition-all duration-200 hover:scale-105",
-                            option.color,
-                            currentStepData.result === option.id 
-                              ? "ring-2 ring-white ring-offset-2 ring-offset-purple-600" 
-                              : "hover:opacity-90"
-                          )}
-                        >
-                          <div className="text-center">
-                            <div className="font-medium text-sm">{option.name}</div>
-                            <div className="text-xs opacity-90 mt-1">{option.code}</div>
-                          </div>
-                          {currentStepData.result === option.id && (
-                            <div className="absolute top-2 right-2">
-                              <Check className="h-5 w-5 text-white" />
+                {currentStep === 1 ? (
+                  // 16 Personalities - Grouped by categories
+                  <div className="space-y-6">
+                    {/* 分析家 (Analyst) - Purple */}
+                    <div>
+                      <h4 className="text-sm font-medium text-purple-600 mb-3">分析家 (Analyst)</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {currentStepData.options.filter(opt => opt.color === "bg-purple-600").map((option) => (
+                          <button
+                            key={option.id}
+                            onClick={() => handleOptionSelect(currentStep, option.id)}
+                            className={cn(
+                              "relative p-4 rounded-lg text-white transition-all duration-200 hover:scale-105",
+                              option.color,
+                              currentStepData.result === option.id 
+                                ? "ring-2 ring-white ring-offset-2 ring-offset-purple-600" 
+                                : "hover:opacity-90"
+                            )}
+                          >
+                            <div className="text-center">
+                              <div className="font-medium text-sm">{option.name}</div>
+                              <div className="text-xs opacity-90 mt-1">{option.code}</div>
                             </div>
-                          )}
-                        </button>
-                      ))}
+                            {currentStepData.result === option.id && (
+                              <div className="absolute top-2 right-2">
+                                <Check className="h-5 w-5 text-white" />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* 外交官 (Diplomat) - Green */}
-                  <div>
-                    <h4 className="text-sm font-medium text-green-600 mb-3">外交官 (Diplomat)</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      {currentStepData.options.filter(opt => opt.color === "bg-green-600").map((option) => (
-                        <button
-                          key={option.id}
-                          onClick={() => handleOptionSelect(currentStep, option.id)}
-                          className={cn(
-                            "relative p-4 rounded-lg text-white transition-all duration-200 hover:scale-105",
-                            option.color,
-                            currentStepData.result === option.id 
-                              ? "ring-2 ring-white ring-offset-2 ring-offset-green-600" 
-                              : "hover:opacity-90"
-                          )}
-                        >
-                          <div className="text-center">
-                            <div className="font-medium text-sm">{option.name}</div>
-                            <div className="text-xs opacity-90 mt-1">{option.code}</div>
-                          </div>
-                          {currentStepData.result === option.id && (
-                            <div className="absolute top-2 right-2">
-                              <Check className="h-5 w-5 text-white" />
+                    {/* 外交官 (Diplomat) - Green */}
+                    <div>
+                      <h4 className="text-sm font-medium text-green-600 mb-3">外交官 (Diplomat)</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {currentStepData.options.filter(opt => opt.color === "bg-green-600").map((option) => (
+                          <button
+                            key={option.id}
+                            onClick={() => handleOptionSelect(currentStep, option.id)}
+                            className={cn(
+                              "relative p-4 rounded-lg text-white transition-all duration-200 hover:scale-105",
+                              option.color,
+                              currentStepData.result === option.id 
+                                ? "ring-2 ring-white ring-offset-2 ring-offset-green-600" 
+                                : "hover:opacity-90"
+                            )}
+                          >
+                            <div className="text-center">
+                              <div className="font-medium text-sm">{option.name}</div>
+                              <div className="text-xs opacity-90 mt-1">{option.code}</div>
                             </div>
-                          )}
-                        </button>
-                      ))}
+                            {currentStepData.result === option.id && (
+                              <div className="absolute top-2 right-2">
+                                <Check className="h-5 w-5 text-white" />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* 番人 (Sentinel) - Blue */}
-                  <div>
-                    <h4 className="text-sm font-medium text-blue-600 mb-3">番人 (Sentinel)</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      {currentStepData.options.filter(opt => opt.color === "bg-blue-600").map((option) => (
-                        <button
-                          key={option.id}
-                          onClick={() => handleOptionSelect(currentStep, option.id)}
-                          className={cn(
-                            "relative p-4 rounded-lg text-white transition-all duration-200 hover:scale-105",
-                            option.color,
-                            currentStepData.result === option.id 
-                              ? "ring-2 ring-white ring-offset-2 ring-offset-blue-600" 
-                              : "hover:opacity-90"
-                          )}
-                        >
-                          <div className="text-center">
-                            <div className="font-medium text-sm">{option.name}</div>
-                            <div className="text-xs opacity-90 mt-1">{option.code}</div>
-                          </div>
-                          {currentStepData.result === option.id && (
-                            <div className="absolute top-2 right-2">
-                              <Check className="h-5 w-5 text-white" />
+                    {/* 番人 (Sentinel) - Blue */}
+                    <div>
+                      <h4 className="text-sm font-medium text-blue-600 mb-3">番人 (Sentinel)</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {currentStepData.options.filter(opt => opt.color === "bg-blue-600").map((option) => (
+                          <button
+                            key={option.id}
+                            onClick={() => handleOptionSelect(currentStep, option.id)}
+                            className={cn(
+                              "relative p-4 rounded-lg text-white transition-all duration-200 hover:scale-105",
+                              option.color,
+                              currentStepData.result === option.id 
+                                ? "ring-2 ring-white ring-offset-2 ring-offset-blue-600" 
+                                : "hover:opacity-90"
+                            )}
+                          >
+                            <div className="text-center">
+                              <div className="font-medium text-sm">{option.name}</div>
+                              <div className="text-xs opacity-90 mt-1">{option.code}</div>
                             </div>
-                          )}
-                        </button>
-                      ))}
+                            {currentStepData.result === option.id && (
+                              <div className="absolute top-2 right-2">
+                                <Check className="h-5 w-5 text-white" />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* 探検家 (Explorer) - Orange */}
-                  <div>
-                    <h4 className="text-sm font-medium text-orange-600 mb-3">探検家 (Explorer)</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      {currentStepData.options.filter(opt => opt.color === "bg-orange-600").map((option) => (
-                        <button
-                          key={option.id}
-                          onClick={() => handleOptionSelect(currentStep, option.id)}
-                          className={cn(
-                            "relative p-4 rounded-lg text-white transition-all duration-200 hover:scale-105",
-                            option.color,
-                            currentStepData.result === option.id 
-                              ? "ring-2 ring-white ring-offset-2 ring-offset-orange-600" 
-                              : "hover:opacity-90"
-                          )}
-                        >
-                          <div className="text-center">
-                            <div className="font-medium text-sm">{option.name}</div>
-                            <div className="text-xs opacity-90 mt-1">{option.code}</div>
-                          </div>
-                          {currentStepData.result === option.id && (
-                            <div className="absolute top-2 right-2">
-                              <Check className="h-5 w-5 text-white" />
+                    {/* 探検家 (Explorer) - Orange */}
+                    <div>
+                      <h4 className="text-sm font-medium text-orange-600 mb-3">探検家 (Explorer)</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {currentStepData.options.filter(opt => opt.color === "bg-orange-600").map((option) => (
+                          <button
+                            key={option.id}
+                            onClick={() => handleOptionSelect(currentStep, option.id)}
+                            className={cn(
+                              "relative p-4 rounded-lg text-white transition-all duration-200 hover:scale-105",
+                              option.color,
+                              currentStepData.result === option.id 
+                                ? "ring-2 ring-white ring-offset-2 ring-offset-orange-600" 
+                                : "hover:opacity-90"
+                            )}
+                          >
+                            <div className="text-center">
+                              <div className="font-medium text-sm">{option.name}</div>
+                              <div className="text-xs opacity-90 mt-1">{option.code}</div>
                             </div>
-                          )}
-                        </button>
-                      ))}
+                            {currentStepData.result === option.id && (
+                              <div className="absolute top-2 right-2">
+                                <Check className="h-5 w-5 text-white" />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  // Enneagram - Vertical list
+                  <div className="space-y-2">
+                    {currentStepData.options.map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => handleOptionSelect(currentStep, option.id)}
+                        className={cn(
+                          "relative w-full p-4 rounded-lg border transition-all duration-200 hover:shadow-md",
+                          "bg-white hover:bg-gray-50",
+                          currentStepData.result === option.id 
+                            ? "border-green-500 bg-green-50" 
+                            : "border-gray-200"
+                        )}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className={cn(
+                            "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-lg",
+                            option.color
+                          )}>
+                            {option.code}
+                          </div>
+                          <div className="flex-1 text-left">
+                            <div className="font-semibold text-orange-500 text-lg mb-1">
+                              {option.name}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {option.description}
+                            </div>
+                          </div>
+                          {currentStepData.result === option.id && (
+                            <div className="flex-shrink-0">
+                              <Check className="h-6 w-6 text-green-500" />
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               // Original input interface for other steps
