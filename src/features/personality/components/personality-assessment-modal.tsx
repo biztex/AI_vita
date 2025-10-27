@@ -545,7 +545,7 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                           >
                             <div className="flex items-center justify-between">
                               <span className="underline">{option.name}</span>
-                              <span className="text-gray-400">></span>
+                              <span className="text-gray-400">&gt;</span>
                             </div>
                             {currentStepData.result === option.id && (
                               <div className="absolute right-2">
@@ -575,7 +575,7 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                           >
                             <div className="flex items-center justify-between">
                               <span className="underline">{option.name}</span>
-                              <span className="text-gray-400">></span>
+                              <span className="text-gray-400">&gt;</span>
                             </div>
                             {currentStepData.result === option.id && (
                               <div className="absolute right-2">
@@ -605,7 +605,7 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                           >
                             <div className="flex items-center justify-between">
                               <span className="underline">{option.name}</span>
-                              <span className="text-gray-400">></span>
+                              <span className="text-gray-400">&gt;</span>
                             </div>
                             {currentStepData.result === option.id && (
                               <div className="absolute right-2">
@@ -635,7 +635,7 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                           >
                             <div className="flex items-center justify-between">
                               <span className="underline">{option.name}</span>
-                              <span className="text-gray-400">></span>
+                              <span className="text-gray-400">&gt;</span>
                             </div>
                             {currentStepData.result === option.id && (
                               <div className="absolute right-2">
