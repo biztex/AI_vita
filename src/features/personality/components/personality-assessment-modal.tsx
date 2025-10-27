@@ -91,6 +91,12 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
       testType: "DISC",
       completed: false,
       result: "",
+      options: [
+        { id: "D", name: "Dominance", code: "D", description: "A person primarily in this DiSC quadrant places emphasis on accomplishing results and \"seeing the big picture.\" They are confident, sometimes blunt, outspoken, and demanding.", color: "bg-red-500" },
+        { id: "I", name: "Influence", code: "I", description: "A person in this DiSC quadrant places emphasis on influencing or persuading others. They tend to be enthusiastic, optimistic, open, trusting, and energetic.", color: "bg-yellow-500" },
+        { id: "S", name: "Steadyness", code: "S", description: "A person in this DiSC quadrant places emphasis on cooperation, sincerity, loyalty, and dependability. They tend to have calm, deliberate dispositions, and don't like to be rushed.", color: "bg-green-500" },
+        { id: "C", name: "Conscientiousness", code: "C", description: "A person in this DiSC quadrant places emphasis on quality and accuracy, expertise and competency. They enjoy their independence, demand the details, and often fear being wrong.", color: "bg-blue-500" },
+      ]
     },
     {
       id: 4,
@@ -398,7 +404,7 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                       </div>
                     </div>
                   </div>
-                ) : (
+                ) : currentStep === 2 ? (
                   // Enneagram - Vertical list
                   <div className="space-y-2">
                     {currentStepData.options.map((option) => (
@@ -434,6 +440,43 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
                             </div>
                           )}
                         </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  // DISC - 2x2 grid
+                  <div className="grid grid-cols-2 gap-4">
+                    {currentStepData.options.map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => handleOptionSelect(currentStep, option.id)}
+                        className={cn(
+                          "relative p-6 rounded-lg border transition-all duration-200 hover:shadow-md",
+                          "bg-white hover:bg-gray-50",
+                          currentStepData.result === option.id 
+                            ? "border-green-500 bg-green-50" 
+                            : "border-gray-200"
+                        )}
+                      >
+                        <div className="text-center">
+                          <div className={cn(
+                            "w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-3",
+                            option.color
+                          )}>
+                            {option.code}
+                          </div>
+                          <div className="font-semibold text-lg mb-2">
+                            {option.name}
+                          </div>
+                          <div className="text-sm text-gray-600 text-left">
+                            {option.description}
+                          </div>
+                        </div>
+                        {currentStepData.result === option.id && (
+                          <div className="absolute top-3 right-3">
+                            <Check className="h-6 w-6 text-green-500" />
+                          </div>
+                        )}
                       </button>
                     ))}
                   </div>
