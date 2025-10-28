@@ -290,7 +290,7 @@ r.post("/voice", requireAuth(), upload.single("audio"), async (req: any, res: an
     const transcriptResp = await openai.audio.transcriptions.create({
       file: fs.createReadStream(req.file.path) as any,
       model: "whisper-1",
-      language: "en",
+      language: "ja",
     } as any);
     console.log('transcriptResp', transcriptResp);
     const transcript: string = (transcriptResp as any).text || (transcriptResp as any).transcript || "";
