@@ -62,10 +62,7 @@ export function ChatMessage({ role, content, kind = "TEXT", voiceUrl, timestamp,
               <audio 
                 controls
                 className="h-10"
-                preload="metadata"
               >
-                <source src={voiceUrl ? `/backend${voiceUrl}` : undefined} type="audio/mpeg" />
-                <source src={voiceUrl ? `/backend${voiceUrl}` : undefined} type="audio/wav" />
                 <source src={voiceUrl ? `/backend${voiceUrl}` : undefined} type="audio/webm" />
                 {/* お使いのブラウザは音声の再生をサポートしていません。 */}
               </audio>
