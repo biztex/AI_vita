@@ -100,7 +100,7 @@ function VitaAIChatContent() {
         if (!currentConversationId) {
           setCurrentConversationId(upload.conversationId)
         }
-        setMessages((prev) => prev.map((m) => m.id === userMessage.id ? { ...m, content: upload.audioPath, kind: "VOICE" } : m))
+        setMessages((prev) => prev.map((m) => m.id === userMessage.id ? { ...m, content: "音声メッセージを処理中...", kind: "VOICE", voiceUrl: upload.audioPath } : m))
 
         // Step 2: process (transcribe + AI)
         const processed = await apiClient.chats.processVoice("VITAAI", upload.conversationId, upload.audioPath)
