@@ -70,53 +70,40 @@ function takeTop(items: NewsItem[], count: number): NewsItem[] {
 }
 
 export async function getDailyNews() {
-  // Fetch per category in parallel
-  const [healthLists, businessLists, domesticLists, internationalLists] = await Promise.all([
+  // Fetch health and business categories
+  const [healthLists, businessLists] = await Promise.all([
     Promise.all(SOURCES.HEALTH.map(s => fetchRss(s.url, s.source))),
     Promise.all(SOURCES.BUSINESS.map(s => fetchRss(s.url, s.source))),
-    Promise.all(SOURCES.DOMESTIC.map(s => fetchRss(s.url, s.source))),
-    Promise.all(SOURCES.INTERNATIONAL.map(s => fetchRss(s.url, s.source))),
   ]);
 
+  // 1 health item
   const health = takeTop(
     healthLists.flat().map(i => ({ ...i, category: "HEALTH" as const })),
     1
   );
-  const business = takeTop(
-    businessLists.flat().map(i => ({ ...i, category: "BUSINESS" as const })),
-    4
-  );
-  const domestic = takeTop(
-    domesticLists.flat().map(i => ({ ...i, category: "DOMESTIC" as const })),
-    2
-  );
-  const international = takeTop(
-    internationalLists.flat().map(i => ({ ...i, category: "INTERNATIONAL" as const })),
-    2
-  );
 
-  return { health, business, domestic, international };
+  // For demonstration, just take first 2 as global, next 2 as domestic
+  // (In real usage, you may distinguish global/domestic by source/news content)
+  const allBiz = businessLists.flat().sort((a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0));
+  const businessGlobal = allBiz.slice(0, 2).map(i => ({ ...i, category: "INTERNATIONAL" as const }));
+  const businessDomestic = allBiz.slice(2, 4).map(i => ({ ...i, category: "DOMESTIC" as const }));
+
+  return { health, businessGlobal, businessDomestic };
 }
 
 export function logNewsToConsole(news: Awaited<ReturnType<typeof getDailyNews>>) {
   const sections: Array<[string, NewsItem[]]> = [
     ["HEALTH", news.health],
-    ["BUSINESS", news.business],
-    ["DOMESTIC", news.domestic],
-    ["INTERNATIONAL", news.international],
+    ["BUSINESS - INTERNATIONAL", news.businessGlobal],
+    ["BUSINESS - DOMESTIC", news.businessDomestic],
   ];
-  // eslint-disable-next-line no-console
   console.log("=== Daily News Selection ===");
   for (const [section, items] of sections) {
-    // eslint-disable-next-line no-console
     console.log(`\n[${section}]`);
     for (const item of items) {
-      // eslint-disable-next-line no-console
       console.log(`- ${item.title} (${item.source})`);
-      // eslint-disable-next-line no-console
       console.log(`  ${item.link}`);
       if (item.publishedAt) {
-        // eslint-disable-next-line no-console
         console.log(`  ${item.publishedAt.toISOString()}`);
       }
     }
