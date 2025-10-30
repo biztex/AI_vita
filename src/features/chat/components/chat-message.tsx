@@ -63,7 +63,7 @@ export function ChatMessage({ role, content, kind = "TEXT", voiceUrl, timestamp,
                 controls
                 className="h-10"
               >
-                <source src={voiceUrl ? `/backend${voiceUrl}` : undefined} type="audio/webm" />
+                <source src={`/backend${voiceUrl}`} type="audio/webm" />
                 {/* お使いのブラウザは音声の再生をサポートしていません。 */}
               </audio>
               {/* Display transcribed text */}
