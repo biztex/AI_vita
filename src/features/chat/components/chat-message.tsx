@@ -59,6 +59,7 @@ export function ChatMessage({ role, content, kind = "TEXT", voiceUrl, timestamp,
                 <Volume2 className="h-4 w-4" />
                 <span>音声メッセージ</span>
               </div> */}
+<<<<<<< Updated upstream
               <audio 
                 controls
                 className="h-10"
@@ -66,6 +67,19 @@ export function ChatMessage({ role, content, kind = "TEXT", voiceUrl, timestamp,
                 <source src={`/backend${voiceUrl}`} type="audio/webm" />
                 {/* お使いのブラウザは音声の再生をサポートしていません。 */}
               </audio>
+=======
+              {
+                voiceUrl && (
+                  <audio 
+                    controls
+                    className="h-10"
+                  >
+                    <source src={`/backend${voiceUrl}`} type="audio/webm" />
+                    {/* お使いのブラウザは音声の再生をサポートしていません。 */}
+                  </audio>
+                )
+              }
+>>>>>>> Stashed changes
               {/* Display transcribed text */}
               {/* <div className="prose prose-sm max-w-none">
                 <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground/90">{content}</p>
