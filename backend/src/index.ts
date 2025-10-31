@@ -6,6 +6,7 @@ import path from "path";
 // import "./redis.js";
 import router from "./routes/index.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { logDailyNewsPreview } from "./services/newsService.js";
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -43,4 +44,12 @@ app.use('/uploads', express.static(path.resolve('upload')));
 app.use(router);
 app.use(errorHandler);
 
-app.listen(ENV.PORT, () => console.log(`🚀 API running on http://localhost:${ENV.PORT}`));
+app.listen(ENV.PORT, async () => {
+  console.log(`🚀 API running on http://localhost:${ENV.PORT}`);
+  // Fetch and log news once at startup (first step)
+  try {
+    await logDailyNewsPreview();
+  } catch (e) {
+    console.error('Failed to run startup news preview:', e);
+  }
+});

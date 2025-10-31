@@ -1,22 +1,20 @@
-import express from "express";
-import { getDailyNews, logNewsToConsole } from "../services/newsService.js";
+import { Router } from "express";
+import { getDailyJapaneseNews, logDailyNewsPreview } from "../services/newsService.js";
 
-const router = express.Router();
+const r = Router();
 
-router.get("/fetch", async (_req, res, next) => {
-  try {
-    const news = await getDailyNews();
-    logNewsToConsole(news);
-    res.json({ ok: true, news: {
-      health: news.health,
-      businessGlobal: news.businessGlobal,
-      businessDomestic: news.businessDomestic,
-    }});
-  } catch (err) {
-    next(err);
-  }
+// GET /news/preview - fetch latest items and log to console
+r.get("/preview", async (_req, res, next) => {
+	try {
+		const items = await getDailyJapaneseNews();
+		// also output to console as the first step requirement
+		await logDailyNewsPreview();
+		res.json({ count: items.length, items, timestamp: new Date().toISOString() });
+	} catch (e) {
+		next(e);
+	}
 });
 
-export default router;
+export default r;
 
 
