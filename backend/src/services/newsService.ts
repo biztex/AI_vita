@@ -3,9 +3,10 @@ import Parser from "rss-parser";
 export type NewsItem = {
 	category: "HEALTH" | "BUSINESS";
 	title: string;
+	description: string;
 	link: string;
 	pubDate?: string; // ISO8601 if available
-	source: string; // e.g., NHK
+	source: string; // e.g., NHK, CNBC
 };
 
 type RssItem = {
@@ -17,7 +18,7 @@ type RssItem = {
 
 const parser: any = new Parser({
 	customFields: {
-		item: ["pubDate", "link", "title"]
+		item: ["pubDate", "link", "title", "description", "contentSnippet", "content", "summary", "content:encoded"]
 	}
 });
 
@@ -32,16 +33,28 @@ const DEFAULT_FEEDS = {
 	]
 };
 
+const CNBC_FEED = process.env.NEWS_FEED_CNBC || "https://www.cnbc.com/id/100003114/device/rss/rss.html";
+
+function extractDescription(it: RssItem): string {
+	const raw = (it as any)["content:encoded"] || it.contentSnippet || it.summary || it.description || it.content || "";
+	if (!raw) return "";
+	// Strip HTML if present
+	const text = String(raw).replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+	return text;
+}
+
 async function fetchFromFeed(url: string, category: NewsItem["category"], sourceLabel: string): Promise<NewsItem[]> {
 	try {
 		const feed = await parser.parseURL(url);
 		return (feed.items || []).map((it: RssItem) => ({
 			category,
 			title: it.title || "",
+			description: extractDescription(it),
 			link: it.link || (it as any).links?.[0]?.url || "",
 			pubDate: it.pubDate ? new Date(it.pubDate).toISOString() : undefined,
 			source: sourceLabel
-		}));
+		}))
+		.filter((n: NewsItem) => n.title.trim().length > 0 && n.description.trim().length > 0);
 	} catch (e) {
 		console.error(`RSS fetch failed for ${url}:`, e);
 		return [];
@@ -56,24 +69,38 @@ function sortByDateDesc(items: NewsItem[]): NewsItem[] {
 	});
 }
 
+function isBusinessRelated(item: NewsItem): boolean {
+	const hay = `${item.title} ${item.description}`.toLowerCase();
+	const keywords = [
+		"business","management","finance","financial","corporate","corporation","company","companies",
+		"earnings","market","markets","stock","stocks","equity","equities","bond","bonds","economy","economic",
+		"merger","acquisition","m&a","ipo","revenue","profit","guidance","shares","ceo","cfo","industry","regulation"
+	];
+	return keywords.some(k => hay.includes(k));
+}
+
+async function fetchCnbcTop(count: number): Promise<NewsItem[]> {
+	const items = await fetchFromFeed(CNBC_FEED, "BUSINESS", "CNBC");
+	const filtered = items.filter(isBusinessRelated);
+	return sortByDateDesc(filtered).slice(0, count);
+}
+
 export async function getDailyJapaneseNews(): Promise<NewsItem[]> {
-	// Fetch from HEALTH feeds
-	const healthPromises = DEFAULT_FEEDS.HEALTH.map((u) => fetchFromFeed(u, "HEALTH", "NHK"));
-	// Fetch from BUSINESS feeds
+	// Fetch BUSINESS (NHK) and CNBC only. Health is excluded.
 	const businessPromises = DEFAULT_FEEDS.BUSINESS.map((u) => fetchFromFeed(u, "BUSINESS", "NHK"));
 
-	const [healthResults, businessResults] = await Promise.all([
-		Promise.all(healthPromises),
-		Promise.all(businessPromises)
+	const [businessResults, cnbcTop] = await Promise.all([
+		Promise.all(businessPromises),
+		fetchCnbcTop(3)
 	]);
 
-	const healthItems = sortByDateDesc(healthResults.flat());
-	const businessItems = sortByDateDesc(businessResults.flat());
+	const nhkBusinessItems = sortByDateDesc(businessResults.flat());
 
-	const selectedHealth = healthItems.slice(0, 1);
-	const selectedBusiness = businessItems.slice(0, 4);
+	const selectedCnbc = cnbcTop; // already sliced(3)
+	const remainingBusinessSlots = Math.max(0, 5 - selectedCnbc.length);
+	const selectedNhkBusiness = nhkBusinessItems.slice(0, remainingBusinessSlots);
 
-	const combined = [...selectedHealth, ...selectedBusiness];
+	const combined = [...selectedCnbc, ...selectedNhkBusiness];
 	return sortByDateDesc(combined);
 }
 
@@ -83,6 +110,7 @@ export async function logDailyNewsPreview(): Promise<void> {
 	for (const item of items) {
 		const when = item.pubDate ? new Date(item.pubDate).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }) : "";
 		console.log(`[${item.category}] ${item.title}`);
+		console.log(`  ${item.description}`);
 		console.log(`  ${item.link}`);
 		if (when) console.log(`  配信: ${when} (${item.source})`);
 	}
