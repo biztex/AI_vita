@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
-import { ENV } from '../env.js';
-import { prisma } from '../prisma.js';
+import { ENV } from '../env';
+import { prisma } from '../prisma';
 
 // Initialize OpenAI client
 const openai = new OpenAI({

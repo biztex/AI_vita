@@ -1,5 +1,5 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
-import { prisma } from "../prisma.ts";
+import { prisma } from "../prisma";
 
 const JWKS = createRemoteJWKSet(new URL(process.env.SUPABASE_JWKS_URL!));
 const ISSUER = process.env.SUPABASE_ISSUER!;

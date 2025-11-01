@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { prisma } from "../prisma.ts";
-import { requireAuth } from "../middlewares/auth.ts";
+import { prisma } from "../prisma";
+import { requireAuth } from "../middlewares/auth";
 // import { rateLimit } from "../middlewares/rateLimit.ts";
 
 const r = Router();
