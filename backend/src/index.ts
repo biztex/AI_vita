@@ -7,6 +7,7 @@ import path from "path";
 import router from "./routes/index.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { logDailyNewsPreview } from "./services/newsService.js";
+import { startDailyNewsJob } from "./services/schedulerService.js";
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -51,5 +52,12 @@ app.listen(ENV.PORT, async () => {
     await logDailyNewsPreview();
   } catch (e) {
     console.error('Failed to run startup news preview:', e);
+  }
+  // Start daily scheduler at 07:00 JST
+  try {
+    startDailyNewsJob();
+    console.log('📅 Daily news job scheduled at 07:00 Asia/Tokyo');
+  } catch (e) {
+    console.error('Failed to start scheduler:', e);
   }
 });
