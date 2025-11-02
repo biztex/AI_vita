@@ -6,7 +6,7 @@ import { requireAuth } from "../middlewares/auth";
 const r = Router();
 
 // GET personality results for current user
-r.get("/", requireAuth(), async (req, res, next) => {
+r.get("/", requireAuth(), async (req: any, res: any, next: any) => {
   try {
     const results = await prisma.personalityResult.findMany({
       where: { ownerId: req.user.id },
@@ -20,7 +20,7 @@ r.get("/", requireAuth(), async (req, res, next) => {
 
 // POST personality result
 // rateLimit((req) => `personality:${req.user.id}`, 10, 60)
-r.post("/", requireAuth(), async (req, res, next) => {
+r.post("/", requireAuth(), async (req: any, res: any, next: any) => {
   try {
     const { testType, result, fileKey } = req.body;
     if (!testType) return res.status(400).json({ error: "bad_request" });

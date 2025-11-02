@@ -48,11 +48,11 @@ app.use(errorHandler);
 app.listen(ENV.PORT, async () => {
   console.log(`🚀 API running on http://localhost:${ENV.PORT}`);
   // Fetch and log news once at startup (first step)
-  try {
-    await logDailyNewsPreview();
-  } catch (e) {
-    console.error('Failed to run startup news preview:', e);
-  }
+  // try {
+  //   await logDailyNewsPreview();
+  // } catch (e) {
+  //   console.error('Failed to run startup news preview:', e);
+  // }
   // Start daily scheduler at 07:00 JST
   try {
     startDailyNewsJob();

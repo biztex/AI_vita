@@ -23,6 +23,7 @@ export async function analyzeBusinessItemsJA(items: NewsItem[]): Promise<string>
   });
 
   const content = completion.choices[0]?.message?.content?.trim() || '';
+  console.log(content);
   return content;
 }
 
