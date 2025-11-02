@@ -96,3 +96,23 @@ enum Status {
   VERIFIED
   REJECTED
 }
+
+enum NewsCategory {
+  HEALTH
+  BUSINESS
+}
+
+model NewsItem {
+  id          String       @id @default(uuid())
+  category    NewsCategory
+  title       String
+  description String
+  link        String
+  pubDate     DateTime?
+  source      String
+  newsDate    DateTime     @default(now()) // The date when this news was collected
+  createdAt   DateTime     @default(now())
+
+  @@index([newsDate])
+  @@index([category])
+}
