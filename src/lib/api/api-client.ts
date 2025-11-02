@@ -254,6 +254,26 @@ class APIClient {
         body: { enabled },
       }),
   }
+
+  // News endpoints
+  news = {
+    getNews: (date?: string) =>
+      this.request<{
+        date: string
+        count: number
+        items: Array<{
+          category: string
+          title: string
+          description: string
+          link: string
+          pubDate?: string
+          source: string
+          newsDate: string
+        }>
+      }>("/news", {
+        query: date ? { date } : {},
+      }),
+  }
 }
 
 // Export singleton instance

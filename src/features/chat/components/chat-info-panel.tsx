@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { NewsPanel } from "./news-panel"
 import type { User } from "@/lib/auth-context"
 
 type ChatInfoPanelProps = {
@@ -9,6 +10,16 @@ type ChatInfoPanelProps = {
 }
 
 export function ChatInfoPanel({ user, service }: ChatInfoPanelProps) {
+  // For ExecuWell, show only the news panel
+  if (service === "execuwell") {
+    return (
+      <div className="hidden w-80 border-l border-border bg-muted/30 p-6 md:block">
+        <NewsPanel />
+      </div>
+    )
+  }
+
+  // For VitaAI, show the original content
   return (
     <div className="hidden w-80 border-l border-border bg-muted/30 p-6 md:block">
       <div className="space-y-6">
@@ -43,7 +54,7 @@ export function ChatInfoPanel({ user, service }: ChatInfoPanelProps) {
         {/* Service Info */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">{service === "vitaai" ? "VitaAI" : "ExecuWell"} ステータス</CardTitle>
+            <CardTitle className="text-base">VitaAI ステータス</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
@@ -56,14 +67,12 @@ export function ChatInfoPanel({ user, service }: ChatInfoPanelProps) {
                 アクティブ
               </Badge>
             </div>
-            {service === "vitaai" && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">遺伝子データ</span>
-                <Badge variant="outline" className="bg-green-500/10 text-green-500">
-                  アップロード済み
-                </Badge>
-              </div>
-            )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">遺伝子データ</span>
+              <Badge variant="outline" className="bg-green-500/10 text-green-500">
+                アップロード済み
+              </Badge>
+            </div>
           </CardContent>
         </Card>
 
@@ -76,9 +85,7 @@ export function ChatInfoPanel({ user, service }: ChatInfoPanelProps) {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start">
                 <span className="mr-2 text-primary">•</span>
-                {service === "vitaai"
-                  ? "健康指標について質問し、パーソナライズされた推奨事項を取得"
-                  : "市場分析とビジネスインサイトをリクエスト"}
+                健康指標について質問し、パーソナライズされた推奨事項を取得
               </li>
               <li className="flex items-start">
                 <span className="mr-2 text-primary">•</span>
@@ -92,6 +99,6 @@ export function ChatInfoPanel({ user, service }: ChatInfoPanelProps) {
           </CardContent>
         </Card>
       </div>
-    </div>
-  )
+    )
+  }
 }
