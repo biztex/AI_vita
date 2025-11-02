@@ -5,7 +5,7 @@ import { supabase, signIn, signUp, signOut, getCurrentUser, resetPassword } from
 import { apiClient } from "./api"
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
-type User = {
+export type User = {
   id: string
   email: string
   name: string

@@ -99,6 +99,6 @@ export function ChatInfoPanel({ user, service }: ChatInfoPanelProps) {
           </CardContent>
         </Card>
       </div>
+    </div>
     )
-  }
 }
