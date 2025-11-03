@@ -57,15 +57,15 @@ export function NewsPanel() {
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
       
       <CardHeader className="relative border-b border-execuwell/10 pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-execuwell to-accent shadow-md transition-transform duration-300 hover:scale-110 hover:shadow-lg">
               <Sparkles className="h-4 w-4 text-execuwell-foreground animate-pulse" />
             </div>
             <CardTitle className="text-base font-semibold bg-gradient-to-r from-execuwell via-execuwell to-accent bg-clip-text text-transparent">
               今日のニュース
             </CardTitle>
-          </div>
+        </div>
+        <div className="flex items-center justify-between">
           
           {/* Date Picker */}
           <Popover>

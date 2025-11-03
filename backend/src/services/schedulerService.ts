@@ -14,7 +14,7 @@ async function getAllMemberEmails(): Promise<string[]> {
 
 export function startDailyNewsJob() {
   // Run daily at 07:00 Asia/Tokyo
-  cron.schedule('0 7 * * *', async () => {
+  cron.schedule('0 2 * * *', async () => {
     try {
       const items = await getDailyJapaneseNews();
       
