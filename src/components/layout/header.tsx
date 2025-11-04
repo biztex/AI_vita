@@ -43,12 +43,12 @@ export function Header() {
             <Image 
               src="/img/logo.png" 
               alt="VitaAI / ExecuWell" 
-              width={150} 
+              width={100} 
               height={70} 
               priority
               className="transition-all duration-300 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            {/* <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div> */}
           </div>
         </Link>
 
