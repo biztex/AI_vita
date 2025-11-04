@@ -148,7 +148,7 @@ r.get("/conversations", requireAuth(), async (req: any, res: any, next: any) => 
       }
     });
 
-    const formattedConversations = conversations.map(conv => ({
+    const formattedConversations = conversations.map((conv: any) => ({
       id: conv.id,
       service: conv.service,
       title: conv.title,

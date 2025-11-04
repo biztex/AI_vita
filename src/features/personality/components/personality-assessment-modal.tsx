@@ -251,33 +251,8 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
   const completedCount = steps.filter((s) => s.completed).length
 
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) {
-          if (!allCompleted) {
-            toast({ title: "エラー", description: "すべてのステップを完了するまで閉じることはできません", variant: "destructive" })
-            return
-          }
-          onComplete()
-        }
-      }}
-    >
-      <DialogContent
-        className="w-[800px] h-[600px] max-w-none max-h-none overflow-hidden flex flex-col"
-        onEscapeKeyDown={(e) => {
-          if (!allCompleted) {
-            e.preventDefault()
-            toast({ title: "エラー", description: "すべてのステップを完了するまで閉じることはできません", variant: "destructive" })
-          }
-        }}
-        onInteractOutside={(e) => {
-          if (!allCompleted) {
-            e.preventDefault()
-            toast({ title: "エラー", description: "すべてのステップを完了するまで閉じることはできません", variant: "destructive" })
-          }
-        }}
-      >
+    <Dialog open={isOpen} onOpenChange={() => {}}>
+      <DialogContent className="w-[800px] h-[600px] max-w-none max-h-none overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-lg font-bold text-center">
             性格診断テスト
