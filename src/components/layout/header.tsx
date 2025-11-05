@@ -16,6 +16,7 @@ import {
 import { User, Settings, LogOut, Bell } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { MobileMenu } from "./mobile-menu"
+import { apiClient } from "@/lib/api"
 // import logo from "./img/logo.png"
 
 export function Header() {
@@ -25,22 +26,22 @@ export function Header() {
   const [loadingNews, setLoadingNews] = useState(false)
 
   useEffect(() => {
+    if (!user) {
+      setNews([])
+      return
+    }
     const loadTodayNews = async () => {
       setLoadingNews(true)
       try {
-        // Attempt to fetch today's news if an endpoint exists; fallback to empty
-        const res = await fetch("/api/news/today", { method: "GET" })
-        if (res.ok) {
-          const data = await res.json()
-          // Expecting data.items: { id, title, url?, time? }[]
-          if (Array.isArray(data?.items)) {
-            setNews(data.items)
-          } else {
-            setNews([])
-          }
-        } else {
-          setNews([])
-        }
+        const data = await apiClient.news.getNews()
+        const items = Array.isArray(data?.items) ? data.items : []
+        const mapped = items.map((it, idx) => ({
+          id: `${idx}-${it.pubDate || it.link}`,
+          title: it.title,
+          url: it.link,
+          time: it.pubDate ? new Date(it.pubDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : undefined,
+        }))
+        setNews(mapped)
       } catch (e) {
         setNews([])
       } finally {
@@ -48,7 +49,7 @@ export function Header() {
       }
     }
     loadTodayNews()
-  }, [])
+  }, [user])
 
   const navItems = [
     { href: "/", label: "ホーム" },
