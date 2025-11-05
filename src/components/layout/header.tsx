@@ -115,10 +115,10 @@ export function Header() {
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative hover:bg-primary/10 transition-all duration-300 hover:scale-105">
-                    <Bell className="h-6 w-6" color="blue"/>
+                  <Button variant="ghost" size="icon" className="relative hover:bg-primary/10 transition-all duration-300 hover:scale-103">
+                    <Bell className="h-6 w-6" color="blue" size={32}/>
                     {news.length > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 inline-flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500" />
+                      <span className="absolute inline-flex h-2 w-2 items-center justify-center rounded-full bg-red-500" style={{ top: '5px', right: '5px' }}/>
                     )}
                   </Button>
                 </DropdownMenuTrigger>
