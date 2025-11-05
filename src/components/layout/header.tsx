@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Image from "next/image"
@@ -12,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, Settings, LogOut } from "lucide-react"
+import { User, Settings, LogOut, Bell } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { MobileMenu } from "./mobile-menu"
 // import logo from "./img/logo.png"
@@ -20,6 +21,34 @@ import { MobileMenu } from "./mobile-menu"
 export function Header() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  const [news, setNews] = useState<Array<{ id: string; title: string; url?: string; time?: string }>>([])
+  const [loadingNews, setLoadingNews] = useState(false)
+
+  useEffect(() => {
+    const loadTodayNews = async () => {
+      setLoadingNews(true)
+      try {
+        // Attempt to fetch today's news if an endpoint exists; fallback to empty
+        const res = await fetch("/api/news/today", { method: "GET" })
+        if (res.ok) {
+          const data = await res.json()
+          // Expecting data.items: { id, title, url?, time? }[]
+          if (Array.isArray(data?.items)) {
+            setNews(data.items)
+          } else {
+            setNews([])
+          }
+        } else {
+          setNews([])
+        }
+      } catch (e) {
+        setNews([])
+      } finally {
+        setLoadingNews(false)
+      }
+    }
+    loadTodayNews()
+  }, [])
 
   const navItems = [
     { href: "/", label: "ホーム" },
@@ -83,6 +112,46 @@ export function Header() {
         <div className="flex items-center space-x-4">
           {user ? (
             <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative hover:bg-primary/10 transition-all duration-300 hover:scale-105">
+                    <Bell className="h-5 w-5" />
+                    {news.length > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 inline-flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500" />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 bg-card/95 backdrop-blur-md border-border/50 shadow-xl">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-medium">今日のニュース</p>
+                    <p className="text-xs text-muted-foreground">最新の更新を確認</p>
+                  </div>
+                  <DropdownMenuSeparator className="bg-border/50" />
+                  <div className="max-h-80 overflow-auto">
+                    {loadingNews ? (
+                      <div className="p-3 text-sm text-muted-foreground">読み込み中...</div>
+                    ) : news.length === 0 ? (
+                      <div className="p-3 text-sm text-muted-foreground">ニュースがない</div>
+                    ) : (
+                      news.map((item) => (
+                        <DropdownMenuItem key={item.id} asChild>
+                          {item.url ? (
+                            <Link href={item.url} className="flex flex-col items-start gap-1">
+                              <span className="text-sm text-foreground line-clamp-2">{item.title}</span>
+                              {item.time && <span className="text-[10px] text-muted-foreground">{item.time}</span>}
+                            </Link>
+                          ) : (
+                            <div className="flex flex-col items-start gap-1">
+                              <span className="text-sm text-foreground line-clamp-2">{item.title}</span>
+                              {item.time && <span className="text-[10px] text-muted-foreground">{item.time}</span>}
+                            </div>
+                          )}
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-primary/10 transition-all duration-300 hover:scale-105 group">
