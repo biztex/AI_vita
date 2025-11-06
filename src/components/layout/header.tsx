@@ -18,7 +18,6 @@ import { useAuth } from "@/lib/auth-context"
 import { MobileMenu } from "./mobile-menu"
 import { apiClient } from "@/lib/api"
 // import logo from "./img/logo.png"
-import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 export function Header() {
   const pathname = usePathname()
@@ -110,9 +109,8 @@ export function Header() {
           })}
         </nav>
 
-        {/* Auth Section + Theme */}
+        {/* Auth Section */}
         <div className="flex items-center space-x-4">
-          <ThemeToggle className="mr-1" />
           {user ? (
             <div className="flex items-center gap-2">
               <DropdownMenu>
