@@ -86,22 +86,28 @@ async function fetchCnbcTop(count: number): Promise<NewsItem[]> {
 }
 
 export async function getDailyJapaneseNews(): Promise<NewsItem[]> {
-	// Fetch BUSINESS (NHK) and CNBC only. Health is excluded.
+	// Prioritize NHK official RSS feeds for economy and business (primary source)
+	// Get approximately 4 items from NHK and 1 international item from CNBC (about 5 total)
 	const businessPromises = DEFAULT_FEEDS.BUSINESS.map((u) => fetchFromFeed(u, "BUSINESS", "NHK"));
 
 	const [businessResults, cnbcTop] = await Promise.all([
 		Promise.all(businessPromises),
-		fetchCnbcTop(3)
+		fetchCnbcTop(1) // Get 1 international news item
 	]);
 
 	const nhkBusinessItems = sortByDateDesc(businessResults.flat());
 
-	const selectedCnbc = cnbcTop; // already sliced(3)
-	const remainingBusinessSlots = Math.max(0, 5 - selectedCnbc.length);
-	const selectedNhkBusiness = nhkBusinessItems.slice(0, remainingBusinessSlots);
+	// Prioritize NHK: get up to 4 items from NHK, then 1 from CNBC
+	// If we have fewer than 4 NHK items, use what we have
+	const targetNhkCount = 4;
+	const selectedNhkBusiness = nhkBusinessItems.slice(0, Math.min(targetNhkCount, nhkBusinessItems.length));
+	const selectedCnbc = cnbcTop.slice(0, 1); // Get 1 international item (if available)
 
-	const combined = [...selectedCnbc, ...selectedNhkBusiness];
-	return sortByDateDesc(combined);
+	const combined = [...selectedNhkBusiness, ...selectedCnbc];
+	const result = sortByDateDesc(combined);
+	
+	console.log(`[NewsService] Fetched ${selectedNhkBusiness.length} NHK items and ${selectedCnbc.length} CNBC items (${result.length} total)`);
+	return result;
 }
 
 export async function logDailyNewsPreview(): Promise<void> {
