@@ -22,10 +22,10 @@ export type NewsTopic =
 	| "GENERAL"; // General business news
 
 type RssItem = {
-	title?: string;
-	link?: string;
-	pubDate?: string;
-	[key: string]: any;
+	 title?: string;
+	 link?: string;
+	 pubDate?: string;
+	 [key: string]: any;
 };
 
 type FeedConfig = {
@@ -192,6 +192,11 @@ async function fetchFromFeed(config: FeedConfig, timeoutMs: number = 10000): Pro
 				return null;
 			}
 			
+			// Strict filtering: Only include management and economics related content
+			if (!isManagementOrEconomicsRelated(title, description)) {
+				return null;
+			}
+			
 			const topic = classifyTopic(title, description);
 			const relevanceScore = calculateRelevanceScore(title, description, topic, config);
 			
@@ -199,8 +204,8 @@ async function fetchFromFeed(config: FeedConfig, timeoutMs: number = 10000): Pro
 				category: config.category,
 				title,
 				description,
-				link: it.link || (it as any).links?.[0]?.url || "",
-				pubDate: it.pubDate ? new Date(it.pubDate).toISOString() : undefined,
+			link: it.link || (it as any).links?.[0]?.url || "",
+			pubDate: it.pubDate ? new Date(it.pubDate).toISOString() : undefined,
 				source: config.source,
 				topic,
 				relevanceScore
@@ -220,26 +225,92 @@ async function fetchFromFeed(config: FeedConfig, timeoutMs: number = 10000): Pro
 	}
 }
 
+function isManagementOrEconomicsRelated(title: string, description: string): boolean {
+	const text = `${title} ${description}`.toLowerCase();
+	
+	// Management and economics keywords (strict filtering)
+	const managementEconomicsKeywords = [
+		// Management
+		"management", "経営", "経営者", "ceo", "cfo", "executive", "経営陣", "企業経営",
+		"business", "ビジネス", "企業", "company", "corporation", "corporate",
+		"strategy", "戦略", "経営戦略", "business strategy",
+		
+		// Economics
+		"economy", "economic", "経済", "景気", "経済成長", "gdp", "gross domestic product",
+		"recession", "不況", "inflation", "インフレ", "deflation", "デフレ",
+		"monetary policy", "金融政策", "fiscal policy", "財政政策",
+		
+		// Finance
+		"finance", "financial", "金融", "銀行", "bank", "banking", "credit", "信用",
+		"loan", "融資", "investment", "投資", "capital", "資本",
+		
+		// Currency/Exchange
+		"currency", "通貨", "為替", "exchange rate", "為替レート", "yen", "円", "jpy",
+		"usd/jpy", "eur/jpy", "円高", "円安",
+		
+		// Company/Business News
+		"company", "企業", "corporation", "earnings", "決算", "業績", "profit", "利益",
+		"revenue", "売上", "bankruptcy", "倒産", "ipo", "上場", "merger", "買収",
+		"acquisition", "合併", "m&a",
+		
+		// Market
+		"market", "市場", "stock", "株式", "equity", "bond", "債券", "trading", "取引",
+		
+		// Trade
+		"trade", "貿易", "export", "輸出", "import", "輸入", "tariff", "関税",
+		
+		// Regulation/Policy
+		"regulation", "規制", "policy", "政策", "law", "法律", "rule", "規則",
+		"ministry", "省", "agency", "庁",
+		
+		// Industry
+		"industry", "産業", "manufacturing", "製造", "service", "サービス",
+	];
+	
+	// Check if text contains management/economics keywords
+	const hasKeywords = managementEconomicsKeywords.some(keyword => 
+		text.includes(keyword)
+	);
+	
+	// Exclude non-business topics
+	const excludeKeywords = [
+		"sports", "スポーツ", "entertainment", "エンタメ", "celebrity", "有名人",
+		"weather", "天気", "climate", "気候", "地震", "earthquake", "災害", "disaster",
+		"politics", "政治", "election", "選挙", "vote", "投票",
+		"crime", "犯罪", "arrest", "逮捕", "murder", "殺人",
+		"health", "健康", "medical", "医療", "disease", "病気", "covid", "コロナ",
+		"education", "教育", "school", "学校", "student", "学生",
+		"technology", "技術", "ai", "artificial intelligence", "robot", "ロボット",
+		"science", "科学", "research", "研究", "discovery", "発見",
+	];
+	
+	const hasExcludeKeywords = excludeKeywords.some(keyword => 
+		text.includes(keyword) && !text.includes("business") && !text.includes("企業")
+	);
+	
+	return hasKeywords && !hasExcludeKeywords;
+}
+
 function classifyTopic(title: string, description: string): NewsTopic {
 	const text = `${title} ${description}`.toLowerCase();
 	
 	// Currency exchange rates (JPY, yen, USD/JPY, exchange rate)
-	if (/\b(jpy|yen|為替|exchange rate|usd\/jpy|eur\/jpy|currency|通貨|レート|円高|円安)\b/i.test(text)) {
+	if (/\b(jpy|yen|為替|exchange rate|usd\/jpy|eur\/jpy|currency|通貨|レート|円高|円安|為替レート|為替相場)\b/i.test(text)) {
 		return "CURRENCY";
 	}
 	
 	// Company news (bankruptcy, rise, earnings, IPO, merger)
-	if (/\b(倒産|bankruptcy|破綻|上場|ipo|merger|acquisition|earnings|決算|業績|会社|company|企業|corporate)\b/i.test(text)) {
+	if (/\b(倒産|bankruptcy|破綻|上場|ipo|merger|acquisition|earnings|決算|業績|会社|company|企業|corporate|ceo|cfo|経営者)\b/i.test(text)) {
 		return "COMPANY";
 	}
 	
 	// Finance (banking, financial, credit, loan)
-	if (/\b(finance|financial|bank|banking|credit|loan|金融|銀行|融資|信用)\b/i.test(text)) {
+	if (/\b(finance|financial|bank|banking|credit|loan|金融|銀行|融資|信用|投資|investment)\b/i.test(text)) {
 		return "FINANCE";
 	}
 	
 	// Economy (economic, GDP, growth, recession)
-	if (/\b(economy|economic|gdp|growth|recession|景気|経済|成長|不況)\b/i.test(text)) {
+	if (/\b(economy|economic|gdp|growth|recession|景気|経済|成長|不況|インフレ|inflation|デフレ|deflation)\b/i.test(text)) {
 		return "ECONOMY";
 	}
 	
@@ -249,16 +320,91 @@ function classifyTopic(title: string, description: string): NewsTopic {
 	}
 	
 	// Regulation (regulation, policy, law, rule)
-	if (/\b(regulation|policy|law|rule|規制|政策|法律|規則)\b/i.test(text)) {
+	if (/\b(regulation|policy|law|rule|規制|政策|法律|規則|省|ministry|庁|agency)\b/i.test(text)) {
 		return "REGULATION";
 	}
 	
 	// Market (stock market, market, equity, bond)
-	if (/\b(market|stock|equity|bond|株式|市場|債券)\b/i.test(text)) {
+	if (/\b(market|stock|equity|bond|株式|市場|債券|取引|trading)\b/i.test(text)) {
 		return "MARKET";
 	}
 	
 	return "GENERAL";
+}
+
+function isJapaneseDomesticNews(item: NewsItem): boolean {
+	const text = `${item.title} ${item.description}`.toLowerCase();
+	const source = item.source.toLowerCase();
+	
+	// Step 1: Check for international sources first (explicitly exclude)
+	const internationalSources = [
+		"cnbc", "reuters", "bloomberg", "federal reserve", "frb",
+		"ecb", "european central bank", "imf", "world bank",
+		"nikkei asia", "asia", "asian", "international", "global",
+	];
+	
+	const isInternationalSource = internationalSources.some(src => source.includes(src));
+	if (isInternationalSource) {
+		return false; // Definitely international
+	}
+	
+	// Step 2: Check for Japanese sources (strict matching)
+	const japaneseSources = [
+		"nhk",
+		"nikkei", "日経", "日本経済新聞", "日本経済",
+		"fsa", "金融庁", "meti", "経済産業省", "mof", "財務省",
+		"jpx", "日本取引所", "boj", "日本銀行", "日本中央銀行",
+		"東京", "tokyo", "大阪", "osaka",
+	];
+	
+	// Check if it's Nikkei Asia (international) - double check
+	if (source.includes("nikkei") && source.includes("asia")) {
+		return false; // Nikkei Asia is international
+	}
+	
+	const isJapaneseSource = japaneseSources.some(src => source.includes(src));
+	
+	// If source is clearly Japanese, it's domestic
+	if (isJapaneseSource) {
+		return true;
+	}
+	
+	// Check for Japanese keywords in content (strong indicators)
+	const strongJapaneseKeywords = [
+		"日本の", "日本企業", "日本経済", "日本の", "国内企業",
+		"東京", "tokyo", "大阪", "osaka", "名古屋", "nagoya",
+		"財務省", "経済産業省", "金融庁", "日本銀行", "日銀",
+		"日本取引所", "東証", "上場", "倒産", "経営破綻",
+	];
+	
+	const hasStrongJapaneseKeywords = strongJapaneseKeywords.some(keyword => text.includes(keyword));
+	if (hasStrongJapaneseKeywords) {
+		return true;
+	}
+	
+	// Check for Japanese context keywords
+	const japaneseContextKeywords = [
+		"日本", "japan", "japanese", "国内", "domestic",
+		"円", "yen", "jpy", "為替", "経済", "景気",
+		"企業", "会社", "経営", "ビジネス",
+	];
+	
+	const hasJapaneseContext = japaneseContextKeywords.some(keyword => text.includes(keyword));
+	
+	// If has Japanese context and not clearly international, consider it Japanese
+	// But exclude if it's clearly about other countries
+	const otherCountryKeywords = [
+		"china", "chinese", "中国", "usa", "us", "united states", "アメリカ",
+		"europe", "eu", "european", "ヨーロッパ", "欧州",
+		"korea", "south korea", "韓国", "uk", "britain", "イギリス",
+	];
+	
+	const hasOtherCountryKeywords = otherCountryKeywords.some(keyword => text.includes(keyword));
+	if (hasOtherCountryKeywords && !hasStrongJapaneseKeywords) {
+		return false;
+	}
+	
+	return hasJapaneseContext;
 }
 
 function calculateRelevanceScore(
@@ -270,11 +416,24 @@ function calculateRelevanceScore(
 	let score = config.priority; // Start with feed priority
 	
 	const text = `${title} ${description}`.toLowerCase();
+	const source = config.source.toLowerCase();
+	
+	// Strong boost for Japanese official sources (FSA, METI, MOF, JPX, BOJ, NHK, Nikkei)
+	const isJapaneseOfficialSource = /(nhk|nikkei|日経|fsa|金融庁|meti|経済産業省|mof|財務省|jpx|日本取引所|boj|日本銀行)/.test(source);
+	if (isJapaneseOfficialSource) {
+		score += 5; // Very high boost for Japanese official sources
+	}
+	
+	// Boost for Japanese domestic content
+	const isJapaneseContent = /\b(日本|japan|japanese|日本の|国内|domestic|東京|tokyo|大阪|osaka|名古屋|nagoya)\b/i.test(text);
+	if (isJapaneseContent) {
+		score += 4; // High boost for Japanese content
+	}
 	
 	// Boost score for high-priority topics
 	if (topic === "CURRENCY") {
 		// Strong boost for JPY-specific currency news
-		if (/\b(jpy|yen|円|usd\/jpy|eur\/jpy|gbp\/jpy|為替レート|為替相場|円相場)\b/i.test(text)) {
+		if (/\b(jpy|yen|円|usd\/jpy|eur\/jpy|gbp\/jpy|為替レート|為替相場|円相場|円高|円安)\b/i.test(text)) {
 			score += 8; // Very high boost for JPY currency news
 		} else if (/\b(為替|exchange rate|currency|通貨|レート)\b/i.test(text)) {
 			score += 4; // Moderate boost for general currency news
@@ -293,28 +452,43 @@ function calculateRelevanceScore(
 		if (/\b(日本|japan|japanese|日本の企業|日本企業)\b/i.test(text)) {
 			score += 5; // Boost for Japanese companies
 		}
-		if (/\b(決算|earnings|業績|収益|利益|売上)\b/i.test(text)) {
+		if (/\b(決算|earnings|業績|収益|利益|売上|profit|revenue)\b/i.test(text)) {
 			score += 4; // Boost for earnings news
 		}
 		if (/\b(買収|merger|acquisition|合併|m&a)\b/i.test(text)) {
 			score += 3; // Boost for M&A news
+		}
+		// Management keywords
+		if (/\b(経営|management|ceo|cfo|executive|経営者|経営陣)\b/i.test(text)) {
+			score += 3; // Boost for management content
 		}
 		score += 2; // Base boost for company topic
 	}
 	
 	// Boost for finance and economy topics
 	if (topic === "FINANCE") {
-		if (/\b(銀行|bank|金融機関|financial institution)\b/i.test(text)) {
-			score += 3; // Boost for banking news
+		if (/\b(銀行|bank|金融機関|financial institution|金融政策)\b/i.test(text)) {
+			score += 3; // Boost for banking/news
+		}
+		if (isJapaneseContent) {
+			score += 2; // Additional boost for Japanese finance news
 		}
 		score += 2;
 	}
 	
 	if (topic === "ECONOMY") {
-		if (/\b(日本|japan|japanese|gdp|景気|経済成長)\b/i.test(text)) {
-			score += 3; // Boost for Japanese economy news
+		if (/\b(日本|japan|japanese|gdp|景気|経済成長|経済政策)\b/i.test(text)) {
+			score += 4; // Boost for Japanese economy news
+		}
+		if (/\b(management|経営|ビジネス|business)\b/i.test(text)) {
+			score += 2; // Boost for management-related economy news
 		}
 		score += 2;
+	}
+	
+	// Boost for management-related content
+	if (/\b(経営|management|経営戦略|business strategy|経営者|executive)\b/i.test(text)) {
+		score += 3; // Boost for management content
 	}
 	
 	// Boost if topic matches feed's expected topics
@@ -324,7 +498,7 @@ function calculateRelevanceScore(
 	
 	// Boost for official government sources (FSA, METI, MOF, etc.)
 	if (config.priority >= 10) {
-		score += 2;
+		score += 3; // Increased boost for official sources
 	}
 	
 	return score;
@@ -354,15 +528,22 @@ function sortByRelevance(items: NewsItem[]): NewsItem[] {
 }
 
 function filterHighQualityNews(items: NewsItem[]): NewsItem[] {
+	// Strict filtering for management and economics content only
 	// Filter and prioritize:
-	// 1. Currency exchange rate news (especially JPY)
-	// 2. Japanese company news (bankruptcies, rises, major events)
-	// 3. Finance and economy news from official sources
-	// 4. Recent news (within last 7 days)
+	// 1. Management and economics related content only
+	// 2. Currency exchange rate news (especially JPY)
+	// 3. Japanese company news (bankruptcies, rises, major events)
+	// 4. Finance and economy news from official sources
+	// 5. Recent news (within last 7 days)
 	
 	const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
 	
 	return items.filter(item => {
+		// Additional strict filtering for management/economics
+		if (!isManagementOrEconomicsRelated(item.title, item.description)) {
+			return false;
+		}
+		
 		// Filter out very old news (older than 30 days)
 		if (item.pubDate) {
 			const pubDate = Date.parse(item.pubDate);
@@ -371,22 +552,19 @@ function filterHighQualityNews(items: NewsItem[]): NewsItem[] {
 			}
 		}
 		
-		// Keep all items from high-priority sources
-		if ((item.relevanceScore || 0) >= 8) {
+		// Keep all items from high-priority sources (official Japanese sources)
+		if ((item.relevanceScore || 0) >= 9) {
 			return true;
 		}
 		
-		// Keep currency and company news
+		// Keep currency and company news (high priority topics)
 		if (item.topic === "CURRENCY" || item.topic === "COMPANY") {
 			return true;
 		}
 		
-		// Keep recent finance/economy news
-		if ((item.topic === "FINANCE" || item.topic === "ECONOMY") && item.pubDate) {
-			const pubDate = Date.parse(item.pubDate);
-			if (pubDate >= sevenDaysAgo) {
-				return true;
-			}
+		// Keep finance/economy/market/trade/regulation news
+		if (["FINANCE", "ECONOMY", "MARKET", "TRADE", "REGULATION"].includes(item.topic || "")) {
+			return true;
 		}
 		
 		// Keep items with high relevance score
@@ -428,146 +606,163 @@ export async function getDailyJapaneseNews(): Promise<NewsItem[]> {
 	// Sort by relevance and recency
 	const sortedItems = sortByRelevance(filteredItems);
 	
-	// Select top items with priority on:
-	// 1. At least 1 currency exchange rate news (if available)
-	// 2. At least 1-2 Japanese company news (if available)
-	// 3. Balance of finance/economy news from official sources
-	// 4. About 1 international news item
-	// Total: approximately 5 items
+	// Select 6 items total:
+	// - 4 Japanese domestic news items (management and economics focused)
+	// - 2 global/international news items (management and economics focused)
 	
-	const selectedItems: NewsItem[] = [];
+	// Separate Japanese domestic and global news
+	const japaneseItems = sortedItems.filter(item => isJapaneseDomesticNews(item));
+	const globalItems = sortedItems.filter(item => !isJapaneseDomesticNews(item));
+	
+	console.log(`[NewsService] Found ${japaneseItems.length} Japanese domestic items and ${globalItems.length} global items`);
+	
+	const selectedJapaneseItems: NewsItem[] = [];
+	const selectedGlobalItems: NewsItem[] = [];
 	const selectedTopics = new Set<NewsTopic>();
 	const selectedSources = new Set<string>();
 	
-	// Priority 1: Currency exchange rate news (especially JPY) - Always include if available
-	const currencyNews = sortedItems.filter(item => 
+	// ===== SELECT 4 JAPANESE DOMESTIC ITEMS =====
+	
+	// Priority 1: Currency exchange rate news (especially JPY) - Japanese domestic
+	const japaneseCurrencyNews = japaneseItems.filter(item => 
 		item.topic === "CURRENCY" &&
-		/\b(jpy|yen|円|為替|exchange rate|usd\/jpy|eur\/jpy)\b/i.test(`${item.title} ${item.description}`)
+		/\b(jpy|yen|円|為替|exchange rate|usd\/jpy|eur\/jpy|為替レート|為替相場)\b/i.test(`${item.title} ${item.description}`)
 	);
-	if (currencyNews.length > 0) {
-		// Select the most relevant currency news
-		const topCurrency = currencyNews[0];
-		selectedItems.push(topCurrency);
+	if (japaneseCurrencyNews.length > 0 && selectedJapaneseItems.length < 4) {
+		const topCurrency = japaneseCurrencyNews[0];
+		selectedJapaneseItems.push(topCurrency);
 		selectedTopics.add(topCurrency.topic!);
 		selectedSources.add(topCurrency.source);
-		console.log(`[NewsService] Selected currency news: ${topCurrency.title.substring(0, 50)}...`);
+		console.log(`[NewsService] Selected Japanese currency news: ${topCurrency.title.substring(0, 50)}...`);
 	}
 	
-	// Priority 2: Japanese company news (bankruptcies, IPOs, major events) - Always include if available
-	const companyNews = sortedItems.filter(item => 
+	// Priority 2: Japanese company news (bankruptcies, IPOs, earnings, M&A)
+	const japaneseCompanyNews = japaneseItems.filter(item => 
 		item.topic === "COMPANY" && 
-		/\b(日本|japan|japanese|倒産|bankruptcy|上場|ipo|新規上場|決算|earnings|買収|merger)\b/i.test(`${item.title} ${item.description}`)
+		/\b(倒産|bankruptcy|破綻|上場|ipo|新規上場|決算|earnings|業績|買収|merger|合併)\b/i.test(`${item.title} ${item.description}`)
 	);
 	
 	// Prioritize bankruptcies and IPOs
-	const bankruptcyNews = companyNews.filter(item => 
+	const bankruptcyNews = japaneseCompanyNews.filter(item => 
 		/\b(倒産|bankruptcy|破綻|経営破綻)\b/i.test(`${item.title} ${item.description}`)
 	);
-	const ipoNews = companyNews.filter(item => 
+	const ipoNews = japaneseCompanyNews.filter(item => 
 		/\b(上場|ipo|新規上場)\b/i.test(`${item.title} ${item.description}`)
 	);
 	
-	// Add bankruptcy news first (high impact)
-	if (bankruptcyNews.length > 0) {
+	// Add bankruptcy news (high impact)
+	if (bankruptcyNews.length > 0 && selectedJapaneseItems.length < 4) {
 		const topBankruptcy = bankruptcyNews[0];
-		if (!selectedItems.some(item => item.link === topBankruptcy.link)) {
-			selectedItems.push(topBankruptcy);
+		if (!selectedJapaneseItems.some(item => item.link === topBankruptcy.link)) {
+			selectedJapaneseItems.push(topBankruptcy);
 			selectedTopics.add(topBankruptcy.topic!);
 			selectedSources.add(topBankruptcy.source);
-			console.log(`[NewsService] Selected company news (bankruptcy): ${topBankruptcy.title.substring(0, 50)}...`);
+			console.log(`[NewsService] Selected Japanese company news (bankruptcy): ${topBankruptcy.title.substring(0, 50)}...`);
 		}
 	}
 	
 	// Add IPO news
-	if (ipoNews.length > 0 && selectedItems.length < 5) {
+	if (ipoNews.length > 0 && selectedJapaneseItems.length < 4) {
 		const topIpo = ipoNews[0];
-		if (!selectedItems.some(item => item.link === topIpo.link)) {
-			selectedItems.push(topIpo);
+		if (!selectedJapaneseItems.some(item => item.link === topIpo.link)) {
+			selectedJapaneseItems.push(topIpo);
 			selectedTopics.add(topIpo.topic!);
 			selectedSources.add(topIpo.source);
-			console.log(`[NewsService] Selected company news (IPO): ${topIpo.title.substring(0, 50)}...`);
+			console.log(`[NewsService] Selected Japanese company news (IPO): ${topIpo.title.substring(0, 50)}...`);
 		}
 	}
 	
-	// Add other important company news (earnings, M&A)
-	if (selectedItems.length < 4) {
-		const otherCompanyNews = companyNews.filter(item => 
+	// Add other important Japanese company news (earnings, M&A)
+	if (selectedJapaneseItems.length < 4) {
+		const otherCompanyNews = japaneseCompanyNews.filter(item => 
 			!bankruptcyNews.includes(item) && 
 			!ipoNews.includes(item) &&
-			!selectedItems.some(selected => selected.link === item.link)
+			!selectedJapaneseItems.some(selected => selected.link === item.link)
 		);
 		if (otherCompanyNews.length > 0) {
 			const topOther = otherCompanyNews[0];
-			selectedItems.push(topOther);
+			selectedJapaneseItems.push(topOther);
 			selectedTopics.add(topOther.topic!);
 			selectedSources.add(topOther.source);
 		}
 	}
 	
-	// Priority 3: High-priority official sources (FSA, METI, MOF, BOJ, JPX)
-	const officialNews = sortedItems.filter(item => 
+	// Priority 3: High-priority official Japanese sources (FSA, METI, MOF, JPX, BOJ)
+	const officialJapaneseNews = japaneseItems.filter(item => 
 		(item.relevanceScore || 0) >= 9 &&
-		!selectedItems.some(selected => selected.link === item.link)
+		!selectedJapaneseItems.some(selected => selected.link === item.link)
 	);
-	for (const item of officialNews) {
-		if (selectedItems.length >= 5) break;
-		selectedItems.push(item);
+	for (const item of officialJapaneseNews) {
+		if (selectedJapaneseItems.length >= 4) break;
+		selectedJapaneseItems.push(item);
+		selectedTopics.add(item.topic || "GENERAL");
 		selectedSources.add(item.source);
 	}
 	
-	// Priority 4: Ensure at least 1 international news item (if not already included)
-	const internationalSources = ["CNBC", "Reuters", "Bloomberg", "Federal Reserve", "ECB", "IMF", "Nikkei Asia"];
-	const hasInternational = selectedItems.some(item => 
-		internationalSources.some(source => item.source.includes(source))
+	// Priority 4: Fill remaining Japanese slots with high-quality Japanese news
+	while (selectedJapaneseItems.length < 4) {
+		const remainingJapaneseNews = japaneseItems.filter(item => 
+			!selectedJapaneseItems.some(selected => selected.link === item.link) &&
+			(item.relevanceScore || 0) >= 5
+		);
+		if (remainingJapaneseNews.length === 0) break;
+		
+		// Prefer diversity in topics
+		const nextItem = remainingJapaneseNews.find(item => 
+			item.topic && !selectedTopics.has(item.topic)
+		) || remainingJapaneseNews[0];
+		
+		selectedJapaneseItems.push(nextItem);
+		if (nextItem.topic) selectedTopics.add(nextItem.topic);
+		selectedSources.add(nextItem.source);
+	}
+	
+	// ===== SELECT 2 GLOBAL/INTERNATIONAL ITEMS =====
+	
+	// Priority 1: High-quality global finance/economy news
+	const highQualityGlobalNews = globalItems.filter(item => 
+		(item.relevanceScore || 0) >= 6 &&
+		["FINANCE", "ECONOMY", "CURRENCY", "MARKET", "TRADE"].includes(item.topic || "")
 	);
 	
-	if (!hasInternational && selectedItems.length < 5) {
-		const internationalNews = sortedItems.filter(item => 
-			!selectedItems.some(selected => selected.link === item.link) &&
-			internationalSources.some(source => item.source.includes(source)) &&
-			(item.relevanceScore || 0) >= 5
-		);
-		if (internationalNews.length > 0) {
-			const topInternational = internationalNews[0];
-			selectedItems.push(topInternational);
-			selectedTopics.add(topInternational.topic || "GENERAL");
-			selectedSources.add(topInternational.source);
-			console.log(`[NewsService] Selected international news: ${topInternational.title.substring(0, 50)}...`);
+	for (const item of highQualityGlobalNews) {
+		if (selectedGlobalItems.length >= 2) break;
+		if (!selectedGlobalItems.some(selected => selected.link === item.link)) {
+			selectedGlobalItems.push(item);
+			selectedTopics.add(item.topic || "GENERAL");
+			selectedSources.add(item.source);
+			console.log(`[NewsService] Selected global news: ${item.title.substring(0, 50)}...`);
 		}
 	}
 	
-	// Priority 5: Fill remaining slots with high-quality news (diverse sources and topics)
-	const remainingSlots = 5 - selectedItems.length;
-	if (remainingSlots > 0) {
-		const remainingNews = sortedItems.filter(item => 
-			!selectedItems.some(selected => selected.link === item.link) &&
+	// Priority 2: Fill remaining global slots with diverse global news
+	while (selectedGlobalItems.length < 2) {
+		const remainingGlobalNews = globalItems.filter(item => 
+			!selectedGlobalItems.some(selected => selected.link === item.link) &&
 			(item.relevanceScore || 0) >= 5
 		);
+		if (remainingGlobalNews.length === 0) break;
 		
 		// Prefer diversity in sources and topics
-		for (const item of remainingNews) {
-			if (selectedItems.length >= 5) break;
-			
-			// Prefer items from sources we haven't used yet
-			const isNewSource = !selectedSources.has(item.source);
-			// Prefer items with topics we haven't covered yet
-			const isNewTopic = item.topic && !selectedTopics.has(item.topic);
-			
-			// Always add if we have few items, or if it adds diversity
-			if (isNewSource || isNewTopic || selectedItems.length < 3 || (item.relevanceScore || 0) >= 8) {
-				selectedItems.push(item);
-				if (item.topic) selectedTopics.add(item.topic);
-				selectedSources.add(item.source);
-			}
-		}
+		const nextItem = remainingGlobalNews.find(item => 
+			(item.topic && !selectedTopics.has(item.topic)) || 
+			!selectedSources.has(item.source)
+		) || remainingGlobalNews[0];
+		
+		selectedGlobalItems.push(nextItem);
+		if (nextItem.topic) selectedTopics.add(nextItem.topic);
+		selectedSources.add(nextItem.source);
 	}
 	
+	// Combine selected items (4 Japanese + 2 Global = 6 total)
+	const selectedItems = [...selectedJapaneseItems, ...selectedGlobalItems];
+	
 	// Fallback: If we don't have enough items, fill with top remaining items
-	if (selectedItems.length < 3) {
+	if (selectedItems.length < 4) {
 		const fallbackNews = sortedItems.filter(item => 
 			!selectedItems.some(selected => selected.link === item.link)
 		);
-		for (const item of fallbackNews.slice(0, 3 - selectedItems.length)) {
+		for (const item of fallbackNews.slice(0, Math.min(6 - selectedItems.length, fallbackNews.length))) {
 			selectedItems.push(item);
 			if (item.topic) selectedTopics.add(item.topic);
 			selectedSources.add(item.source);
@@ -577,7 +772,11 @@ export async function getDailyJapaneseNews(): Promise<NewsItem[]> {
 	// Final sort by date (most recent first)
 	const result = sortByDateDesc(selectedItems);
 	
+	const japaneseCount = result.filter(item => isJapaneseDomesticNews(item)).length;
+	const globalCount = result.length - japaneseCount;
+	
 	console.log(`[NewsService] Fetched ${allItems.length} total items, selected ${result.length} high-quality items`);
+	console.log(`[NewsService] Japanese domestic: ${japaneseCount} items, Global: ${globalCount} items`);
 	console.log(`[NewsService] Sources: ${Array.from(selectedSources).join(", ")}`);
 	console.log(`[NewsService] Topics: ${Array.from(selectedTopics).join(", ")}`);
 	
