@@ -6,7 +6,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Auth helpers
-export const signUp = async (email: string, password: string, userData?: { name?: string; company?: string }) => {
+export const signUp = async (email: string, password: string, userData?: { name?: string; company?: string; industries?: string[] }) => {
   console.log('signUp', email, password, userData);
   
   let role = 'user'

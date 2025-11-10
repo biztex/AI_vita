@@ -1,5 +1,15 @@
 import Parser from "rss-parser";
 
+export type Industry = 
+	| "MANUFACTURING"      // 製造業
+	| "IT_TECHNOLOGY"      // IT・テクノロジー
+	| "HEALTHCARE_WELFARE" // 医療・福祉
+	| "RETAIL_SERVICE"     // 小売・サービス
+	| "FINANCE_INSURANCE"  // 金融・保険
+	| "REAL_ESTATE_BUILDING" // 不動産・建築
+	| "EDUCATION_HUMAN_RESOURCES" // 教育・人材
+	| "GENERAL";           // その他・一般
+
 export type NewsItem = {
 	category: "HEALTH" | "BUSINESS";
 	title: string;
@@ -9,6 +19,7 @@ export type NewsItem = {
 	source: string; // e.g., NHK, CNBC
 	topic?: NewsTopic; // Topic classification
 	relevanceScore?: number; // Relevance score for ranking
+	industries?: Industry[]; // AI-generated industry tags
 };
 
 export type NewsTopic = 

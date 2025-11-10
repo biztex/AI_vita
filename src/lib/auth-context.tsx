@@ -106,11 +106,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (data: { email: string; password: string; name: string; company?: string }) => {
+  const register = async (data: { email: string; password: string; name: string; company?: string; industries?: string[] }) => {
     try {
       const { data: authData, error } = await signUp(data.email, data.password, {
         name: data.name,
         company: data.company,
+        industries: data.industries || [],
       })
       
       if (error) {

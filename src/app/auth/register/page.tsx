@@ -9,9 +9,22 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useAuth } from "@/lib/auth-context"
 import { registerSchema, type RegisterFormData } from "@/lib/validations/validation"
 import { Loader2, CheckCircle2, Mail } from "lucide-react"
+
+// Industry options
+const INDUSTRIES = [
+  { value: "MANUFACTURING", label: "製造業" },
+  { value: "IT_TECHNOLOGY", label: "IT・テクノロジー" },
+  { value: "HEALTHCARE_WELFARE", label: "医療・福祉" },
+  { value: "RETAIL_SERVICE", label: "小売・サービス" },
+  { value: "FINANCE_INSURANCE", label: "金融・保険" },
+  { value: "REAL_ESTATE_BUILDING", label: "不動産・建築" },
+  { value: "EDUCATION_HUMAN_RESOURCES", label: "教育・人材" },
+  { value: "GENERAL", label: "その他・一般" },
+] as const;
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -21,13 +34,35 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false)
   const [userEmail, setUserEmail] = useState<string>("")
 
+  const [selectedIndustries, setSelectedIndustries] = useState<string[]>([])
+
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
+    watch,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      industries: [],
+    },
   })
+
+  const industries = watch("industries") || []
+
+  const handleIndustryChange = (industryValue: string, checked: boolean) => {
+    const currentIndustries = industries || []
+    if (checked) {
+      const updated = [...currentIndustries, industryValue]
+      setValue("industries", updated as any)
+      setSelectedIndustries(updated)
+    } else {
+      const updated = currentIndustries.filter((ind) => ind !== industryValue)
+      setValue("industries", updated as any)
+      setSelectedIndustries(updated)
+    }
+  }
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true)
@@ -40,6 +75,7 @@ export default function RegisterPage() {
         password: data.password,
         name: data.name,
         company: data.company,
+        industries: data.industries || [],
       })
       setUserEmail(data.email)
       setSuccess(true)
@@ -151,6 +187,41 @@ export default function RegisterPage() {
                 aria-invalid={errors.company ? "true" : "false"}
               />
               {errors.company && <p className="text-sm text-destructive">{errors.company.message}</p>}
+            </div>
+
+            {/* Industries (multiple selection) */}
+            <div className="space-y-2">
+              <Label>
+                興味・関心のある業界 <span className="text-muted-foreground">(複数選択可能)</span>
+              </Label>
+              <div className="grid grid-cols-2 gap-3 rounded-lg border p-4">
+                {INDUSTRIES.map((industry) => {
+                  const isChecked = industries?.includes(industry.value) || false
+                  return (
+                    <div key={industry.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`industry-${industry.value}`}
+                        checked={isChecked}
+                        onCheckedChange={(checked) => 
+                          handleIndustryChange(industry.value, checked as boolean)
+                        }
+                      />
+                      <Label
+                        htmlFor={`industry-${industry.value}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {industry.label}
+                      </Label>
+                    </div>
+                  )
+                })}
+              </div>
+              {errors.industries && (
+                <p className="text-sm text-destructive">{errors.industries.message}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                選択した業界に関連するニュースを優先的に配信します
+              </p>
             </div>
 
             {/* Password */}

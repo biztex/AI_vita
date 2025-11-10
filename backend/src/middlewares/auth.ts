@@ -27,18 +27,25 @@ export function requireAuth() {
       const meta = (payload.user_metadata as any) || {};
       const role = meta.role === "admin" ? "admin" : "user";
       // console.log('role',role);
+      // Extract industries from metadata (array of strings)
+      const industries = meta.industries && Array.isArray(meta.industries) 
+        ? meta.industries.map((ind: string) => ind.toUpperCase()) as any
+        : [];
+      
       await prisma.appUser.upsert({
         where: { supabaseUserId: sub },
         update: {
           email,
           role: role.toUpperCase() as any,
           subscription: meta.subscription ? (String(meta.subscription).toUpperCase() as any) : undefined,
+          industries: industries.length > 0 ? industries : undefined,
         },
         create: {
           supabaseUserId: sub,
           email,
           role: role.toUpperCase() as any,
           subscription: meta.subscription ? (String(meta.subscription).toUpperCase() as any) : undefined,
+          industries: industries.length > 0 ? industries : [],
         },
       });
       
