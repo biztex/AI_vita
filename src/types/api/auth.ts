@@ -23,4 +23,15 @@ export type RegisterRequest = {
   password: string
   name: string
   company?: string
+  industries?: string[]
+}
+
+export type RegisterResponse = {
+  success: boolean
+  message: string
+  user: {
+    id: string
+    email: string | null
+    role: string
+  }
 }

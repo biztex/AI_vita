@@ -108,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (data: { email: string; password: string; name: string; company?: string; industries?: string[] }) => {
     try {
+      // Step 1: Register with Supabase
       const { data: authData, error } = await signUp(data.email, data.password, {
         name: data.name,
         company: data.company,
@@ -118,8 +119,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(error.message)
       }
 
-      // Don't set user immediately - they need to verify email first
-      // The user will be set automatically when they verify their email
+      // Step 2: If Supabase registration succeeds, register with backend
+      if (authData.user) {
+        // Check if session is available from signUp response or get it
+        let session = authData.session
+        if (!session) {
+          // Try to get session if not in response
+          const { data: { session: currentSession } } = await supabase.auth.getSession()
+          session = currentSession
+        }
+        
+        if (session?.access_token) {
+          // Set auth token to call backend
+          apiClient.setAuthToken(session.access_token)
+          
+          try {
+            // Call backend register API to create user in database
+            await apiClient.auth.register({
+              email: data.email,
+              password: data.password, // Backend doesn't need this, but type requires it
+              name: data.name,
+              company: data.company,
+              industries: data.industries || [],
+            })
+          } catch (backendError: any) {
+            console.error("Backend registration failed:", backendError)
+            // If backend registration fails, we still have Supabase registration
+            // The user can retry or we can handle this gracefully
+            // For now, we'll throw the error to let the user know
+            throw new Error(backendError.message || "Backend registration failed. Please try again.")
+          }
+        } else {
+          // No session available yet (email confirmation required)
+          // Note: This should be rare if Supabase is configured to auto-confirm users
+          // If this happens, backend registration will happen when user verifies email and signs in
+          console.warn("No session available after signup - backend registration will happen on first login")
+        }
+      }
+
+      // Note: User will be set automatically when they verify their email
       // and the auth state change listener picks it up
     } catch (error) {
       console.error("Registration failed:", error)

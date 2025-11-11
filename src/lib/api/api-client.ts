@@ -6,7 +6,7 @@ import type {
   VoiceUploadResponse, 
   VoiceProcessResponse 
 } from '@/types/api/chat'
-import type { User, AuthResponse, LoginRequest, RegisterRequest } from '@/types/api/auth'
+import type { User, AuthResponse, LoginRequest, RegisterRequest, RegisterResponse } from '@/types/api/auth'
 import { API_CONFIG } from '@/lib/config/api'
 
 type RequestOptions = {
@@ -87,7 +87,7 @@ class APIClient {
       }),
 
     register: (data: RegisterRequest) =>
-      this.request<AuthResponse>("/auth/register", {
+      this.request<RegisterResponse>("/auth/register", {
         method: "POST",
         body: data,
       }),

@@ -21,33 +21,19 @@ export function requireAuth() {
   return async (req: any, _res: any, next: any) => {
     try {
       const payload = await verifyToken(req.headers.authorization);
-      // console.log("payload", payload);
       const sub = String(payload.sub);
       const email = payload.email as string | undefined;
       const meta = (payload.user_metadata as any) || {};
       const role = meta.role === "admin" ? "admin" : "user";
-      // console.log('role',role);
-      // Extract industries from metadata (array of strings)
-      const industries = meta.industries && Array.isArray(meta.industries) 
-        ? meta.industries.map((ind: string) => ind.toUpperCase()) as any
-        : [];
       
-      await prisma.appUser.upsert({
+      // Verify user exists in database (user should have been created during signup)
+      const user = await prisma.appUser.findUnique({
         where: { supabaseUserId: sub },
-        update: {
-          email,
-          role: role.toUpperCase() as any,
-          subscription: meta.subscription ? (String(meta.subscription).toUpperCase() as any) : undefined,
-          industries: industries.length > 0 ? industries : undefined,
-        },
-        create: {
-          supabaseUserId: sub,
-          email,
-          role: role.toUpperCase() as any,
-          subscription: meta.subscription ? (String(meta.subscription).toUpperCase() as any) : undefined,
-          industries: industries.length > 0 ? industries : [],
-        },
       });
+      
+      if (!user) {
+        return next(Object.assign(new Error("User not found in database"), { status: 404 }));
+      }
       
       req.user = { id: sub, email, role };
       next();
