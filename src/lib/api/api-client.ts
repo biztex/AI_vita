@@ -68,7 +68,11 @@ class APIClient {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`)
+        // Backend may return error in different formats
+        const errorMessage = data.message || data.error || `HTTP ${response.status}: ${response.statusText}`
+        const error = new Error(errorMessage) as any
+        error.response = { data, status: response.status }
+        throw error
       }
 
       return data

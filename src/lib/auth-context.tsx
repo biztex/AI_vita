@@ -142,12 +142,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               company: data.company,
               industries: data.industries || [],
             })
+            console.log("Backend registration successful")
           } catch (backendError: any) {
             console.error("Backend registration failed:", backendError)
-            // If backend registration fails, we still have Supabase registration
-            // The user can retry or we can handle this gracefully
-            // For now, we'll throw the error to let the user know
-            throw new Error(backendError.message || "Backend registration failed. Please try again.")
+            // Extract error message from response
+            const errorMessage = backendError.message || 
+                                backendError.response?.data?.error || 
+                                backendError.response?.data?.message ||
+                                "Backend registration failed. Please try again."
+            throw new Error(errorMessage)
           }
         } else {
           // No session available yet (email confirmation required)

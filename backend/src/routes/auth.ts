@@ -4,22 +4,50 @@ import { verifyToken } from "../middlewares/auth";
 
 const router = express.Router();
 
+// Valid industry values from Prisma schema
+const VALID_INDUSTRIES = [
+  "MANUFACTURING",
+  "IT_TECHNOLOGY",
+  "HEALTHCARE_WELFARE",
+  "RETAIL_SERVICE",
+  "FINANCE_INSURANCE",
+  "REAL_ESTATE_BUILDING",
+  "EDUCATION_HUMAN_RESOURCES",
+  "GENERAL"
+];
+
 // Register endpoint - creates user in database after Supabase registration
-router.post("/register", async (req, res, next) => {
+router.post("/register", async (req:any, res:any, next:any) => {
   try {
+    console.log("[AUTH] Register request received");
+    
     // Verify the token from Supabase
     const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        message: "Authorization header is required",
+      });
+    }
+
     const payload = await verifyToken(authHeader);
+    console.log("[AUTH] Token verified, payload:", { sub: payload.sub, email: payload.email });
     
     const sub = String(payload.sub);
     const email = payload.email as string | undefined;
     const meta = (payload.user_metadata as any) || {};
     const role = meta.role === "admin" ? "admin" : "user";
     
-    // Extract industries from metadata (array of strings)
-    const industries = meta.industries && Array.isArray(meta.industries) 
-      ? meta.industries.map((ind: string) => ind.toUpperCase()) as any
-      : [];
+    // Extract and validate industries from metadata
+    // Frontend sends values in correct format (e.g., "MANUFACTURING", "IT_TECHNOLOGY")
+    let industries: string[] = [];
+    if (meta.industries && Array.isArray(meta.industries)) {
+      industries = meta.industries
+        .map((ind: string) => String(ind).toUpperCase())
+        .filter((ind: string) => VALID_INDUSTRIES.includes(ind)) as any;
+    }
+
+    console.log("[AUTH] Processing registration for user:", { sub, email, role, industries });
 
     // Check if user already exists
     const existingUser = await prisma.appUser.findUnique({
@@ -27,6 +55,7 @@ router.post("/register", async (req, res, next) => {
     });
 
     if (existingUser) {
+      console.log("[AUTH] User already exists:", sub);
       // User already exists, return success (idempotent)
       return res.json({
         success: true,
@@ -39,16 +68,27 @@ router.post("/register", async (req, res, next) => {
       });
     }
 
+    // Prepare user data
+    const userData: any = {
+      supabaseUserId: sub,
+      email: email || null, // Email is optional in schema
+      role: role.toUpperCase() as any,
+      subscription: meta.subscription ? (String(meta.subscription).toUpperCase() as any) : "INTEGRATED",
+    };
+
+    // Only add industries if we have valid ones
+    if (industries.length > 0) {
+      userData.industries = industries;
+    }
+
+    console.log("[AUTH] Creating user with data:", userData);
+
     // Create user in database
     const user = await prisma.appUser.create({
-      data: {
-        supabaseUserId: sub,
-        email,
-        role: role.toUpperCase() as any,
-        subscription: meta.subscription ? (String(meta.subscription).toUpperCase() as any) : "INTEGRATED",
-        industries: industries.length > 0 ? industries : [],
-      },
+      data: userData,
     });
+
+    console.log("[AUTH] User created successfully:", user.supabaseUserId);
 
     res.json({
       success: true,
@@ -60,12 +100,29 @@ router.post("/register", async (req, res, next) => {
       },
     });
   } catch (error: any) {
+    console.error("[AUTH] Registration error:", {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      meta: error.meta,
+    });
+
     if (error.status === 401) {
       return res.status(401).json({
         success: false,
         message: "Unauthorized - invalid token",
       });
     }
+
+    // Handle Prisma errors
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        success: false,
+        message: "User already exists",
+      });
+    }
+
+    // Pass to error handler
     next(error);
   }
 });

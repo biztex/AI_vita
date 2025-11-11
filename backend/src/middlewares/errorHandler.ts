@@ -1,5 +1,20 @@
-export function errorHandler(err, _req, res, _next) {
+export function errorHandler(err:any, _req:any, res:any, _next:any) {
     const status = err.status || 500;
-    res.status(status).json({ error: err.message || "error" });
+    // Log error for debugging
+    console.error("[ERROR]", {
+      status,
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+      code: err.code,
+      meta: err.meta,
+      error: err
+    });
+    
+    // Return error in consistent format
+    res.status(status).json({ 
+      success: false,
+      error: err.message || "Internal server error",
+      message: err.message || "Internal server error"
+    });
   }
   

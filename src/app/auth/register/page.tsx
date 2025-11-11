@@ -79,6 +79,12 @@ export default function RegisterPage() {
       })
       setUserEmail(data.email)
       setSuccess(true)
+      
+      // Redirect to login page after successful registration
+      // Wait a moment to show success message, then redirect
+      setTimeout(() => {
+        router.push("/auth/login")
+      }, 2000)
     } catch (err: any) {
       setError(err.message || "登録に失敗しました。もう一度お試しください。")
     } finally {
