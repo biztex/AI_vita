@@ -26,8 +26,6 @@ export const signUp = async (email: string, password: string, userData?: { name?
       }
     }
   })
-
-  console.log("signup=>",error);
   
   return { data, error }
 }

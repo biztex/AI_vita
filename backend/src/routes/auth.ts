@@ -19,8 +19,6 @@ const VALID_INDUSTRIES = [
 // Register endpoint - creates user in database after Supabase registration
 router.post("/register", async (req:any, res:any, next:any) => {
   try {
-    console.log("[AUTH] Register request received");
-    
     // Verify the token from Supabase
     const authHeader = req.headers.authorization;
     if (!authHeader) {
@@ -29,10 +27,8 @@ router.post("/register", async (req:any, res:any, next:any) => {
         message: "Authorization header is required",
       });
     }
-
     const payload = await verifyToken(authHeader);
-    console.log("[AUTH] Token verified, payload:", { sub: payload.sub, email: payload.email });
-    
+                                                     
     const sub = String(payload.sub);
     const email = payload.email as string | undefined;
     const meta = (payload.user_metadata as any) || {};
@@ -55,7 +51,6 @@ router.post("/register", async (req:any, res:any, next:any) => {
     });
 
     if (existingUser) {
-      console.log("[AUTH] User already exists:", sub);
       // User already exists, return success (idempotent)
       return res.json({
         success: true,
@@ -81,14 +76,10 @@ router.post("/register", async (req:any, res:any, next:any) => {
       userData.industries = industries;
     }
 
-    console.log("[AUTH] Creating user with data:", userData);
-
     // Create user in database
     const user = await prisma.appUser.create({
       data: userData,
     });
-
-    console.log("[AUTH] User created successfully:", user.supabaseUserId);
 
     res.json({
       success: true,

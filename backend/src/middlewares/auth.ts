@@ -5,10 +5,6 @@ const JWKS = createRemoteJWKSet(new URL(process.env.SUPABASE_JWKS_URL!));
 const ISSUER = process.env.SUPABASE_ISSUER!;
 const AUD = process.env.SUPABASE_AUDIENCE!;
 
-// console.log("JWKS", JWKS);
-// console.log("ISSUER", ISSUER);
-// console.log("AUD", AUD);
-
 export async function verifyToken(authHeader?: string) {
   if (!authHeader?.startsWith("Bearer ")) throw Object.assign(new Error("unauthorized"), { status: 401 });
   // if(authHeader?.split(" ")[0] !== "Bearer" && authHeader !== undefined) throw Object.assign(new Error("unauthorized"), { status: 401 });

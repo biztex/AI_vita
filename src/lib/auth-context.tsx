@@ -18,7 +18,7 @@ type AuthContextType = {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (data: { email: string; password: string; name: string; company?: string }) => Promise<void>
+  register: (data: { email: string; password: string; name: string; company?: string;industries?: string[] }) => Promise<void>
   logout: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
 }
@@ -116,8 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       
       if (error) {
+        console.log("error",error);
         throw new Error(error.message)
       }
+      // console.log("authData",authData);     
 
       // Step 2: If Supabase registration succeeds, register with backend
       if (authData.user) {
