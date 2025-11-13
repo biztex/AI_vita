@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { ENV } from '../env.js';
 import type { NewsItem, Industry, NewsOrigin } from './newsService.js';
-import { NEWS_CATEGORIES, NEWS_CATEGORY_LABELS_JA, type NewsCategory } from '../../../shared/news-categories.js';
+import { NEWS_CATEGORIES, NEWS_CATEGORY_LABELS_JA, type NewsCategory } from '../utils/news-categories.js';
 
 const openai = new OpenAI({ apiKey: ENV.OPENAI_API_KEY });
 

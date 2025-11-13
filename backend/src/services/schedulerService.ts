@@ -3,7 +3,7 @@ import { getDailyJapaneseNews } from './newsService.js';
 import { analyzeBusinessItemsJA, buildEmailContentJA } from './analysisService.js';
 import { sendDailyDigest } from './emailService.js';
 import { prisma } from '../prisma.js';
-import type { NewsCategory } from '../../../shared/news-categories.js';
+import type { NewsCategory } from '../utils/news-categories.js';
 
 async function getAllMembersWithInterests(): Promise<Array<{ email: string; interests: NewsCategory[] }>> {
   const users = await prisma.appUser.findMany({

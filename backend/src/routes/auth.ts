@@ -1,7 +1,7 @@
 import express from "express";
 import { prisma } from "../prisma";
 import { verifyToken } from "../middlewares/auth";
-import { isNewsCategory, NEWS_CATEGORIES, type NewsCategory } from "../../../shared/news-categories.js";
+import { isNewsCategory, NEWS_CATEGORIES, type NewsCategory } from "../utils/news-categories.js";
 
 const router = express.Router();
 

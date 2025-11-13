@@ -1,6 +1,6 @@
 import NewsDataApiClient from "newsdataapi";
 import { ENV } from "../env.js";
-import { isNewsCategory, type NewsCategory } from "../../../shared/news-categories.js";
+import { isNewsCategory, type NewsCategory } from "../utils/news-categories.js";
 
 export type Industry = 
 	| "MANUFACTURING" // 製造業
