@@ -30,7 +30,7 @@ router.post("/register", async (req:any, res:any, next:any) => {
     if (meta.industries && Array.isArray(meta.industries)) {
       interestCategories = meta.industries
         .map((value: unknown) => (typeof value === "string" ? value.toLowerCase() : ""))
-        .filter((value): value is NewsCategory => VALID_NEWS_CATEGORIES.has(value as NewsCategory) && isNewsCategory(value));
+        .filter((value: unknown): value is NewsCategory => VALID_NEWS_CATEGORIES.has(value as NewsCategory) && isNewsCategory(value));
     }
 
     console.log("[AUTH] Processing registration for user:", { sub, email, role, interestCategories });

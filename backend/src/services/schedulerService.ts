@@ -38,6 +38,8 @@ export function startDailyNewsJob() {
             link: item.link,
             pubDate: item.pubDate ? new Date(item.pubDate) : null,
             source: item.source,
+            sourceIcon: item.sourceIcon ?? null,
+            country: item.country ?? null,
             industries: (item.industries || []) as any,
             newsDate: newsDate,
           })),
@@ -105,6 +107,8 @@ export function startDailyNewsJob() {
                     category: item.category,
                     categories: item.categories,
                     origin: item.origin,
+                    country: item.country,
+                    sourceIcon: item.sourceIcon,
                     insights: {
                       keyPoints: ['分析中...'],
                       actionProposal: '分析中...',

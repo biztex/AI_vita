@@ -117,16 +117,6 @@ enum NewsCategory {
   other
 }
 
-enum Industry {
-  MANUFACTURING      // 製造業
-  IT_TECHNOLOGY      // IT・テクノロジー
-  HEALTHCARE_WELFARE // 医療・福祉
-  RETAIL_SERVICE     // 小売・サービス
-  FINANCE_INSURANCE  // 金融・保険
-  REAL_ESTATE_BUILDING // 不動産・建築
-  EDUCATION_HUMAN_RESOURCES // 教育・人材
-  GENERAL           // その他・一般
-}
 
 model NewsItem {
   id          String       @id @default(uuid())
@@ -136,7 +126,8 @@ model NewsItem {
   link        String
   pubDate     DateTime?
   source      String
-  industries  Industry[]   @default([]) // AI-generated industry tags
+  sourceIcon  String?
+  country     String?
   newsDate    DateTime     @default(now()) // The date when this news was collected
   createdAt   DateTime     @default(now())
 

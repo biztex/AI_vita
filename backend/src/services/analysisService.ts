@@ -21,6 +21,8 @@ export type NewsAnalysis = {
 		category: NewsCategory;
 		categories: NewsCategory[];
 		origin: NewsOrigin;
+		country?: string;
+		sourceIcon?: string;
 		insights: ArticleInsights;
 		industries?: Industry[]; // AI-generated industry tags
 	}>;
@@ -141,6 +143,8 @@ JSON形式のみで出力してください。`;
 				category: item.category,
 				categories: item.categories,
 				origin: item.origin,
+				country: item.country,
+				sourceIcon: item.sourceIcon,
 				insights: matched.insights,
 				industries: matched.industries,
 			};
@@ -164,6 +168,8 @@ JSON形式のみで出力してください。`;
 				category: item.category,
 				categories: item.categories,
 				origin: item.origin,
+				country: item.country,
+				sourceIcon: item.sourceIcon,
 				insights: {
 					keyPoints: ['分析に失敗しました'],
 					actionProposal: '分析エラーにより表示できません',
@@ -189,11 +195,11 @@ export function buildEmailContentJA(
 	const subject = `本日のビジネスニュース・経営維持の示唆 ${categoryFilterLabel}(${dateLabel})`;
 
 	const originLabels: Record<NewsOrigin, string> = {
-		japan: "国内",
-		overseas_business: "海外ビジネス",
+		japan_business: "国内ビジネス",
+		global_business: "海外ビジネス",
 		crypto: "暗号資産",
 		market: "市場動向",
-		interest: "関心トピック",
+		interest: "関心カテゴリ",
 	};
 
 	const industryLabels: Record<string, string> = {
@@ -238,6 +244,8 @@ export function buildEmailContentJA(
 			const key = `${article.title}|${article.link}`;
 			const original = itemLookup.get(key);
 			const originLabel = original ? originLabels[original.origin] : originLabels[article.origin];
+			const countryLabel = (article.country ?? original?.country)?.toUpperCase();
+			const sourceIcon = article.sourceIcon ?? original?.sourceIcon;
 			text += `${runningIndex}. ${article.title}（${originLabel}）\n`;
 			text += `説明: ${article.description}\n\n`;
 			text += `主なポイント:\n`;
@@ -247,8 +255,14 @@ export function buildEmailContentJA(
 			text += `\n行動提案: ${article.insights.actionProposal}\n`;
 			text += `重要性: ${article.insights.importance}\n`;
 			text += `リスク: ${article.insights.risk}\n`;
+			if (countryLabel) {
+				text += `国: ${countryLabel}\n`;
+			}
 			if (article.industries && article.industries.length > 0) {
 				text += `関連業界: ${article.industries.map((ind) => industryLabels[ind] || ind).join(', ')}\n`;
+			}
+			if (sourceIcon) {
+				text += `ソースアイコン: ${sourceIcon}\n`;
 			}
 			text += `ソース: ${article.link}\n\n`;
 			text += `${'='.repeat(50)}\n\n`;
@@ -283,12 +297,28 @@ export function buildEmailContentJA(
 			const originLabel = original ? originLabels[original.origin] : originLabels[article.origin];
 			const publishedLabel =
 				original?.pubDate ? new Date(original.pubDate).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '';
+			const countryLabel = (article.country ?? original?.country)?.toUpperCase();
+			const sourceIcon = article.sourceIcon ?? original?.sourceIcon;
+
+			const metadataSegments = [
+				`カテゴリ: ${escapeHtml(categoryLabel)}`,
+				`区分: ${escapeHtml(originLabel)}`,
+			];
+			if (countryLabel) {
+				metadataSegments.push(`国: ${escapeHtml(countryLabel)}`);
+			}
+			if (publishedLabel) {
+				metadataSegments.push(`配信: ${escapeHtml(publishedLabel)}`);
+			}
 
 			html += `
 		<div style="margin-bottom: 40px; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #3498db; border-radius: 4px;">
 			<h2 style="color: #2c3e50; margin-top: 0; font-size: 1.3em;">${runningIndex}. ${escapeHtml(article.title)}</h2>
 			<p style="color: #555; margin: 10px 0;">${escapeHtml(article.description)}</p>
-			<p style="margin: 6px 0; color: #7f8c8d; font-size: 0.9em;">カテゴリ: ${escapeHtml(categoryLabel)} / 区分: ${escapeHtml(originLabel)}${publishedLabel ? ` / 配信: ${escapeHtml(publishedLabel)}` : ''}</p>
+			<p style="margin: 6px 0; color: #7f8c8d; font-size: 0.9em;">${metadataSegments.join(' / ')}</p>
+			${sourceIcon ? `<div style="margin: 10px 0;">
+				<img src="${escapeAttr(sourceIcon)}" alt="${escapeHtml(article.source)}" style="height: 24px; width: auto;" loading="lazy" />
+			</div>` : ''}
 			
 			<h3 style="color: #2c3e50; margin-top: 20px; font-size: 1.1em;">主なポイント</h3>
 			<ul style="margin: 10px 0; padding-left: 20px;">
