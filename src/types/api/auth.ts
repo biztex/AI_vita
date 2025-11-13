@@ -1,3 +1,5 @@
+import type { NewsCategory } from "../../../shared/news-categories"
+
 export type User = {
   id: string
   email: string
@@ -23,7 +25,7 @@ export type RegisterRequest = {
   password: string
   name: string
   company?: string
-  industries?: string[]
+  industries?: NewsCategory[]
 }
 
 export type RegisterResponse = {

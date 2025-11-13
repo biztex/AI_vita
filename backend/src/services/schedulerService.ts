@@ -3,8 +3,9 @@ import { getDailyJapaneseNews } from './newsService.js';
 import { analyzeBusinessItemsJA, buildEmailContentJA } from './analysisService.js';
 import { sendDailyDigest } from './emailService.js';
 import { prisma } from '../prisma.js';
+import type { NewsCategory } from '../../../shared/news-categories.js';
 
-async function getAllMembersWithIndustries(): Promise<Array<{ email: string; industries: string[] }>> {
+async function getAllMembersWithInterests(): Promise<Array<{ email: string; interests: NewsCategory[] }>> {
   const users = await prisma.appUser.findMany({
     where: { email: { not: null } },
     select: { 
@@ -16,7 +17,7 @@ async function getAllMembersWithIndustries(): Promise<Array<{ email: string; ind
     .filter((u: any) => u.email)
     .map((u: any) => ({
       email: u.email!,
-      industries: u.industries || [],
+      interests: (u.industries || []) as NewsCategory[],
     }));
 }
 
@@ -66,69 +67,53 @@ export function startDailyNewsJob() {
       }
 
       // Get all members with their industry preferences
-      const members = await getAllMembersWithIndustries();
+      const members = await getAllMembersWithInterests();
       
       // Send personalized emails to each user based on their industry interests
       const jst = new Date().toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' });
       
       for (const member of members) {
         try {
-          // Filter news items based on user's industry interests
+          // Filter news items based on user's preferred categories
           let filteredItems = items;
           let filteredAnalysis = analysis;
           
-          if (member.industries.length > 0) {
-            // Match items with user's industries
-            const industrySet = new Set(member.industries.map(ind => ind.toUpperCase()));
-            
-            // Create a map of articles by title/link for matching
-            const articleMap = new Map<string, typeof analysis.articles[0]>();
-            analysis.articles.forEach(article => {
-              const key = `${article.title}|${article.link}`;
-              articleMap.set(key, article);
-            });
-            
-            // Filter items and analysis articles based on industry match
-            const matchingItems: typeof items = [];
-            const matchingArticles: typeof analysis.articles = [];
-            
-            items.forEach(item => {
-              const key = `${item.title}|${item.link}`;
-              const article = articleMap.get(key);
-              
-              if (article && article.industries && article.industries.length > 0) {
-                // Check if any of the article's industries match user's industries
-                const hasMatchingIndustry = article.industries.some(ind => 
-                  industrySet.has(ind.toUpperCase())
-                );
-                
-                if (hasMatchingIndustry) {
-                  matchingItems.push(item);
-                  matchingArticles.push(article);
-                }
-              } else {
-                // If article has no industries or doesn't exist in analysis, 
-                // check if item itself has industries
-                if (item.industries && item.industries.length > 0) {
-                  const hasMatchingIndustry = item.industries.some(ind => 
-                    industrySet.has(ind.toUpperCase())
-                  );
-                  if (hasMatchingIndustry) {
-                    matchingItems.push(item);
-                    // Create a basic article entry for this item
-                    if (article) {
-                      matchingArticles.push(article);
-                    }
-                  }
-                }
-              }
-            });
-            
+          if (member.interests.length > 0) {
+            const interestSet = new Set(member.interests);
+
+            const matchingItems = items.filter(item =>
+              item.categories.some(category => interestSet.has(category))
+            );
+
+            const matchingArticles = analysis.articles.filter(article =>
+              (article.categories && article.categories.some(category => interestSet.has(category))) ||
+              interestSet.has(article.category)
+            );
+
             if (matchingItems.length > 0) {
               filteredItems = matchingItems;
               filteredAnalysis = {
                 ...analysis,
-                articles: matchingArticles,
+                articles: matchingArticles.length > 0 ? matchingArticles : matchingItems.map(item => {
+                  const key = `${item.title}|${item.link}`;
+                  const existing = analysis.articles.find(article => `${article.title}|${article.link}` === key);
+                  return existing ?? {
+                    title: item.title,
+                    description: item.description,
+                    link: item.link,
+                    source: item.source,
+                    category: item.category,
+                    categories: item.categories,
+                    origin: item.origin,
+                    insights: {
+                      keyPoints: ['分析中...'],
+                      actionProposal: '分析中...',
+                      importance: '分析中...',
+                      risk: '分析中...',
+                    },
+                    industries: item.industries ?? [],
+                  };
+                }),
               };
             }
           }
@@ -139,9 +124,9 @@ export function startDailyNewsJob() {
             filteredAnalysis = analysis;
           }
           
-          const { subject, text, html } = buildEmailContentJA(jst, filteredItems, filteredAnalysis, member.industries);
+          const { subject, text, html } = buildEmailContentJA(jst, filteredItems, filteredAnalysis, member.interests);
           await sendDailyDigest([member.email], subject, html, text);
-          console.log(`[Scheduler] Sent personalized digest to ${member.email} (${filteredItems.length} items, industries: ${member.industries.join(', ') || 'all'})`);
+          console.log(`[Scheduler] Sent personalized digest to ${member.email} (${filteredItems.length} items, categories: ${member.interests.join(', ') || 'all'})`);
         } catch (e) {
           console.error(`[Scheduler] Failed to send digest to ${member.email}:`, e);
         }

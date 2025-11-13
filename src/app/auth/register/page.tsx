@@ -13,18 +13,12 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useAuth } from "@/lib/auth-context"
 import { registerSchema, type RegisterFormData } from "@/lib/validations/validation"
 import { Loader2, CheckCircle2, Mail } from "lucide-react"
+import { NEWS_CATEGORIES, NEWS_CATEGORY_LABELS_JA, type NewsCategory } from "../../../../shared/news-categories"
 
-// Industry options
-const INDUSTRIES = [
-  { value: "MANUFACTURING", label: "製造業" },
-  { value: "IT_TECHNOLOGY", label: "IT・テクノロジー" },
-  { value: "HEALTHCARE_WELFARE", label: "医療・福祉" },
-  { value: "RETAIL_SERVICE", label: "小売・サービス" },
-  { value: "FINANCE_INSURANCE", label: "金融・保険" },
-  { value: "REAL_ESTATE_BUILDING", label: "不動産・建築" },
-  { value: "EDUCATION_HUMAN_RESOURCES", label: "教育・人材" },
-  { value: "GENERAL", label: "その他・一般" },
-] as const;
+const CATEGORY_OPTIONS: Array<{ value: NewsCategory; label: string }> = NEWS_CATEGORIES.map((category) => ({
+  value: category,
+  label: NEWS_CATEGORY_LABELS_JA[category] ?? category,
+}));
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -33,8 +27,6 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [userEmail, setUserEmail] = useState<string>("")
-
-  const [selectedIndustries, setSelectedIndustries] = useState<string[]>([])
 
   const {
     register,
@@ -51,16 +43,14 @@ export default function RegisterPage() {
 
   const industries = watch("industries") || []
 
-  const handleIndustryChange = (industryValue: string, checked: boolean) => {
+  const handleIndustryChange = (categoryValue: NewsCategory, checked: boolean) => {
     const currentIndustries = industries || []
     if (checked) {
-      const updated = [...currentIndustries, industryValue]
-      setValue("industries", updated as any)
-      setSelectedIndustries(updated)
+      const updated = [...currentIndustries, categoryValue] as NewsCategory[]
+      setValue("industries", updated as RegisterFormData["industries"])
     } else {
-      const updated = currentIndustries.filter((ind) => ind !== industryValue)
-      setValue("industries", updated as any)
-      setSelectedIndustries(updated)
+      const updated = currentIndustries.filter((ind) => ind !== categoryValue) as NewsCategory[]
+      setValue("industries", updated as RegisterFormData["industries"])
     }
   }
 
@@ -75,7 +65,7 @@ export default function RegisterPage() {
         password: data.password,
         name: data.name,
         company: data.company,
-        industries: data.industries || [],
+        industries: (data.industries || []) as NewsCategory[],
       })
       setUserEmail(data.email)
       setSuccess(true)
@@ -195,28 +185,28 @@ export default function RegisterPage() {
               {errors.company && <p className="text-sm text-destructive">{errors.company.message}</p>}
             </div>
 
-            {/* Industries (multiple selection) */}
+            {/* Interest categories (multiple selection) */}
             <div className="space-y-2">
               <Label>
-                興味・関心のある業界 <span className="text-muted-foreground">(複数選択可能)</span>
+                興味・関心のあるカテゴリ <span className="text-muted-foreground">(複数選択可能)</span>
               </Label>
               <div className="grid grid-cols-2 gap-3 rounded-lg border p-4">
-                {INDUSTRIES.map((industry) => {
-                  const isChecked = industries?.includes(industry.value) || false
+                {CATEGORY_OPTIONS.map((category) => {
+                  const isChecked = industries?.includes(category.value) || false
                   return (
-                    <div key={industry.value} className="flex items-center space-x-2">
+                    <div key={category.value} className="flex items-center space-x-2">
                       <Checkbox
-                        id={`industry-${industry.value}`}
+                        id={`interest-${category.value}`}
                         checked={isChecked}
                         onCheckedChange={(checked) => 
-                          handleIndustryChange(industry.value, checked as boolean)
+                          handleIndustryChange(category.value, checked as boolean)
                         }
                       />
                       <Label
-                        htmlFor={`industry-${industry.value}`}
+                        htmlFor={`interest-${category.value}`}
                         className="text-sm font-normal cursor-pointer"
                       >
-                        {industry.label}
+                        {category.label}
                       </Label>
                     </div>
                   )
@@ -226,7 +216,7 @@ export default function RegisterPage() {
                 <p className="text-sm text-destructive">{errors.industries.message}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                選択した業界に関連するニュースを優先的に配信します
+                選択したカテゴリに関連するニュースを優先的に配信します
               </p>
             </div>
 

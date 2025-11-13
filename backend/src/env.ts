@@ -9,6 +9,11 @@ export const ENV = {
   PORT: Number(process.env.PORT || 8080),
   DATABASE_URL: must(process.env.DATABASE_URL, "DATABASE_URL"),
   REDIS_URL: must(process.env.REDIS_URL, "REDIS_URL"),
+  NEWSDATA_API_KEY: must(process.env.NEWSDATA_API_KEY, "NEWSDATA_API_KEY"),
+  NEWS_INTEREST_KEYWORDS: (process.env.NEWS_INTEREST_KEYWORDS || "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean),
   SUPABASE_JWKS_URL: must(process.env.SUPABASE_JWKS_URL, "SUPABASE_JWKS_URL"),
   SUPABASE_ISSUER: must(process.env.SUPABASE_ISSUER, "SUPABASE_ISSUER"),
   SUPABASE_AUDIENCE: must(process.env.SUPABASE_AUDIENCE, "SUPABASE_AUDIENCE"),

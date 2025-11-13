@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { ENV } from '../env.js';
-import type { NewsItem, Industry } from './newsService.js';
+import type { NewsItem, Industry, NewsOrigin } from './newsService.js';
+import { NEWS_CATEGORIES, NEWS_CATEGORY_LABELS_JA, type NewsCategory } from '../../../shared/news-categories.js';
 
 const openai = new OpenAI({ apiKey: ENV.OPENAI_API_KEY });
 
@@ -17,6 +18,9 @@ export type NewsAnalysis = {
 		description: string;
 		link: string;
 		source: string;
+		category: NewsCategory;
+		categories: NewsCategory[];
+		origin: NewsOrigin;
 		insights: ArticleInsights;
 		industries?: Industry[]; // AI-generated industry tags
 	}>;
@@ -134,6 +138,9 @@ JSON形式のみで出力してください。`;
 				description: item.description,
 				link: item.link,
 				source: item.source,
+				category: item.category,
+				categories: item.categories,
+				origin: item.origin,
 				insights: matched.insights,
 				industries: matched.industries,
 			};
@@ -154,6 +161,9 @@ JSON形式のみで出力してください。`;
 				description: item.description,
 				link: item.link,
 				source: item.source,
+				category: item.category,
+				categories: item.categories,
+				origin: item.origin,
 				insights: {
 					keyPoints: ['分析に失敗しました'],
 					actionProposal: '分析エラーにより表示できません',
@@ -171,32 +181,81 @@ export function buildEmailContentJA(
 	dateLabel: string, 
 	items: NewsItem[], 
 	analysis: NewsAnalysis, 
-	userIndustries: string[] = []
+	userCategories: NewsCategory[] = []
 ): { subject: string; text: string; html: string } {
-	const industryLabel = userIndustries.length > 0 
-		? `【業界フィルター: ${userIndustries.join(', ')}】` 
+	const categoryFilterLabel = userCategories.length > 0 
+		? `【関心カテゴリ: ${userCategories.map(category => NEWS_CATEGORY_LABELS_JA[category] ?? category).join(', ')}】` 
 		: '';
-	const subject = `本日のビジネスニュース・経営維持の示唆 ${industryLabel}(${dateLabel})`;
+	const subject = `本日のビジネスニュース・経営維持の示唆 ${categoryFilterLabel}(${dateLabel})`;
+
+	const originLabels: Record<NewsOrigin, string> = {
+		japan: "国内",
+		overseas_business: "海外ビジネス",
+		crypto: "暗号資産",
+		market: "市場動向",
+		interest: "関心トピック",
+	};
+
+	const industryLabels: Record<string, string> = {
+		MANUFACTURING: "製造業",
+		IT_TECHNOLOGY: "IT・テクノロジー",
+		HEALTHCARE_WELFARE: "医療・福祉",
+		RETAIL_SERVICE: "小売・サービス",
+		FINANCE_INSURANCE: "金融・保険",
+		REAL_ESTATE_BUILDING: "不動産・建築",
+		EDUCATION_HUMAN_RESOURCES: "教育・人材",
+		GENERAL: "その他・一般",
+	};
+
+	const itemLookup = new Map<string, NewsItem>();
+	items.forEach((item) => {
+		const key = `${item.title}|${item.link}`;
+		if (!itemLookup.has(key)) {
+			itemLookup.set(key, item);
+		}
+	});
+
+	const grouped = new Map<NewsCategory, Array<(typeof analysis.articles)[number]>>();
+	analysis.articles.forEach((article) => {
+		const group = grouped.get(article.category) ?? [];
+		group.push(article);
+		grouped.set(article.category, group);
+	});
+
+	const orderedGroups = NEWS_CATEGORIES.filter((cat) => grouped.has(cat)).map((cat) => [
+		cat,
+		grouped.get(cat)!,
+	] as const);
 
 	// Build text version
 	let text = `本日のビジネスニュース (${dateLabel})\n\n`;
-	
-	for (let i = 0; i < analysis.articles.length; i++) {
-		const article = analysis.articles[i];
-		text += `${i + 1}. ${article.title}\n`;
-		text += `説明: ${article.description}\n\n`;
-		text += `主なポイント:\n`;
-		article.insights.keyPoints.forEach(point => {
-			text += `- ${point}\n`;
+	let runningIndex = 1;
+
+	for (const [category, articles] of orderedGroups) {
+		const categoryLabel = NEWS_CATEGORY_LABELS_JA[category] ?? category;
+		text += `【${categoryLabel}】\n\n`;
+		articles.forEach((article) => {
+			const key = `${article.title}|${article.link}`;
+			const original = itemLookup.get(key);
+			const originLabel = original ? originLabels[original.origin] : originLabels[article.origin];
+			text += `${runningIndex}. ${article.title}（${originLabel}）\n`;
+			text += `説明: ${article.description}\n\n`;
+			text += `主なポイント:\n`;
+			article.insights.keyPoints.forEach((point) => {
+				text += `- ${point}\n`;
+			});
+			text += `\n行動提案: ${article.insights.actionProposal}\n`;
+			text += `重要性: ${article.insights.importance}\n`;
+			text += `リスク: ${article.insights.risk}\n`;
+			if (article.industries && article.industries.length > 0) {
+				text += `関連業界: ${article.industries.map((ind) => industryLabels[ind] || ind).join(', ')}\n`;
+			}
+			text += `ソース: ${article.link}\n\n`;
+			text += `${'='.repeat(50)}\n\n`;
+			runningIndex += 1;
 		});
-		text += `\n行動提案: ${article.insights.actionProposal}\n`;
-		text += `重要性: ${article.insights.importance}\n`;
-		text += `リスク: ${article.insights.risk}\n`;
-		text += `ソース: ${article.link}\n\n`;
-		text += `${'='.repeat(50)}\n\n`;
 	}
 
-	// Add To-Do list
 	if (analysis.todoList.length > 0) {
 		text += `ExecuWell AI提案型アクションリスト\n\n`;
 		analysis.todoList.forEach((todo, idx) => {
@@ -204,138 +263,40 @@ export function buildEmailContentJA(
 		});
 	}
 
-	// Build HTML version
 	let html = `
 	<div style="font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; color: #333;">
 		<h1 style="color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px;">本日のビジネスニュース (${escapeHtml(dateLabel)})</h1>
 	`;
 
-	// Industry labels in Japanese
-	const industryLabels: Record<string, string> = {
-		"MANUFACTURING": "製造業",
-		"IT_TECHNOLOGY": "IT・テクノロジー",
-		"HEALTHCARE_WELFARE": "医療・福祉",
-		"RETAIL_SERVICE": "小売・サービス",
-		"FINANCE_INSURANCE": "金融・保険",
-		"REAL_ESTATE_BUILDING": "不動産・建築",
-		"EDUCATION_HUMAN_RESOURCES": "教育・人材",
-		"GENERAL": "その他・一般",
-	};
-	
-	// Group articles by industry for better organization (if user has industry preferences)
-	// If user has selected industries, group by those industries; otherwise, group by article industries
-	let industryMap: Map<string, Array<typeof analysis.articles[0]>>;
-	
-	if (userIndustries.length > 0) {
-		// Group by user's selected industries
-		industryMap = new Map<string, Array<typeof analysis.articles[0]>>();
-		const displayedArticles = new Set<string>();
-		
-		userIndustries.forEach(userIndustry => {
-			industryMap.set(userIndustry, []);
-		});
-		
-		analysis.articles.forEach(article => {
-			const articleKey = `${article.title}|${article.link}`;
-			
-			if (article.industries && article.industries.length > 0) {
-				// Find industries that match user's selections
-				const matchingIndustries = article.industries.filter(ind => 
-					userIndustries.includes(ind.toUpperCase())
-				);
-				
-				if (matchingIndustries.length > 0 && !displayedArticles.has(articleKey)) {
-					// Add to the first matching industry
-					industryMap.get(matchingIndustries[0].toUpperCase())!.push(article);
-					displayedArticles.add(articleKey);
-				}
-			}
-		});
-		
-		// Remove empty industry groups
-		for (const [industry, articles] of Array.from(industryMap.entries())) {
-			if (articles.length === 0) {
-				industryMap.delete(industry);
-			}
-		}
-		
-		// Add articles without matching industries to GENERAL
-		const allDisplayed = new Set(analysis.articles
-			.filter(a => a.industries && a.industries.some(ind => userIndustries.includes(ind.toUpperCase())))
-			.map(a => `${a.title}|${a.link}`)
-		);
-		
-		const unmatchedArticles = analysis.articles.filter(a => 
-			!allDisplayed.has(`${a.title}|${a.link}`)
-		);
-		
-		if (unmatchedArticles.length > 0) {
-			industryMap.set("GENERAL", unmatchedArticles);
-		}
-	} else {
-		// Group by article industries (no user filter)
-		industryMap = new Map<string, Array<typeof analysis.articles[0]>>();
-		const displayedArticles = new Set<string>();
-		
-		analysis.articles.forEach(article => {
-			const articleKey = `${article.title}|${article.link}`;
-			
-			if (article.industries && article.industries.length > 0) {
-				const firstIndustry = article.industries[0];
-				if (!industryMap.has(firstIndustry)) {
-					industryMap.set(firstIndustry, []);
-				}
-				if (!displayedArticles.has(articleKey)) {
-					industryMap.get(firstIndustry)!.push(article);
-					displayedArticles.add(articleKey);
-				}
-			} else {
-				if (!industryMap.has("GENERAL")) {
-					industryMap.set("GENERAL", []);
-				}
-				if (!displayedArticles.has(articleKey)) {
-					industryMap.get("GENERAL")!.push(article);
-					displayedArticles.add(articleKey);
-				}
-			}
-		});
-	}
-	
-	// Display articles grouped by industry
-	let articleIndex = 1;
-	for (const [industry, articles] of Array.from(industryMap.entries()).sort((a, b) => {
-		// Sort industries: user's industries first, then others
-		if (userIndustries.length > 0) {
-			const aIndex = userIndustries.indexOf(a[0].toUpperCase());
-			const bIndex = userIndustries.indexOf(b[0].toUpperCase());
-			if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-			if (aIndex !== -1) return -1;
-			if (bIndex !== -1) return 1;
-		}
-		return 0;
-	})) {
-		if (articles.length === 0) continue;
-		
-		const industryLabel = industryLabels[industry] || industry;
+	runningIndex = 1;
+	for (const [category, articles] of orderedGroups) {
+		const categoryLabel = NEWS_CATEGORY_LABELS_JA[category] ?? category;
 		html += `
 		<h2 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px; font-size: 1.4em; border-bottom: 2px solid #3498db; padding-bottom: 8px;">
-			🏢 ${escapeHtml(industryLabel)}
+			📰 ${escapeHtml(categoryLabel)}
 		</h2>
 		`;
-		
-		articles.forEach(article => {
+
+		articles.forEach((article) => {
+			const key = `${article.title}|${article.link}`;
+			const original = itemLookup.get(key);
+			const originLabel = original ? originLabels[original.origin] : originLabels[article.origin];
+			const publishedLabel =
+				original?.pubDate ? new Date(original.pubDate).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '';
+
 			html += `
 		<div style="margin-bottom: 40px; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #3498db; border-radius: 4px;">
-			<h2 style="color: #2c3e50; margin-top: 0; font-size: 1.3em;">${articleIndex}. ${escapeHtml(article.title)}</h2>
+			<h2 style="color: #2c3e50; margin-top: 0; font-size: 1.3em;">${runningIndex}. ${escapeHtml(article.title)}</h2>
 			<p style="color: #555; margin: 10px 0;">${escapeHtml(article.description)}</p>
+			<p style="margin: 6px 0; color: #7f8c8d; font-size: 0.9em;">カテゴリ: ${escapeHtml(categoryLabel)} / 区分: ${escapeHtml(originLabel)}${publishedLabel ? ` / 配信: ${escapeHtml(publishedLabel)}` : ''}</p>
 			
 			<h3 style="color: #2c3e50; margin-top: 20px; font-size: 1.1em;">主なポイント</h3>
 			<ul style="margin: 10px 0; padding-left: 20px;">
 		`;
-		article.insights.keyPoints.forEach(point => {
-			html += `<li style="margin: 5px 0;">${escapeHtml(point)}</li>`;
-		});
-		html += `
+			article.insights.keyPoints.forEach((point) => {
+				html += `<li style="margin: 5px 0;">${escapeHtml(point)}</li>`;
+			});
+			html += `
 			</ul>
 			
 			<div style="margin-top: 20px; padding: 15px; background-color: #ffffff; border-radius: 4px;">
@@ -355,18 +316,17 @@ export function buildEmailContentJA(
 			</p>
 		</div>
 		`;
-			articleIndex++;
+			runningIndex += 1;
 		});
 	}
 
-	// Add To-Do list
 	if (analysis.todoList.length > 0) {
 		html += `
 		<div style="margin-top: 40px; padding: 20px; background-color: #2c3e50; color: #ffffff; border-radius: 4px;">
 			<h2 style="color: #ffffff; margin-top: 0; font-size: 1.3em;">ExecuWell AI提案型アクションリスト</h2>
 			<ol style="margin: 15px 0; padding-left: 25px;">
 		`;
-		analysis.todoList.forEach((todo, idx) => {
+		analysis.todoList.forEach((todo) => {
 			html += `<li style="margin: 10px 0; color: #ffffff;"><strong>【${escapeHtml(todo.category)}】</strong>${escapeHtml(todo.action)}</li>`;
 		});
 		html += `

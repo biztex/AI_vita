@@ -10,9 +10,10 @@ import { apiClient } from "@/lib/api"
 import { CalendarIcon, ExternalLink, Sparkles, Newspaper, AlertCircle } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { NEWS_CATEGORY_LABELS_JA, type NewsCategory } from "../../../../shared/news-categories"
 
 type NewsItem = {
-  category: string
+  category: NewsCategory
   title: string
   description: string
   link: string
@@ -156,8 +157,8 @@ export function NewsPanel() {
                     {item.source}
                   </span>
                   {item.category && (
-                    <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">
-                      {item.category}
+                    <span className="text-[10px] text-muted-foreground/70 tracking-wider">
+                      {NEWS_CATEGORY_LABELS_JA[item.category] ?? item.category.toUpperCase()}
                     </span>
                   )}
                 </div>

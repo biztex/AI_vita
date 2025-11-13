@@ -12,7 +12,7 @@ model AppUser {
   email           String?
   role            Role        @default(USER)
   subscription    Subscription?
-  industries      Industry[]  @default([]) // User's industry interests (multiple selection)
+  industries      NewsCategory[]  @default([]) // User-selected news categories of interest
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
@@ -99,8 +99,22 @@ enum Status {
 }
 
 enum NewsCategory {
-  HEALTH
-  BUSINESS
+  business
+  crime
+  education
+  entertainment
+  environment
+  food
+  health
+  lifestyle
+  politics
+  science
+  sports
+  technology
+  top
+  tourism
+  world
+  other
 }
 
 enum Industry {

@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { supabase, signIn, signUp, signOut, getCurrentUser, resetPassword } from "./supabase"
 import { apiClient } from "./api"
 import type { User as SupabaseUser } from '@supabase/supabase-js'
+import type { NewsCategory } from "../../shared/news-categories"
 
 export type User = {
   id: string
@@ -18,7 +19,7 @@ type AuthContextType = {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (data: { email: string; password: string; name: string; company?: string;industries?: string[] }) => Promise<void>
+  register: (data: { email: string; password: string; name: string; company?: string; industries?: NewsCategory[] }) => Promise<void>
   logout: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
 }
@@ -106,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (data: { email: string; password: string; name: string; company?: string; industries?: string[] }) => {
+  const register = async (data: { email: string; password: string; name: string; company?: string; industries?: NewsCategory[] }) => {
     try {
       // Step 1: Register with Supabase
       const { data: authData, error } = await signUp(data.email, data.password, {

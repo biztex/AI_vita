@@ -8,6 +8,7 @@ import type {
 } from '@/types/api/chat'
 import type { User, AuthResponse, LoginRequest, RegisterRequest, RegisterResponse } from '@/types/api/auth'
 import { API_CONFIG } from '@/lib/config/api'
+import type { NewsCategory } from '../../../shared/news-categories'
 
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
@@ -266,7 +267,7 @@ class APIClient {
         date: string
         count: number
         items: Array<{
-          category: string
+          category: NewsCategory
           title: string
           description: string
           link: string

@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { NEWS_CATEGORIES, type NewsCategory } from "../../../shared/news-categories"
 
 // Login schema
 export const loginSchema = z.object({
@@ -8,17 +9,8 @@ export const loginSchema = z.object({
 
 export type LoginFormData = z.infer<typeof loginSchema>
 
-// Industry enum
-export const IndustryEnum = z.enum([
-  "MANUFACTURING",
-  "IT_TECHNOLOGY",
-  "HEALTHCARE_WELFARE",
-  "RETAIL_SERVICE",
-  "FINANCE_INSURANCE",
-  "REAL_ESTATE_BUILDING",
-  "EDUCATION_HUMAN_RESOURCES",
-  "GENERAL",
-]);
+const NEWS_CATEGORY_VALUES = NEWS_CATEGORIES as unknown as [NewsCategory, ...NewsCategory[]];
+export const NewsCategoryEnum = z.enum(NEWS_CATEGORY_VALUES);
 
 // Register schema
 export const registerSchema = z
@@ -26,7 +18,7 @@ export const registerSchema = z
     name: z.string().min(2, "名前は2文字以上である必要があります"),
     email: z.string().email("有効なメールアドレスを入力してください"),
     company: z.string().optional(),
-    industries: z.array(IndustryEnum).optional(),
+    industries: z.array(NewsCategoryEnum).optional(),
     password: z.string().min(6, "パスワードは6文字以上である必要があります"),
     confirmPassword: z.string(),
   })

@@ -1,20 +1,11 @@
 import express from "express";
 import { prisma } from "../prisma";
 import { verifyToken } from "../middlewares/auth";
+import { isNewsCategory, NEWS_CATEGORIES, type NewsCategory } from "../../../shared/news-categories.js";
 
 const router = express.Router();
 
-// Valid industry values from Prisma schema
-const VALID_INDUSTRIES = [
-  "MANUFACTURING",
-  "IT_TECHNOLOGY",
-  "HEALTHCARE_WELFARE",
-  "RETAIL_SERVICE",
-  "FINANCE_INSURANCE",
-  "REAL_ESTATE_BUILDING",
-  "EDUCATION_HUMAN_RESOURCES",
-  "GENERAL"
-];
+const VALID_NEWS_CATEGORIES = new Set(NEWS_CATEGORIES);
 
 // Register endpoint - creates user in database after Supabase registration
 router.post("/register", async (req:any, res:any, next:any) => {
@@ -34,16 +25,15 @@ router.post("/register", async (req:any, res:any, next:any) => {
     const meta = (payload.user_metadata as any) || {};
     const role = meta.role === "admin" ? "admin" : "user";
     
-    // Extract and validate industries from metadata
-    // Frontend sends values in correct format (e.g., "MANUFACTURING", "IT_TECHNOLOGY")
-    let industries: string[] = [];
+    // Extract and validate interest categories from metadata
+    let interestCategories: NewsCategory[] = [];
     if (meta.industries && Array.isArray(meta.industries)) {
-      industries = meta.industries
-        .map((ind: string) => String(ind).toUpperCase())
-        .filter((ind: string) => VALID_INDUSTRIES.includes(ind)) as any;
+      interestCategories = meta.industries
+        .map((value: unknown) => (typeof value === "string" ? value.toLowerCase() : ""))
+        .filter((value): value is NewsCategory => VALID_NEWS_CATEGORIES.has(value as NewsCategory) && isNewsCategory(value));
     }
 
-    console.log("[AUTH] Processing registration for user:", { sub, email, role, industries });
+    console.log("[AUTH] Processing registration for user:", { sub, email, role, interestCategories });
 
     // Check if user already exists
     const existingUser = await prisma.appUser.findUnique({
@@ -71,9 +61,9 @@ router.post("/register", async (req:any, res:any, next:any) => {
       subscription: meta.subscription ? (String(meta.subscription).toUpperCase() as any) : "INTEGRATED",
     };
 
-    // Only add industries if we have valid ones
-    if (industries.length > 0) {
-      userData.industries = industries;
+    // Only add categories if we have valid ones
+    if (interestCategories.length > 0) {
+      userData.industries = interestCategories;
     }
 
     // Create user in database
