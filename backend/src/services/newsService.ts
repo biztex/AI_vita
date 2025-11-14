@@ -5,7 +5,7 @@ import { isNewsCategory, type NewsCategory } from "../utils/news-categories.js";
 const API_BASE_URL = "https://newsdata.io/api/1";
 const DEFAULT_REQUEST_SIZE = 12;
 
-export type Industry =
+export type Industry = 
 	| "MANUFACTURING" // 製造業
 	| "IT_TECHNOLOGY" // IT・テクノロジー
 	| "HEALTHCARE_WELFARE" // 医療・福祉
@@ -38,13 +38,13 @@ export type NewsItem = {
 };
 
 type NewsDataArticle = {
-	title?: string;
+	 title?: string;
 	name?: string;
 	description?: string;
 	content?: string;
 	summary?: string;
 	snippet?: string;
-	link?: string;
+	 link?: string;
 	url?: string;
 	source_id?: string;
 	source?: string;
@@ -53,7 +53,7 @@ type NewsDataArticle = {
 	category?: string[] | string;
 	country?: string[] | string;
 	language?: string;
-	pubDate?: string;
+	 pubDate?: string;
 	image_url?: string;
 	coin?: string;
 	[key: string]: unknown;
@@ -86,9 +86,9 @@ function normaliseCategory(raw: string | undefined | null): NewsCategory | null 
 	if (CATEGORY_ALIASES[lower]) {
 		return CATEGORY_ALIASES[lower];
 	}
-	return null;
-}
-
+				return null;
+			}
+			
 function valueToArray(value: string | string[] | undefined | null): string[] {
 	if (!value) return [];
 	if (Array.isArray(value)) {
@@ -245,7 +245,7 @@ function deduplicate(items: NewsItem[]): NewsItem[] {
 		const key = (item.link || item.title).toLowerCase();
 		if (seen.has(key)) return false;
 		seen.add(key);
-		return true;
+			return true;
 	});
 }
 
@@ -257,22 +257,21 @@ function sortByDateDesc(items: NewsItem[]): NewsItem[] {
 	});
 }
 
-export async function getDailyJapaneseNews(): Promise<NewsItem[]> {
-	const interestCategoriesPromise = getDistinctUserInterestCategories();
-
-	const [
-		japanBusiness,
-		globalBusiness,
-		cryptoNews,
-		marketNews,
-		interestCategories,
-	] = await Promise.all([
+/**
+ * Fetches the common 10 news items:
+ * - 4 latest Japanese business news
+ * - 2 global business news
+ * - 2 crypto business news
+ * - 2 marketing business news
+ */
+export async function getCommonNews(): Promise<NewsItem[]> {
+	const [japanBusiness, globalBusiness, cryptoNews, marketNews] = await Promise.all([
 		fetchLatestSegment(
 			{
 				country: "jp",
 				language: "ja",
 				category: "business",
-				size: DEFAULT_REQUEST_SIZE,
+				size: 6, // Fetch extra to account for deduplication
 			},
 			"business",
 			"japan_business"
@@ -280,51 +279,36 @@ export async function getDailyJapaneseNews(): Promise<NewsItem[]> {
 		fetchLatestSegment(
 			{
 				country: "us,gb",
-				language: "ja",
+				language: "en",
 				category: "business",
-				size: DEFAULT_REQUEST_SIZE,
+				size: 4, // Fetch extra to account for deduplication
 			},
 			"business",
 			"global_business"
 		),
 		fetchCryptoSegment(
 			{
-				coin: "eth,usdt,bnb",
-				size: DEFAULT_REQUEST_SIZE,
+				coin: "bitcoin,ethereum,usdt",
+				language: "en",
+				size: 4, // Fetch extra to account for deduplication
 			},
 			"business"
 		),
 		fetchMarketSegment(
 			{
-				country: "jp",
-				size: Math.max(5, DEFAULT_REQUEST_SIZE / 2),
+				country: "jp,us",
+				language: "ja,en",
+				size: 4, // Fetch extra to account for deduplication
 			},
 			"business"
 		),
-		interestCategoriesPromise,
 	]);
 
-	let interestNews: NewsItem[] = [];
-	if (interestCategories.length > 0) {
-		const fallback = interestCategories[0] ?? "other";
-		const size = Math.min(20, Math.max(interestCategories.length * 3, 6));
-		interestNews = await fetchLatestSegment(
-			{
-				category: interestCategories.join(","),
-				language: "ja,en",
-				size,
-			},
-			fallback,
-			"interest"
-		);
-	}
-
 	const segments: Array<{ origin: NewsOrigin; items: NewsItem[]; limit: number }> = [
-		{ origin: "japan_business", items: deduplicate(japanBusiness), limit: 3 },
+		{ origin: "japan_business", items: deduplicate(japanBusiness), limit: 4 },
 		{ origin: "global_business", items: deduplicate(globalBusiness), limit: 2 },
 		{ origin: "crypto", items: deduplicate(cryptoNews), limit: 2 },
-		{ origin: "market", items: deduplicate(marketNews), limit: 1 },
-		{ origin: "interest", items: deduplicate(interestNews), limit: 2 },
+		{ origin: "market", items: deduplicate(marketNews), limit: 2 },
 	];
 
 	const seen = new Set<string>();
@@ -344,14 +328,71 @@ export async function getDailyJapaneseNews(): Promise<NewsItem[]> {
 	}
 
 	console.log(
-		`[NewsService] Selected totals → JP Business: ${selection.filter((item) => item.origin === "japan_business").length}, ` +
+		`[NewsService] Common news → JP Business: ${selection.filter((item) => item.origin === "japan_business").length}, ` +
 			`Global Business: ${selection.filter((item) => item.origin === "global_business").length}, ` +
 			`Crypto: ${selection.filter((item) => item.origin === "crypto").length}, ` +
-			`Market: ${selection.filter((item) => item.origin === "market").length}, ` +
-			`Interest: ${selection.filter((item) => item.origin === "interest").length}`
+			`Market: ${selection.filter((item) => item.origin === "market").length} ` +
+			`(Total: ${selection.length})`
 	);
 
 	return sortByDateDesc(selection);
+}
+
+/**
+ * Fetches 2 news items per user's preferred category
+ */
+export async function getUserInterestNews(userCategories: NewsCategory[]): Promise<NewsItem[]> {
+	if (userCategories.length === 0) {
+		return [];
+	}
+
+	const seen = new Set<string>();
+	const allInterestNews: NewsItem[] = [];
+
+	// Fetch 2 news items per category
+	for (const category of userCategories) {
+		try {
+			const items = await fetchLatestSegment(
+				{
+					category: category,
+					language: "ja,en",
+					size: 4, // Fetch extra to account for deduplication
+				},
+				category,
+				"interest"
+			);
+
+			const deduplicated = deduplicate(items);
+			const sorted = sortByDateDesc(deduplicated);
+			let count = 0;
+
+			for (const item of sorted) {
+				const key = (item.link || item.title).toLowerCase();
+				if (seen.has(key)) continue;
+				seen.add(key);
+				allInterestNews.push(item);
+				count += 1;
+				if (count >= 2) break; // 2 per category
+			}
+		} catch (error) {
+			console.error(`[NewsService] Failed to fetch interest news for category ${category}:`, error);
+		}
+	}
+
+	console.log(
+		`[NewsService] User interest news → ${allInterestNews.length} items for categories: ${userCategories.join(", ")}`
+	);
+
+	return sortByDateDesc(allInterestNews);
+}
+
+/**
+ * Fetches all daily news: 10 common + user-specific interest news
+ * This is the main function used by the scheduler
+ */
+export async function getDailyJapaneseNews(): Promise<NewsItem[]> {
+	const commonNews = await getCommonNews();
+	return commonNews;
 }
 
 export async function logDailyNewsPreview(): Promise<void> {
@@ -369,7 +410,7 @@ export async function logDailyNewsPreview(): Promise<void> {
 			console.log(`  アイコン: ${item.sourceIcon}`);
 		}
 		if (item.description) {
-			console.log(`  ${item.description}`);
+		console.log(`  ${item.description}`);
 		}
 		console.log(`  ${item.link}`);
 		if (when) console.log(`  配信: ${when}`);

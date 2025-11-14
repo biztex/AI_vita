@@ -33,17 +33,59 @@ export type NewsAnalysis = {
 };
 
 export async function analyzeBusinessItemsJA(items: NewsItem[]): Promise<NewsAnalysis> {
+	// Group items by origin to understand news types
+	const byOrigin = {
+		japan_business: items.filter(i => i.origin === "japan_business"),
+		global_business: items.filter(i => i.origin === "global_business"),
+		crypto: items.filter(i => i.origin === "crypto"),
+		market: items.filter(i => i.origin === "market"),
+		interest: items.filter(i => i.origin === "interest"),
+	};
+
+	const hasCrypto = byOrigin.crypto.length > 0;
+	const hasMarket = byOrigin.market.length > 0;
+	const hasInterest = byOrigin.interest.length > 0;
+
 	const list = items
-		.map((n, i) => `(${i + 1}) タイトル: ${n.title}\n説明: ${n.description}\nリンク: ${n.link}\n出典: ${n.source}`)
+		.map((n, i) => {
+			const originLabel = 
+				n.origin === "japan_business" ? "[国内ビジネス]" :
+				n.origin === "global_business" ? "[海外ビジネス]" :
+				n.origin === "crypto" ? "[暗号資産]" :
+				n.origin === "market" ? "[市場動向]" :
+				n.origin === "interest" ? "[関心トピック]" : "";
+			return `(${i + 1}) ${originLabel} タイトル: ${n.title}\n説明: ${n.description}\nリンク: ${n.link}\n出典: ${n.source}`;
+		})
 		.join('\n\n');
 
 	const system = `あなたは日本語で助言する経営コンサルタントです。各ニュース記事について、実務的な洞察を提供してください。`;
 
-	const user = `以下は本日のビジネス・経済ニュースです（${items.length}件）。
+	let contextNote = "";
+	if (hasCrypto) {
+		contextNote += "\n- 暗号資産関連のニュースについては、暗号資産市場の動向、規制、技術革新、投資リスクなどに焦点を当てて分析してください。";
+	}
+	if (hasMarket) {
+		contextNote += "\n- 市場動向関連のニュースについては、株式市場、為替市場、商品市場などの動き、経済指標、投資戦略への影響を重視してください。";
+	}
+	if (hasInterest) {
+		contextNote += "\n- ユーザーの関心トピックに関するニュースについては、そのカテゴリ特有の視点から分析し、実務への応用可能性を強調してください。";
+	}
+
+	const user = `以下は本日のニュースです（${items.length}件）。${contextNote}
+
+ニュースの種類:
+- 国内ビジネス: 日本のビジネス・経済ニュース
+- 海外ビジネス: グローバルなビジネス・経済ニュース
+${hasCrypto ? "- 暗号資産: 暗号資産（ビットコイン、イーサリアムなど）関連のニュース" : ""}
+${hasMarket ? "- 市場動向: 株式市場、為替市場、金融市場などの動向ニュース" : ""}
+${hasInterest ? "- 関心トピック: ユーザーの興味・関心に基づくカテゴリ別ニュース" : ""}
 
 各記事について、以下の形式で分析してください：
 1. 主なポイント（Key Points）: 3-5箇条書きで要点をまとめる
-2. 行動提案（行動提案）: 経営者が取るべき具体的なアクションを1文で示す（例：「業界内で早期導入事例 → 社内でPoC計画を立案」）
+2. 行動提案（行動提案）: 経営者が取るべき具体的なアクションを1文で示す
+   ${hasCrypto ? "   - 暗号資産ニュースの場合: 暗号資産投資戦略、リスク管理、規制対応などの観点から提案" : ""}
+   ${hasMarket ? "   - 市場動向ニュースの場合: 投資判断、ポートフォリオ調整、市場リスクへの対応などの観点から提案" : ""}
+   - 例：「業界内で早期導入事例 → 社内でPoC計画を立案」
 3. 重要性（重要性）: このニュースが経営に与える影響の重要性を1文で示す（例：「中小企業にも直接影響する政策変更」）
 4. リスク（リスク）: 対応しない場合のリスクを1文で示す（例：「対応遅れによる罰則・信用低下」）
 5. 業界タグ（industries）: このニュースが関連する業界を1-3個選択してください。
@@ -62,8 +104,10 @@ ExecuWellスタイルの例:
 1. 【人事】週休3日制のPoCを実施 → 離職率KPIで追跡
 2. 【財務】借入比率の再検討を財務チームへ依頼
 3. 【BCP】感染予防マニュアルを再送付・備蓄状況を点検
+${hasCrypto ? "4. 【投資】暗号資産ポートフォリオの見直し → リスク許容度に基づく配分調整" : ""}
+${hasMarket ? "5. 【投資】市場動向を踏まえた投資戦略の見直し → 専門家への相談を検討" : ""}
 
-各アクションは【カテゴリ】形式で分類し（例：【人事】、【財務】、【BCP】、【マーケティング】、【営業】、【法務】、【エネルギー】など）、具体的で実行可能なアクションを記載してください。3-5個のアクションを生成してください。
+各アクションは【カテゴリ】形式で分類し（例：【人事】、【財務】、【BCP】、【マーケティング】、【営業】、【法務】、【投資】、【リスク管理】など）、具体的で実行可能なアクションを記載してください。3-5個のアクションを生成してください。
 
 出力形式（JSON）:
 {
