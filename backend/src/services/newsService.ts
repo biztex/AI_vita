@@ -156,13 +156,15 @@ async function fetchFromNewsData(endpoint: "latest" | "crypto" | "market", param
 	}
 
 	url.searchParams.set("apikey", ENV.NEWSDATA_API_KEY);
-
+	console.log(url.toString())
 	const response = await fetch(url.toString(), {
 		method: "GET",
 		headers: {
 			Accept: "application/json",
 		},
 	});
+	console.log("latest=>",response);
+	
 
 	if (!response.ok) {
 		throw new Error(`NewsData.io request failed (${response.status}) for ${endpoint}: ${response.statusText}`);
