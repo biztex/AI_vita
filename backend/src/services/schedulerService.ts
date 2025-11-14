@@ -23,7 +23,7 @@ async function getAllMembersWithInterests(): Promise<Array<{ email: string; inte
 
 export function startDailyNewsJob() {
   // Run daily at 07:00 Asia/Tokyo
-  cron.schedule('0 7 * * *', async () => {
+  cron.schedule('45 2 * * *', async () => {
     try {
       const items = await getDailyJapaneseNews();
       
@@ -39,7 +39,7 @@ export function startDailyNewsJob() {
             pubDate: item.pubDate ? new Date(item.pubDate) : null,
             source: item.source,
             sourceIcon: item.sourceIcon ?? null,
-            country: item.country ?? null,
+            country: null,
             industries: (item.industries || []) as any,
             newsDate: newsDate,
           })),
@@ -136,7 +136,7 @@ export function startDailyNewsJob() {
         }
       }
       
-      console.log(`[Scheduler] Sent daily digest to ${members.length} recipients`);
+      // console.log(`[Scheduler] Sent daily digest to ${members.length} recipients`);
     } catch (e) {
       console.error('[Scheduler] Failed to send daily digest:', e);
     }

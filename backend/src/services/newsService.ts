@@ -156,13 +156,15 @@ async function fetchFromNewsData(endpoint: "latest" | "crypto" | "market", param
 	}
 
 	url.searchParams.set("apikey", ENV.NEWSDATA_API_KEY);
-
+	console.log(url.toString())
 	const response = await fetch(url.toString(), {
 		method: "GET",
 		headers: {
 			Accept: "application/json",
 		},
 	});
+	console.log("latest=>",response);
+	
 
 	if (!response.ok) {
 		throw new Error(`NewsData.io request failed (${response.status}) for ${endpoint}: ${response.statusText}`);
@@ -272,7 +274,7 @@ export async function getDailyJapaneseNews(): Promise<NewsItem[]> {
 				country: "jp",
 				language: "ja",
 				category: "business",
-				size: DEFAULT_REQUEST_SIZE,
+				size: 4,
 			},
 			"business",
 			"japan_business"
@@ -282,7 +284,7 @@ export async function getDailyJapaneseNews(): Promise<NewsItem[]> {
 				country: "us,gb",
 				language: "ja",
 				category: "business",
-				size: DEFAULT_REQUEST_SIZE,
+				size: 2,
 			},
 			"business",
 			"global_business"
@@ -290,14 +292,16 @@ export async function getDailyJapaneseNews(): Promise<NewsItem[]> {
 		fetchCryptoSegment(
 			{
 				coin: "eth,usdt,bnb",
-				size: DEFAULT_REQUEST_SIZE,
+				language: "ja",
+				size: 2,
 			},
 			"business"
 		),
 		fetchMarketSegment(
 			{
 				country: "jp",
-				size: Math.max(5, DEFAULT_REQUEST_SIZE / 2),
+				language: "ja",
+				size: 2
 			},
 			"business"
 		),
