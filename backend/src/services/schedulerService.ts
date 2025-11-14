@@ -28,6 +28,7 @@ export function startDailyNewsJob() {
       // Step 1: Fetch common news (10 items: 4 JP + 2 global + 2 crypto + 2 market)
       const commonNews = await getCommonNews();
       
+      console.log(`[Scheduler] Common news: ${commonNews.length}`);
       // Step 2: Save common news to database
       const newsDate = new Date(); // Today's date when news was collected
       if (commonNews.length > 0) {

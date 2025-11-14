@@ -57,6 +57,7 @@ export async function analyzeBusinessItemsJA(items: NewsItem[]): Promise<NewsAna
 			return `(${i + 1}) ${originLabel} タイトル: ${n.title}\n説明: ${n.description}\nリンク: ${n.link}\n出典: ${n.source}`;
 		})
 		.join('\n\n');
+	console.log("[Analysis] List:", list);
 
 	const system = `あなたは日本語で助言する経営コンサルタントです。各ニュース記事について、実務的な洞察を提供してください。`;
 

@@ -298,8 +298,7 @@ export async function getCommonNews(): Promise<NewsItem[]> {
 		),
 		fetchMarketSegment(
 			{
-				country: "jp,us",
-				language: "ja,en",
+				language: "ja",
 				size: 4, // Fetch extra to account for deduplication
 			},
 			"business"
@@ -307,10 +306,10 @@ export async function getCommonNews(): Promise<NewsItem[]> {
 	]);
 
 	const segments: Array<{ origin: NewsOrigin; items: NewsItem[]; limit: number }> = [
-		{ origin: "japan_business", items: deduplicate(japanBusiness), limit: 4 },
-		{ origin: "global_business", items: deduplicate(globalBusiness), limit: 2 },
-		{ origin: "crypto", items: deduplicate(cryptoNews), limit: 2 },
-		{ origin: "market", items: deduplicate(marketNews), limit: 2 },
+		{ origin: "japan_business", items: deduplicate(japanBusiness), limit: 2 },
+		{ origin: "global_business", items: deduplicate(globalBusiness), limit: 1 },
+		{ origin: "crypto", items: deduplicate(cryptoNews), limit: 1 },
+		{ origin: "market", items: deduplicate(marketNews), limit: 1 },
 	];
 
 	const seen = new Set<string>();
