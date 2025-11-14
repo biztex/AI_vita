@@ -57,7 +57,6 @@ export async function analyzeBusinessItemsJA(items: NewsItem[]): Promise<NewsAna
 			return `(${i + 1}) ${originLabel} タイトル: ${n.title}\n説明: ${n.description}\nリンク: ${n.link}\n出典: ${n.source}`;
 		})
 		.join('\n\n');
-	console.log("[Analysis] List:", list);
 
 	const system = `あなたは日本語で助言する経営コンサルタントです。各ニュース記事について、実務的な洞察を提供してください。`;
 
@@ -156,29 +155,69 @@ JSON形式のみで出力してください。`;
 	try {
 		const parsed = JSON.parse(content) as NewsAnalysis;
 		
-		// Match AI-generated insights with original items by title/link
-		// Create a map of insights and industries by title for matching
-		const insightsMap = new Map<string, { insights: ArticleInsights; industries?: Industry[] }>();
+		// Match AI-generated insights with original items by title and link
+		// Create a map of insights and industries by both title and link for better matching
+		const insightsMapByTitle = new Map<string, { insights: ArticleInsights; industries?: Industry[] }>();
+		const insightsMapByLink = new Map<string, { insights: ArticleInsights; industries?: Industry[] }>();
+		
 		parsed.articles.forEach(article => {
-			const key = article.title.toLowerCase().trim();
-			insightsMap.set(key, {
+			const titleKey = article.title.toLowerCase().trim().replace(/\s+/g, ' ');
+			const linkKey = article.link.toLowerCase().trim();
+			const data = {
 				insights: article.insights,
 				industries: article.industries || [],
-			});
+			};
+			insightsMapByTitle.set(titleKey, data);
+			if (linkKey) {
+				insightsMapByLink.set(linkKey, data);
+			}
 		});
 		
 		// Build result: use original items and match insights and industries
 		const matchedArticles = items.map(item => {
-			const key = item.title.toLowerCase().trim();
-			const matched = insightsMap.get(key) || {
-				insights: {
-					keyPoints: ['分析中...'],
-					actionProposal: '分析中...',
-					importance: '分析中...',
-					risk: '分析中...',
-				},
-				industries: [],
-			};
+			const titleKey = item.title.toLowerCase().trim().replace(/\s+/g, ' ');
+			const linkKey = item.link.toLowerCase().trim();
+			
+			// Try to match by title first, then by link
+			let matched = insightsMapByTitle.get(titleKey);
+			if (!matched && linkKey) {
+				matched = insightsMapByLink.get(linkKey);
+			}
+			
+			// If still no match, try partial title matching (first 50 chars)
+			if (!matched && titleKey.length > 20) {
+				const titlePrefix = titleKey.substring(0, 50);
+				for (const [key, value] of insightsMapByTitle.entries()) {
+					if (key.startsWith(titlePrefix) || titlePrefix.startsWith(key.substring(0, 50))) {
+						matched = value;
+						break;
+					}
+				}
+			}
+			
+			if (!matched) {
+				console.warn(`[Analysis] Failed to match article: "${item.title.substring(0, 50)}..." (Link: ${item.link.substring(0, 50)}...)`);
+				console.warn(`[Analysis] Available AI articles: ${parsed.articles.map(a => a.title.substring(0, 30)).join(', ')}`);
+				// Return a meaningful fallback instead of "Analyzing..."
+				return {
+					title: item.title,
+					description: item.description,
+					link: item.link,
+					source: item.source,
+					category: item.category,
+					categories: item.categories,
+					origin: item.origin,
+					country: item.country,
+					sourceIcon: item.sourceIcon,
+					insights: {
+						keyPoints: ['AI分析のマッチングに失敗しました。記事の内容を確認してください。'],
+						actionProposal: '記事の内容を確認し、必要に応じて専門家に相談してください。',
+						importance: '記事の重要性を確認するため、詳細を確認してください。',
+						risk: '記事のリスクを評価するため、詳細を確認してください。',
+					},
+					industries: [],
+				};
+			}
 			
 			return {
 				title: item.title,
@@ -195,15 +234,19 @@ JSON形式のみで出力してください。`;
 			};
 		});
 		
-		console.log('[Analysis] Generated insights and industry tags for', matchedArticles.length, 'articles');
+		const matchedCount = matchedArticles.filter(a => 
+			!a.insights.keyPoints.some(kp => kp.includes('マッチングに失敗'))
+		).length;
+		
+		console.log(`[Analysis] Generated insights for ${matchedCount}/${items.length} articles`);
 		return {
 			articles: matchedArticles,
 			todoList: parsed.todoList || [],
 		};
 	} catch (e) {
 		console.error('[Analysis] Failed to parse JSON:', e);
-		console.error('[Analysis] Raw content:', content);
-		// Fallback: create basic structure
+		console.error('[Analysis] Raw content:', content.substring(0, 500));
+		// Fallback: create basic structure with meaningful messages
 		return {
 			articles: items.map(item => ({
 				title: item.title,
@@ -216,10 +259,10 @@ JSON形式のみで出力してください。`;
 				country: item.country,
 				sourceIcon: item.sourceIcon,
 				insights: {
-					keyPoints: ['分析に失敗しました'],
-					actionProposal: '分析エラーにより表示できません',
-					importance: '分析エラーにより表示できません',
-					risk: '分析エラーにより表示できません',
+					keyPoints: ['AI分析の処理中にエラーが発生しました。'],
+					actionProposal: '記事の内容を確認し、必要に応じて専門家に相談してください。',
+					importance: '記事の重要性を確認するため、詳細を確認してください。',
+					risk: '記事のリスクを評価するため、詳細を確認してください。',
 				},
 				industries: [],
 			})),

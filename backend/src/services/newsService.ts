@@ -356,8 +356,9 @@ export async function getUserInterestNews(userCategories: NewsCategory[]): Promi
 			const items = await fetchLatestSegment(
 				{
 					category: category,
-					language: "ja,en",
-					size: 4, // Fetch extra to account for deduplication
+					country: "jp",
+					language: "ja",
+					size: 2, // Fetch extra to account for deduplication
 				},
 				category,
 				"interest"

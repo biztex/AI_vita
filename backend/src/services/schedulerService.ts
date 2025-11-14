@@ -82,9 +82,6 @@ export function startDailyNewsJob() {
           // Fetch user-specific interest news (2 per category)
           const userInterestNews = await getUserInterestNews(member.interests);
           
-          // Combine common news + user interest news
-          const allUserNews = [...commonNews, ...userInterestNews];
-          
           // Save user interest news to database
           if (userInterestNews.length > 0) {
             await prisma.newsItem.createMany({
@@ -105,11 +102,24 @@ export function startDailyNewsJob() {
             console.log(`[Scheduler] Saved ${userInterestNews.length} interest news items for ${member.email}`);
           }
 
-          // Analyze all user news (common + interest) with AI
-          const userAnalysis = await analyzeBusinessItemsJA(allUserNews);
+          // Analyze ONLY user interest news with AI (common news already analyzed)
+          let userInterestAnalysis: { articles: any[]; todoList: any[] } = { articles: [], todoList: [] };
+          if (userInterestNews.length > 0) {
+            userInterestAnalysis = await analyzeBusinessItemsJA(userInterestNews);
+            console.log(`[Scheduler] Analyzed ${userInterestNews.length} interest news items for ${member.email}`);
+          }
+
+          // Combine common analysis (already done) with user interest analysis
+          const combinedAnalysis = {
+            articles: [...commonAnalysis.articles, ...userInterestAnalysis.articles],
+            todoList: [...commonAnalysis.todoList, ...userInterestAnalysis.todoList],
+          };
+
+          // Combine common news + user interest news for email content
+          const allUserNews = [...commonNews, ...userInterestNews];
           
           // Build and send email
-          const { subject, text, html } = buildEmailContentJA(jst, allUserNews, userAnalysis, member.interests);
+          const { subject, text, html } = buildEmailContentJA(jst, allUserNews, combinedAnalysis, member.interests);
           await sendDailyDigest([member.email], subject, html, text);
           console.log(`[Scheduler] Sent personalized digest to ${member.email} (${allUserNews.length} items: ${commonNews.length} common + ${userInterestNews.length} interest, categories: ${member.interests.join(', ') || 'none'})`);
         } catch (e) {
