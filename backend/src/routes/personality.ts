@@ -23,7 +23,7 @@ r.get("/", requireAuth(), async (req: any, res: any, next: any) => {
 r.post("/", requireAuth(), async (req: any, res: any, next: any) => {
   try {
     const { testType, result, fileKey } = req.body;
-    if (!testType) return res.status(400).json({ error: "bad_request" });
+    if (!testType) return res.status(400).json({ error: "不正なリクエストです" });
     await prisma.personalityResult.create({
       data: {
         ownerId: req.user.id,

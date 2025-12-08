@@ -26,7 +26,7 @@ r.get("/", async (req, res, next) => {
 			// Parse the date string (YYYY-MM-DD format)
 			targetDate = new Date(dateParam);
 			if (isNaN(targetDate.getTime())) {
-				return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
+				return res.status(400).json({ error: "無効な日付形式です。YYYY-MM-DD形式を使用してください" });
 			}
 		} else {
 			// If no date provided, use today's date

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/lib/auth-context"
 import { loginSchema, type LoginFormData } from "@/lib/validations/validation"
 import { Loader2 } from "lucide-react"
+import { translateSupabaseAuthError } from "@/lib/supabase-error-translator"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -34,8 +35,8 @@ export default function LoginPage() {
     try {
       await login(data.email, data.password)
       router.push("/dashboard")
-    } catch (err) {
-      setError("メールアドレスまたはパスワードが無効です。もう一度お試しください。")
+    } catch (err: any) {
+      setError(translateSupabaseAuthError(err))
     } finally {
       setIsLoading(false)
     }

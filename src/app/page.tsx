@@ -1,11 +1,11 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Activity, Briefcase, ArrowRight, Sparkles, Brain, Zap, Shield, Clock } from "lucide-react"
+import { Activity, Briefcase, ArrowRight, Sparkles, Brain, Zap, Shield, Clock, HeartPulse, Crown, Check } from "lucide-react"
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col landing-page">
       {/* Hero Section */}
       <section className="relative container mx-auto px-4 py-24 md:py-32 overflow-hidden">
         {/* Animated background elements */}
@@ -82,108 +82,140 @@ export default function LandingPage() {
 
       {/* Products Section */}
       <section className="relative container mx-auto px-4 py-16 overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-r from-vitaai/10 to-success/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-gradient-to-r from-execuwell/10 to-accent/10 rounded-full blur-3xl"></div>
-        </div>
         
-        <div className="mx-auto max-w-6xl relative z-10">
+        <div className="mx-auto max-w-7xl relative z-10">
           <div className="text-center mb-16">
-            <h2 className="mb-4 text-3xl font-bold md:text-4xl bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-              2つの強力なAIアシスタント
+            <h2 className="mb-4 text-3xl font-bold md:text-4xl text-foreground">
+              サービス構成
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               健康とビジネスの両面で、あなたの意思決定をサポートする最先端のAI技術
             </p>
           </div>
           
-          <div className="grid gap-8 md:grid-cols-2">
+          <div className="grid gap-8 md:grid-cols-3 items-stretch">
             {/* VitaAI Card */}
-            <Card className="group relative overflow-hidden border-2 border-vitaai/20 transition-all duration-500 hover:border-vitaai hover:shadow-2xl hover:shadow-vitaai/20 hover:-translate-y-2 bg-card/80 backdrop-blur-sm">
-              <div className="absolute inset-0 bg-gradient-to-br from-vitaai/5 via-success/5 to-transparent opacity-0 transition-all duration-500 group-hover:opacity-100" />
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-vitaai/10 to-success/10 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              
-              <CardHeader className="relative">
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-vitaai to-success shadow-lg group-hover:shadow-xl group-hover:shadow-vitaai/30 transition-all duration-300 group-hover:scale-110">
-                  <Activity className="h-7 w-7 text-vitaai-foreground group-hover:animate-pulse" />
+            <Card className="group relative overflow-hidden border border-border/50 transition-all duration-500 hover:shadow-2xl hover:scale-103 hover:-translate-y-2 bg-background flex flex-col h-full">
+              <CardHeader className="relative text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#FFD700] mx-auto shadow-lg">
+                  <HeartPulse className="h-8 w-8 text-[#0F2342]" />
                 </div>
-                <CardTitle className="text-2xl text-vitaai group-hover:text-vitaai/90 transition-colors">
+                <CardTitle className="text-2xl text-foreground font-bold">
                   VitaAI
                 </CardTitle>
-                <CardDescription className="text-base group-hover:text-muted-foreground/80 transition-colors">
-                  あなた専用の健康インテリジェンスアシスタント
+                <CardDescription className="text-base text-[#FFD700] font-semibold uppercase">
+                  CONDITION MANAGEMENT
                 </CardDescription>
               </CardHeader>
               
-              <CardContent className="relative space-y-4">
-                <p className="text-muted-foreground group-hover:text-muted-foreground/90 transition-colors leading-relaxed">
-                  遺伝子データ、ライフスタイル、目標に基づいたパーソナライズされた健康インサイトを取得。VitaAIは毎日のレポートと実行可能な推奨事項であなたのウェルビーイングを最適化します。
+              <CardContent className="relative flex flex-col flex-1">
+                <div className="flex-1 space-y-4">
+                  <p className="text-foreground leading-relaxed text-sm">
+                    遺伝子で体質を特定し、AIが毎日の最適行動を作る
+                  </p>
+                  <ul className="space-y-3 text-sm text-foreground">
+                    <li className="flex items-start">
+                      <Check className="mr-3 h-5 w-5 text-[#FFD700] flex-shrink-0 mt-0.5" />
+                      <span>IDENSIL遺伝子解析による科学的な体質特定</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="mr-3 h-5 w-5 text-[#FFD700] flex-shrink-0 mt-0.5" />
+                      <span>管理栄養士がヒアリングを担当 コンディション最適化戦略を設計</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="mr-3 h-5 w-5 text-[#FFD700] flex-shrink-0 mt-0.5" />
+                      <span>LINEでの食事解析と睡眠ログ分析</span>
+                    </li>
+                  </ul>
+                </div>
+                <p className="text-[#FFD700] text-sm font-medium text-center pt-4 border-t border-border/50 mt-auto">
+                  「コンディションの最適化」
                 </p>
-                <ul className="space-y-3 text-sm text-muted-foreground">
-                  <li className="flex items-start group-hover:text-muted-foreground/90 transition-colors">
-                    <span className="mr-3 text-vitaai text-lg group-hover:scale-110 transition-transform">•</span>
-                    遺伝子分析統合
-                  </li>
-                  <li className="flex items-start group-hover:text-muted-foreground/90 transition-colors">
-                    <span className="mr-3 text-vitaai text-lg group-hover:scale-110 transition-transform">•</span>
-                    毎日の健康レポート
-                  </li>
-                  <li className="flex items-start group-hover:text-muted-foreground/90 transition-colors">
-                    <span className="mr-3 text-vitaai text-lg group-hover:scale-110 transition-transform">•</span>
-                    パーソナライズされた推奨事項
-                  </li>
-                </ul>
-                <Button className="w-full border-vitaai/20 text-vitaai hover:bg-vitaai/10 transition-all duration-300 group-hover:border-vitaai/40 group-hover:bg-vitaai/20 hover:scale-105" variant="outline" asChild>
-                  <Link href="/vitaai/chat" className="flex items-center justify-center gap-2">
-                    VitaAIを試す
-                    <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </Button>
               </CardContent>
             </Card>
 
             {/* ExecuWell Card */}
-            <Card className="group relative overflow-hidden border-2 border-execuwell/20 transition-all duration-500 hover:border-execuwell hover:shadow-2xl hover:shadow-execuwell/20 hover:-translate-y-2 bg-card/80 backdrop-blur-sm">
-              <div className="absolute inset-0 bg-gradient-to-br from-execuwell/5 via-accent/5 to-transparent opacity-0 transition-all duration-500 group-hover:opacity-100" />
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-execuwell/10 to-accent/10 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              
-              <CardHeader className="relative">
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-execuwell to-accent shadow-lg group-hover:shadow-xl group-hover:shadow-execuwell/30 transition-all duration-300 group-hover:scale-110">
-                  <Briefcase className="h-7 w-7 text-execuwell-foreground group-hover:animate-pulse" />
+            <Card className="group relative overflow-hidden border border-border/50 transition-all duration-500 hover:shadow-2xl hover:scale-103 hover:-translate-y-2 bg-background flex flex-col h-full">
+              <CardHeader className="relative text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#FFD700] mx-auto shadow-lg">
+                  <Brain className="h-8 w-8 text-[#0F2342]" />
                 </div>
-                <CardTitle className="text-2xl text-execuwell group-hover:text-execuwell/90 transition-colors">
+                <CardTitle className="text-2xl text-foreground font-bold">
                   ExecuWell
                 </CardTitle>
-                <CardDescription className="text-base group-hover:text-muted-foreground/80 transition-colors">
-                  あなたのビジネスインテリジェンスパートナー
+                <CardDescription className="text-base text-[#FFD700] font-semibold uppercase">
+                  DECISION SUPPORT
                 </CardDescription>
               </CardHeader>
               
-              <CardContent className="relative space-y-4">
-                <p className="text-muted-foreground group-hover:text-muted-foreground/90 transition-colors leading-relaxed">
-                  AI搭載のビジネスインサイト、市場分析、戦略的推奨事項で一歩先を行く。ExecuWellは経済ニュースとトレンドであなたに情報を提供し続けます。
+              <CardContent className="relative flex flex-col flex-1">
+                <div className="flex-1 space-y-4">
+                  <p className="text-foreground leading-relaxed text-sm">
+                    性格診断+認知プロファイル×AI × 専門家で、経営判断の質を毎日改善
+                  </p>
+                  <ul className="space-y-3 text-sm text-foreground">
+                    <li className="flex items-start">
+                      <Check className="mr-3 h-5 w-5 text-[#FFD700] flex-shrink-0 mt-0.5" />
+                      <span>性格診断に基づく認知プロファイル解読</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="mr-3 h-5 w-5 text-[#FFD700] flex-shrink-0 mt-0.5" />
+                      <span>経営コンサルタントがヒアリングを担当 意思決定フレームワークを構築</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="mr-3 h-5 w-5 text-[#FFD700] flex-shrink-0 mt-0.5" />
+                      <span>ExecuWellAIが24時間チャット対応 専属プライベートコンサルタントとして疑問や悩みに即座に対応</span>
+                    </li>
+                  </ul>
+                </div>
+                <p className="text-[#FFD700] text-sm font-medium text-center pt-4 border-t border-border/50 mt-auto">
+                  「意思決定プロセスの最適化」
                 </p>
-                <ul className="space-y-3 text-sm text-muted-foreground">
-                  <li className="flex items-start group-hover:text-muted-foreground/90 transition-colors">
-                    <span className="mr-3 text-execuwell text-lg group-hover:scale-110 transition-transform">•</span>
-                    市場インテリジェンス
-                  </li>
-                  <li className="flex items-start group-hover:text-muted-foreground/90 transition-colors">
-                    <span className="mr-3 text-execuwell text-lg group-hover:scale-110 transition-transform">•</span>
-                    経済ニュースサマリー
-                  </li>
-                  <li className="flex items-start group-hover:text-muted-foreground/90 transition-colors">
-                    <span className="mr-3 text-execuwell text-lg group-hover:scale-110 transition-transform">•</span>
-                    戦略的インサイト
-                  </li>
-                </ul>
-                <Button className="w-full border-execuwell/20 text-execuwell hover:bg-execuwell/10 transition-all duration-300 group-hover:border-execuwell/40 group-hover:bg-execuwell/20 hover:scale-105" variant="outline" asChild>
-                  <Link href="/execuwell/chat" className="flex items-center justify-center gap-2">
-                    ExecuWellを試す
-                    <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Exe & Vita Card */}
+            <Card className="group relative overflow-hidden border border-border/50 transition-all duration-500 hover:shadow-2xl hover:scale-103 hover:-translate-y-2 bg-background flex flex-col h-full">
+              {/* RECOMMENDED Badge */}
+              <div className="absolute top-0 right-0 bg-[#FFD700] text-[#0F2342] px-4 py-1 text-xs font-bold rounded-bl-lg shadow-lg z-10">
+                RECOMMENDED
+              </div>
+              
+              <CardHeader className="relative text-center pt-8">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#FFD700] mx-auto shadow-lg">
+                  <Crown className="h-8 w-8 text-[#0F2342]" />
+                </div>
+                <CardTitle className="text-2xl text-foreground font-bold">
+                  エグゼ & ビータ
+                </CardTitle>
+                <CardDescription className="text-base text-[#FFD700] font-semibold uppercase">
+                  TOTAL INFRASTRUCTURE
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent className="relative flex flex-col flex-1">
+                <div className="flex-1 space-y-4">
+                  <p className="text-foreground leading-relaxed text-sm">
+                    健康と判断力をAIが毎日守る、経営者専用インフラ
+                  </p>
+                  <ul className="space-y-3 text-sm text-foreground">
+                    <li className="flex items-start">
+                      <Check className="mr-3 h-5 w-5 text-[#FFD700] flex-shrink-0 mt-0.5" />
+                      <span>心身と判断力の両輪を統合サポート</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="mr-3 h-5 w-5 text-[#FFD700] flex-shrink-0 mt-0.5" />
+                      <span>統合ダッシュボードでの状態可視化</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="mr-3 h-5 w-5 text-[#FFD700] flex-shrink-0 mt-0.5" />
+                      <span>専門家チームによる包括的レビュー</span>
+                    </li>
+                  </ul>
+                </div>
+                <p className="text-[#FFD700] text-sm font-medium text-center pt-4 border-t border-border/50 mt-auto">
+                  「パフォーマンスの最大化と持続」
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -192,11 +224,6 @@ export default function LandingPage() {
 
       {/* CTA Section */}
       <section className="relative container mx-auto px-4 py-24 overflow-hidden">
-        {/* Animated background */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 via-accent/5 to-primary/5"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-primary/10 to-accent/10 rounded-full blur-3xl animate-pulse"></div>
-        </div>
         
         <div className="mx-auto max-w-3xl relative z-10">
           <div className="rounded-3xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 p-8 text-center md:p-12 backdrop-blur-sm hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/20 transition-all duration-500 hover:-translate-y-1">

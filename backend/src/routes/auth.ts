@@ -9,13 +9,14 @@ const VALID_NEWS_CATEGORIES = new Set(NEWS_CATEGORIES);
 
 // Register endpoint - creates user in database after Supabase registration
 router.post("/register", async (req:any, res:any, next:any) => {
+  console.log("[AUTH] Register endpoint called");
   try {
     // Verify the token from Supabase
     const authHeader = req.headers.authorization;
     if (!authHeader) {
       return res.status(401).json({
         success: false,
-        message: "Authorization header is required",
+        message: "認証ヘッダーが必要です",
       });
     }
     const payload = await verifyToken(authHeader);
@@ -44,7 +45,7 @@ router.post("/register", async (req:any, res:any, next:any) => {
       // User already exists, return success (idempotent)
       return res.json({
         success: true,
-        message: "User already registered",
+        message: "ユーザーは既に登録されています",
         user: {
           id: existingUser.supabaseUserId,
           email: existingUser.email,
@@ -73,7 +74,7 @@ router.post("/register", async (req:any, res:any, next:any) => {
 
     res.json({
       success: true,
-      message: "User registered successfully",
+      message: "ユーザーの登録が完了しました",
       user: {
         id: user.supabaseUserId,
         email: user.email,
@@ -91,7 +92,7 @@ router.post("/register", async (req:any, res:any, next:any) => {
     if (error.status === 401) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized - invalid token",
+        message: "認証に失敗しました - 無効なトークンです",
       });
     }
 
@@ -99,7 +100,7 @@ router.post("/register", async (req:any, res:any, next:any) => {
     if (error.code === "P2002") {
       return res.status(409).json({
         success: false,
-        message: "User already exists",
+        message: "ユーザーは既に存在しています",
       });
     }
 

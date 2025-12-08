@@ -5,6 +5,7 @@ import { supabase, signIn, signUp, signOut, getCurrentUser, resetPassword } from
 import { apiClient } from "./api"
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import type { NewsCategory } from "../../shared/news-categories"
+import { translateSupabaseAuthError } from "./supabase-error-translator"
 
 export type User = {
   id: string
@@ -93,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await signIn(email, password)
       
       if (error) {
-        throw new Error(error.message)
+        throw new Error(translateSupabaseAuthError(error.message || error))
       }
 
       if (data.user) {
@@ -118,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (error) {
         console.log("error",error);
-        throw new Error(error.message)
+        throw new Error(translateSupabaseAuthError(error.message || error))
       }
       // console.log("authData",authData);     
 
@@ -175,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { error } = await signOut()
       if (error) {
-        throw new Error(error.message)
+        throw new Error(translateSupabaseAuthError(error.message || error))
       }
       
       setUser(null)
@@ -190,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await resetPassword(email)
       if (error) {
-        throw new Error(error.message)
+        throw new Error(translateSupabaseAuthError(error.message || error))
       }
     } catch (error) {
       console.error("Password reset failed:", error)

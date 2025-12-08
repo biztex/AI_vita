@@ -185,7 +185,7 @@ export function ChatSidebar({
   }
 
   return (
-    <div className={cn("flex flex-col h-full bg-white border-r border-gray-200", className)}>
+    <div className={cn("flex flex-col h-full bg-[#102341] border-r border-[#2E4A78]", className)}>
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">

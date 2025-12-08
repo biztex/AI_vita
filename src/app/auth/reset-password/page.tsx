@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { translateSupabaseAuthError } from "@/lib/supabase-error-translator";
 
 // ✅ Avoid static prerendering (client-only page)
 export const dynamic = "force-dynamic";
@@ -67,14 +68,14 @@ function ResetPasswordContent() {
         password: data.password,
       });
 
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(translateSupabaseAuthError(error.message || error));
 
       setSuccess(true);
       setTimeout(() => {
         router.push("/auth/login");
       }, 3000);
     } catch (err: any) {
-      setError(err.message || "パスワードの更新に失敗しました。");
+      setError(translateSupabaseAuthError(err));
     } finally {
       setIsLoading(false);
     }

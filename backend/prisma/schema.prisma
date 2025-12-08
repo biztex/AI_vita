@@ -8,52 +8,67 @@ datasource db {
 }
 
 model AppUser {
-  supabaseUserId  String      @id
-  email           String?
-  role            Role        @default(USER)
-  subscription    Subscription?
-  industries      NewsCategory[]  @default([]) // User-selected news categories of interest
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-
-  conversations   ChatConversation[]
-  personality     PersonalityResult[]
+  supabaseUserId String              @id
+  email          String?
+  role           Role                @default(USER)
+  subscription   Subscription?
+  industries     NewsCategory[]      @default([])
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  conversations  ChatConversation[]
+  personality    PersonalityResult[]
 }
 
 model ChatConversation {
-  id         String   @id @default(uuid())
-  ownerId    String
-  service    Service
-  title      String?
-  createdAt  DateTime @default(now())
-
-  owner      AppUser  @relation(fields: [ownerId], references: [supabaseUserId])
-  messages   ChatMessage[]
+  id        String        @id @default(uuid())
+  ownerId   String
+  service   Service
+  title     String?
+  createdAt DateTime      @default(now())
+  owner     AppUser       @relation(fields: [ownerId], references: [supabaseUserId])
+  messages  ChatMessage[]
 }
 
 model ChatMessage {
-  id              String   @id @default(uuid())
-  conversationId  String
-  sender          Sender
-  kind            MessageKind
-  content         String
-  attachmentUrl   String?
-  voiceUrl        String?  // URL for voice messages to play audio
-  createdAt       DateTime @default(now())
-
-  conversation    ChatConversation @relation(fields: [conversationId], references: [id])
+  id             String           @id @default(uuid())
+  conversationId String
+  sender         Sender
+  kind           MessageKind
+  content        String
+  attachmentUrl  String?
+  voiceUrl       String?
+  createdAt      DateTime         @default(now())
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id])
 }
 
 model PersonalityResult {
   id        String   @id @default(uuid())
   ownerId   String
   testType  TestType
-  result    String?  // Store the actual test result (e.g., "INFP", "Type 5", etc.)
+  result    String?
   fileKey   String?
   status    Status   @default(RECEIVED)
   createdAt DateTime @default(now())
-
   owner     AppUser  @relation(fields: [ownerId], references: [supabaseUserId])
+}
+
+model NewsItem {
+  id          String       @id @default(uuid())
+  category    NewsCategory
+  title       String
+  description String
+  link        String
+  pubDate     DateTime?
+  source      String
+  sourceIcon  String?
+  country     String?
+  industries  Industry[]   @default([])
+  newsDate    DateTime     @default(now())
+  createdAt   DateTime     @default(now())
+
+  @@index([newsDate])
+  @@index([category])
+  @@index([industries])
 }
 
 enum Role {
@@ -118,31 +133,12 @@ enum NewsCategory {
 }
 
 enum Industry {
-  MANUFACTURING      // 製造業
-  IT_TECHNOLOGY      // IT・テクノロジー
-  HEALTHCARE_WELFARE // 医療・福祉
-  RETAIL_SERVICE     // 小売・サービス
-  FINANCE_INSURANCE  // 金融・保険
-  REAL_ESTATE_BUILDING // 不動産・建築
-  EDUCATION_HUMAN_RESOURCES // 教育・人材
-  GENERAL           // その他・一般
-}
-
-model NewsItem {
-  id          String       @id @default(uuid())
-  category    NewsCategory
-  title       String
-  description String
-  link        String
-  pubDate     DateTime?
-  source      String
-  sourceIcon  String?
-  country     String?
-  industries  Industry[]   @default([]) // AI-generated industry tags
-  newsDate    DateTime     @default(now()) // The date when this news was collected
-  createdAt   DateTime     @default(now())
-
-  @@index([newsDate])
-  @@index([category])
-  @@index([industries])
+  MANUFACTURING
+  IT_TECHNOLOGY
+  HEALTHCARE_WELFARE
+  RETAIL_SERVICE
+  FINANCE_INSURANCE
+  REAL_ESTATE_BUILDING
+  EDUCATION_HUMAN_RESOURCES
+  GENERAL
 }

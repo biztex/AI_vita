@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth-context"
 import { registerSchema, type RegisterFormData } from "@/lib/validations/validation"
 import { Loader2, CheckCircle2, Mail } from "lucide-react"
 import { NEWS_CATEGORIES, NEWS_CATEGORY_LABELS_JA, type NewsCategory } from "../../../../shared/news-categories"
+import { translateSupabaseAuthError } from "@/lib/supabase-error-translator"
 
 const CATEGORY_OPTIONS: Array<{ value: NewsCategory; label: string }> = NEWS_CATEGORIES.map((category) => ({
   value: category,
@@ -76,7 +77,7 @@ export default function RegisterPage() {
         router.push("/auth/login")
       }, 2000)
     } catch (err: any) {
-      setError(err.message || "登録に失敗しました。もう一度お試しください。")
+      setError(translateSupabaseAuthError(err))
     } finally {
       setIsLoading(false)
     }

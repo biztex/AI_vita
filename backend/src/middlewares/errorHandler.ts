@@ -13,8 +13,8 @@ export function errorHandler(err:any, _req:any, res:any, _next:any) {
     // Return error in consistent format
     res.status(status).json({ 
       success: false,
-      error: err.message || "Internal server error",
-      message: err.message || "Internal server error"
+      error: err.message || "サーバー内部でエラーが発生しました",
+      message: err.message || "サーバー内部でエラーが発生しました"
     });
   }
   

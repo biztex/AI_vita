@@ -15,16 +15,17 @@ app.use(bodyParser.json());
 
 // app.use(cors({ origin: true, credentials: true }));
 const allowedOrigins = [
-  'http://localhost:3000',
-  'http://51.68.65.94:3000',
-  'https://bestselection.life',
-  'https://www.bestselection.life',
-  'https://bestselection.life/backend/',
-  'https://www.bestselection.life/backend/',
-  'https://bestselection.life/backend/',
-  'https://www.bestselection.life/backend/',
-  'https://bestselection.life/backend/',
-  'https://www.bestselection.life/backend/',
+  'https://execuwell.jp',
+  'https://www.execuwell.jp',
+  'https://execuwell.jp/backend/',
+  'https://www.execuwell.jp/backend/',
+  'https://execuwell.jp/backend/',
+  'http://210.131.214.112',
+  'http://210.131.214.112:3000',
+  'https://210.131.214.112:3000',
+  'http://210.131.214.112/backend/',
+  'https://210.131.214.112/backend/',
+  'http://210.131.214.112/backend/',
 ];
 
 app.use(cors({
