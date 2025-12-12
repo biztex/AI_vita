@@ -2,7 +2,7 @@
  * Translates Supabase authentication error messages from English to Japanese
  */
 export function translateSupabaseError(error: Error | string): string {
-  const errorMessage = typeof error === 'string' ? error : error.message
+  const errorMessage = typeof error == 'string' ? error : error.message
 
   // Common Supabase auth error messages and their Japanese translations
   const errorMap: Record<string, string> = {
@@ -48,7 +48,8 @@ export function translateSupabaseError(error: Error | string): string {
   }
 
   // Check for exact match
-  if (errorMap[errorMessage]) {
+  if (errorMessage.length>0) {
+    console.log("errorMessage",errorMessage);
     return errorMap[errorMessage]
   }
 
@@ -104,6 +105,7 @@ export function translateSupabaseError(error: Error | string): string {
  * Helper function to translate Supabase errors that might be in AuthError format
  */
 export function translateSupabaseAuthError(error: unknown): string {
+  console.log("translateSupabaseAuthError",error);
   if (error instanceof Error) {
     return translateSupabaseError(error)
   }

@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Check, Copy, ExternalLink, ArrowRight } from "lucide-react"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "react-toastify"
 import { apiClient } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
@@ -154,7 +154,10 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
 
   const handleCopyLink = (link: string) => {
     navigator.clipboard.writeText(link)
-    toast({ title: "リンクをクリップボードにコピーしました" })
+    toast.success("リンクをクリップボードにコピーしました", {
+      position: "top-right",
+      autoClose: 2000,
+    })
   }
 
   const handleOpenLink = (link: string) => {
@@ -172,7 +175,10 @@ export function PersonalityAssessmentModal({ isOpen, onComplete }: PersonalityAs
   const handleNext = async () => {
     const current = steps.find((s) => s.id === currentStep)
     if (!current?.result.trim()) {
-      toast({ title: "エラー", description: "結果を入力してください", variant: "destructive" })
+      toast.error("結果を入力してください", {
+        position: "top-right",
+        autoClose: 3000,
+      })
       return
     }
 

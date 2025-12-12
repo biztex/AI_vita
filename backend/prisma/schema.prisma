@@ -8,15 +8,18 @@ datasource db {
 }
 
 model AppUser {
-  supabaseUserId String              @id
-  email          String?
-  role           Role                @default(USER)
-  subscription   Subscription?
-  industries     NewsCategory[]      @default([])
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  conversations  ChatConversation[]
-  personality    PersonalityResult[]
+  supabaseUserId      String               @id
+  email               String?
+  role                Role                 @default(USER)
+  subscription        Subscription?
+  industries          NewsCategory[]       @default([])
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  conversations       ChatConversation[]
+  personality         PersonalityResult[]
+  profile             PersonalProfile?
+  stripeCustomerId    String?              @unique
+  stripeSubscriptions StripeSubscription[]
 }
 
 model ChatConversation {
@@ -141,4 +144,87 @@ enum Industry {
   REAL_ESTATE_BUILDING
   EDUCATION_HUMAN_RESOURCES
   GENERAL
+}
+
+model PersonalProfile {
+  id        String            @id @default(uuid())
+  ownerId   String            @unique
+  fullName  String?
+  company   String?
+  position  String?
+  birthDate DateTime?
+  execuWell ExecuWellProfile?
+  vitaAI    VitaAiProfile?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  owner     AppUser           @relation(fields: [ownerId], references: [supabaseUserId])
+}
+
+model ExecuWellProfile {
+  id                 String          @id @default(uuid())
+  profileId          String          @unique
+  mbti               String?
+  enneagram          Int?
+  disc               String?
+  industries         String[]
+  currentRoles       String[]
+  licenses           String[]
+  businessGoal       String?
+  values             String[]
+  interests          String[]
+  tone               String?
+  motivationStyle    String?
+  analysisDepth      String?
+  businessChallenges String[]
+  healthScore        Int?
+  selfScore          Int?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  profile            PersonalProfile @relation(fields: [profileId], references: [id])
+}
+
+model VitaAiProfile {
+  id             String          @id @default(uuid())
+  profileId      String          @unique
+  testId         String?
+  testDate       DateTime?
+  geneticSummary Json?
+  sportsProfile  Json?
+  rawPayload     Json?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  profile        PersonalProfile @relation(fields: [profileId], references: [id])
+}
+
+model StripeSubscription {
+  id                   String             @id @default(uuid())
+  userId               String
+  stripeSubscriptionId String             @unique
+  stripeCustomerId     String
+  stripePriceId        String
+  subscriptionType     Subscription
+  status               SubscriptionStatus
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean            @default(false)
+  canceledAt           DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  user                 AppUser            @relation(fields: [userId], references: [supabaseUserId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripeSubscriptionId])
+  @@index([stripeCustomerId])
+  @@index([status])
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  TRIALING
+  PAUSED
 }

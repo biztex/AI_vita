@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       
       if (error) {
-        console.log("error",error);
+        console.log("error",error.message);
         throw new Error(translateSupabaseAuthError(error.message || error))
       }
       // console.log("authData",authData);     

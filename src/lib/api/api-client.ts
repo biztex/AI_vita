@@ -32,6 +32,15 @@ class APIClient {
   private async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const { method = "GET", body, query, headers = {} } = options
 
+    // Ensure we have a valid auth token
+    if (!this.authToken) {
+      const { supabase } = await import("@/lib/supabase")
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) {
+        this.authToken = session.access_token
+      }
+    }
+
     // Build URL with query params
     let url = `${this.baseURL}${path}`
     if (query) {
@@ -277,6 +286,115 @@ class APIClient {
         }>
       }>("/news", {
         query: date ? { date } : {},
+      }),
+  }
+
+  // Profile endpoints
+  profile = {
+    get: () =>
+      this.request<{
+        success: boolean
+        profile: {
+          id: string
+          ownerId: string
+          fullName: string | null
+          company: string | null
+          position: string | null
+          birthDate: string | null
+          execuWell: any
+          vitaAI: any
+          createdAt: string
+          updatedAt: string
+        }
+      }>("/profile"),
+
+    saveExecuWell: (data: {
+      mbti?: string
+      enneagram?: number
+      disc?: string
+      industries?: string[]
+      currentRoles?: string[]
+      licenses?: string[]
+      businessGoal?: string
+      values?: string[]
+      interests?: string[]
+      businessChallenges?: string[]
+      healthScore?: number
+      selfScore?: number
+      tone?: string
+      motivationStyle?: string
+      analysisDepth?: string
+    }) =>
+      this.request<{
+        success: boolean
+        message: string
+        profile: any
+      }>("/profile/execuwell", {
+        method: "POST",
+        body: data,
+      }),
+
+    saveVitaAI: (data: {
+      genetic_summary?: Record<string, number>
+      sports_profile?: Record<string, number>
+      testId?: string
+      testDate?: string
+      rawPayload?: any
+    }) =>
+      this.request<{
+        success: boolean
+        message: string
+        profile: any
+      }>("/profile/vitaai", {
+        method: "POST",
+        body: data,
+      }),
+  }
+
+  // Stripe endpoints
+  stripe = {
+    createCheckoutSession: (subscriptionType: "VITAAI" | "EXECUWELL" | "INTEGRATED") =>
+      this.request<{
+        sessionId: string
+        url: string
+      }>("/stripe/create-checkout-session", {
+        method: "POST",
+        body: { subscriptionType },
+      }),
+
+    getSubscription: () =>
+      this.request<{
+        subscription: {
+          id: string
+          type: string
+          status: string
+          currentPeriodStart: string
+          currentPeriodEnd: string
+          cancelAtPeriodEnd: boolean
+          canceledAt: string | null
+          stripeSubscriptionId: string
+        } | null
+        active: boolean
+        stripeSubscription: {
+          status: string
+          cancel_at_period_end: boolean
+        }
+      }>("/stripe/subscription"),
+
+    createPortalSession: () =>
+      this.request<{
+        url: string
+      }>("/stripe/create-portal-session", {
+        method: "POST",
+      }),
+
+    cancelSubscription: (subscriptionId: string) =>
+      this.request<{
+        success: boolean
+        message: string
+      }>("/stripe/cancel-subscription", {
+        method: "POST",
+        body: { subscriptionId },
       }),
   }
 }

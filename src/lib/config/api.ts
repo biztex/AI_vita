@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "https://execuwell.jp/backend/",
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "https://execuwell.jp/api",
   TIMEOUT: 30000,
   RETRY_ATTEMPTS: 3,
 } as const

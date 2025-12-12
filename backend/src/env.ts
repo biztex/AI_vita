@@ -8,7 +8,6 @@ const must = (v: string | undefined, name: string) => {
 export const ENV = {
   PORT: Number(process.env.PORT || 8080),
   DATABASE_URL: must(process.env.DATABASE_URL, "DATABASE_URL"),
-  REDIS_URL: must(process.env.REDIS_URL, "REDIS_URL"),
   NEWSDATA_API_KEY: must(process.env.NEWSDATA_API_KEY, "NEWSDATA_API_KEY"),
   NEWS_INTEREST_KEYWORDS: (process.env.NEWS_INTEREST_KEYWORDS || "")
     .split(",")
@@ -25,5 +24,12 @@ export const ENV = {
   SMTP_USER: process.env.SMTP_USER,
   SMTP_PASS: process.env.SMTP_PASS,
   SMTP_FROM: process.env.SMTP_FROM,
-  SMTP_FROM_NAME: process.env.SMTP_FROM_NAME || 'Execuwell ニュース配信'
+  SMTP_FROM_NAME: process.env.SMTP_FROM_NAME || 'Execuwell ニュース配信',
+  // Stripe
+  STRIPE_SECRET_KEY: must(process.env.STRIPE_SECRET_KEY, "STRIPE_SECRET_KEY"),
+  STRIPE_WEBHOOK_SECRET: must(process.env.STRIPE_WEBHOOK_SECRET, "STRIPE_WEBHOOK_SECRET"),
+  STRIPE_PRICE_VITAAI: must(process.env.STRIPE_PRICE_VITAAI, "STRIPE_PRICE_VITAAI"),
+  STRIPE_PRICE_EXECUWELL: must(process.env.STRIPE_PRICE_EXECUWELL, "STRIPE_PRICE_EXECUWELL"),
+  STRIPE_PRICE_INTEGRATED: must(process.env.STRIPE_PRICE_INTEGRATED, "STRIPE_PRICE_INTEGRATED"),
+  FRONTEND_URL: must(process.env.FRONTEND_URL, "FRONTEND_URL"),
 };

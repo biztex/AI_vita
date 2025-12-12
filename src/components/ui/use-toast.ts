@@ -137,38 +137,27 @@ function dispatch(action: Action) {
   })
 }
 
+// DISABLED: This toast function has been replaced with react-toastify
+// All toast notifications now use react-toastify's toast() function
+// import { toast as reactToastify } from 'react-toastify'
+
 type Toast = Omit<ToasterToast, 'id'>
 
 function toast({ ...props }: Toast) {
-  const id = genId()
-
-  const update = (props: ToasterToast) =>
-    dispatch({
-      type: 'UPDATE_TOAST',
-      toast: { ...props, id },
-    })
-  const dismiss = () => dispatch({ type: 'DISMISS_TOAST', toastId: id })
-
-  dispatch({
-    type: 'ADD_TOAST',
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss()
-      },
-    },
-  })
-
+  // DISABLED: Redirect to react-toastify
+  // This function is kept for backward compatibility but does nothing
+  // All code should be updated to use react-toastify directly
+  console.warn('Old toast() function called. Please use react-toastify instead.')
   return {
-    id: id,
-    dismiss,
-    update,
+    id: '',
+    dismiss: () => {},
+    update: () => {},
   }
 }
 
 function useToast() {
+  // DISABLED: This hook has been replaced with react-toastify
+  // All toast notifications now use react-toastify's toast() function
   const [state, setState] = React.useState<State>(memoryState)
 
   React.useEffect(() => {

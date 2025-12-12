@@ -2,11 +2,13 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
+import "react-toastify/dist/ReactToastify.css"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { AuthProvider } from "@/lib/auth-context"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { ThemeProvider } from "@/components/theme-provider"
+import { ToastContainer } from "react-toastify"
 
 const inter = Inter({
   variable: "--font-sans",
@@ -45,6 +47,18 @@ export default function RootLayout({
             <Header />
             <main className="flex-1">{children}</main>
             <Footer />
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="light"
+            />
           </AuthProvider>
         </ThemeProvider>
       </body>

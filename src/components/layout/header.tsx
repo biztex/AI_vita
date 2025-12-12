@@ -17,7 +17,7 @@ import { User, Settings, LogOut, Bell } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { MobileMenu } from "./mobile-menu"
 import { apiClient } from "@/lib/api"
-// import logo from "./img/logo.png"
+// import logo from "@/public/img/logo.png"
 
 export function Header() {
   const pathname = usePathname()
@@ -52,10 +52,11 @@ export function Header() {
   }, [user])
 
   const navItems = [
-    { href: "/", label: "ホーム" },
     { href: "/dashboard", label: "ダッシュボード", protected: true },
+    { href: "/information", label: "情報", protected: true },
     { href: "/vitaai/chat", label: "VitaAI", protected: true },
     { href: "/execuwell/chat", label: "ExecuWell", protected: true },
+    { href: "/subscription", label: "サブスクリプション", protected: true },
     { href: "/profile", label: "プロフィール", protected: true },
   ]
 

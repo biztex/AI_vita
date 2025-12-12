@@ -1,0 +1,8 @@
+# Supabase Configuration
+# Copy this file to .env.local and fill in your Supabase credentials
+
+NEXT_PUBLIC_SUPABASE_URL=https://gzhfvjznnmbjaulylkeq.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6aGZ2anpubm1iamF1bHlsa2VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzNTE4ODMsImV4cCI6MjA3NDkyNzg4M30.G6H9pofeoBBjiVRkt5uLFGQ3di4TLCCR2K3LBB0AyjQ
+
+# Optional: For server-side operations
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key

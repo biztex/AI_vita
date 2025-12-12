@@ -69,13 +69,14 @@ export default function RegisterPage() {
         industries: (data.industries || []) as NewsCategory[],
       })
       setUserEmail(data.email)
-      setSuccess(true)
+      // setSuccess(true)
+      alert("アカウント作成が完了しました。")
       
       // Redirect to login page after successful registration
       // Wait a moment to show success message, then redirect
-      setTimeout(() => {
-        router.push("/auth/login")
-      }, 2000)
+      // setTimeout(() => {
+      //   router.push("/auth/login")
+      // }, 2000)
     } catch (err: any) {
       setError(translateSupabaseAuthError(err))
     } finally {
@@ -83,58 +84,58 @@ export default function RegisterPage() {
     }
   }
 
-  if (success) {
-    return (
-      <div className="container mx-auto flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
-              <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
-            </div>
-            <CardTitle className="text-2xl font-bold">アカウント作成完了</CardTitle>
-            <CardDescription>
-              アカウントが正常に作成されました。
-              <br />
-              メールアドレスを確認してください。
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
-              <div className="flex items-start space-x-3">
-                <Mail className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                <div>
-                  <p className="font-medium">確認メールを送信しました</p>
-                  <p className="mt-1">
-                    <strong>{userEmail}</strong> に確認メールを送信しました。
-                    <br />
-                    メール内のリンクをクリックしてアカウントを有効化してください。
-                  </p>
-                </div>
-              </div>
-            </div>
+  // if (success) {
+  //   return (
+  //     <div className="container mx-auto flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
+  //       <Card className="w-full max-w-md">
+  //         <CardHeader className="space-y-1 text-center">
+  //           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
+  //             <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+  //           </div>
+  //           <CardTitle className="text-2xl font-bold">アカウント作成完了</CardTitle>
+  //           <CardDescription>
+  //             アカウントが正常に作成されました。
+  //             <br />
+  //             メールアドレスを確認してください。
+  //           </CardDescription>
+  //         </CardHeader>
+  //         <CardContent className="space-y-4">
+  //           <div className="rounded-lg bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
+  //             <div className="flex items-start space-x-3">
+  //               <Mail className="mt-0.5 h-4 w-4 flex-shrink-0" />
+  //               <div>
+  //                 <p className="font-medium">確認メールを送信しました</p>
+  //                 <p className="mt-1">
+  //                   <strong>{userEmail}</strong> に確認メールを送信しました。
+  //                   <br />
+  //                   メール内のリンクをクリックしてアカウントを有効化してください。
+  //                 </p>
+  //               </div>
+  //             </div>
+  //           </div>
             
-            <div className="rounded-lg bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
-              <p className="font-medium">次の手順：</p>
-              <ol className="mt-2 list-decimal list-inside space-y-1">
-                <li>メールボックスを確認してください</li>
-                <li>確認メール内のリンクをクリックしてください</li>
-                <li>アカウントが有効化されたらログインできます</li>
-              </ol>
-            </div>
+  //           <div className="rounded-lg bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+  //             <p className="font-medium">次の手順：</p>
+  //             <ol className="mt-2 list-decimal list-inside space-y-1">
+  //               <li>メールボックスを確認してください</li>
+  //               <li>確認メール内のリンクをクリックしてください</li>
+  //               <li>アカウントが有効化されたらログインできます</li>
+  //             </ol>
+  //           </div>
             
-            <div className="flex flex-col space-y-2">
-              <Button asChild className="w-full">
-                <Link href="/auth/login">ログインページに移動</Link>
-              </Button>
-              <Button variant="outline" asChild className="w-full">
-                <Link href="/">ホームに戻る</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  //           <div className="flex flex-col space-y-2">
+  //             <Button asChild className="w-full">
+  //               <Link href="/auth/login">ログインページに移動</Link>
+  //             </Button>
+  //             <Button variant="outline" asChild className="w-full">
+  //               <Link href="/">ホームに戻る</Link>
+  //             </Button>
+  //           </div>
+  //         </CardContent>
+  //       </Card>
+  //     </div>
+  //   )
+  // }
 
   return (
     <div className="container mx-auto flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
