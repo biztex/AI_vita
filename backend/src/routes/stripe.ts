@@ -129,6 +129,10 @@ router.post("/cancel-subscription", requireAuth(), async (req: any, res: any, ne
 });
 
 // Webhook endpoint (must be before other routes to handle raw body)
+// IMPORTANT: Stripe sends partial subscription objects in many webhook events.
+// Never trust event.data.object for subscription fields like current_period_start,
+// current_period_end, billing_cycle_anchor, etc.
+// Always call stripe.subscriptions.retrieve() with expand to get full data.
 router.post(
   "/webhook",
   express.raw({ type: "application/json" }),
@@ -147,49 +151,75 @@ router.post(
     try {
       switch (event.type) {
         case "checkout.session.completed": {
+          // Checkout session completed - retrieve full subscription object
           const session = event.data.object as Stripe.Checkout.Session;
           if (session.mode === "subscription" && session.subscription) {
-            const subscription = await stripe.subscriptions.retrieve(
-              session.subscription as string
+            // Always retrieve full subscription - event.data.object is partial
+            const fullSubscription = await stripe.subscriptions.retrieve(
+              session.subscription as string,
+              { expand: ["default_payment_method", "latest_invoice"] }
             );
-            await updateSubscriptionFromStripe(subscription);
+            await updateSubscriptionFromStripe(fullSubscription);
           }
           break;
         }
 
         case "customer.subscription.created":
         case "customer.subscription.updated": {
-          const subscription = event.data.object as Stripe.Subscription;
-          await updateSubscriptionFromStripe(subscription);
+          // Subscription created/updated - event.data.object is PARTIAL
+          // Must retrieve full subscription to get all fields
+          const partialSubscription = event.data.object as Stripe.Subscription;
+          const fullSubscription = await stripe.subscriptions.retrieve(
+            partialSubscription.id,
+            { expand: ["default_payment_method", "latest_invoice"] }
+          );
+          await updateSubscriptionFromStripe(fullSubscription);
           break;
         }
 
         case "customer.subscription.deleted": {
-          const subscription = event.data.object as Stripe.Subscription;
-          await updateSubscriptionFromStripe(subscription);
+          // Subscription deleted - retrieve full subscription before deletion
+          const partialSubscription = event.data.object as Stripe.Subscription;
+          const fullSubscription = await stripe.subscriptions.retrieve(
+            partialSubscription.id,
+            { expand: ["default_payment_method", "latest_invoice"] }
+          );
+          await updateSubscriptionFromStripe(fullSubscription);
           break;
         }
 
         case "invoice.payment_succeeded": {
+          // Payment succeeded - retrieve full subscription from invoice
           const invoice = event.data.object as Stripe.Invoice;
           const subscriptionId = (invoice as any).subscription;
           if (subscriptionId) {
-            const subscription = await stripe.subscriptions.retrieve(
-              typeof subscriptionId === "string" ? subscriptionId : subscriptionId.id
+            const subscriptionIdString = typeof subscriptionId === "string" 
+              ? subscriptionId 
+              : subscriptionId.id;
+            // Always retrieve full subscription - invoice.subscription is just an ID
+            const fullSubscription = await stripe.subscriptions.retrieve(
+              subscriptionIdString,
+              { expand: ["default_payment_method", "latest_invoice"] }
             );
-            await updateSubscriptionFromStripe(subscription);
+            await updateSubscriptionFromStripe(fullSubscription);
           }
           break;
         }
 
         case "invoice.payment_failed": {
+          // Payment failed - retrieve full subscription from invoice
           const invoice = event.data.object as Stripe.Invoice;
           const subscriptionId = (invoice as any).subscription;
           if (subscriptionId) {
-            const subscription = await stripe.subscriptions.retrieve(
-              typeof subscriptionId === "string" ? subscriptionId : subscriptionId.id
+            const subscriptionIdString = typeof subscriptionId === "string" 
+              ? subscriptionId 
+              : subscriptionId.id;
+            // Always retrieve full subscription - invoice.subscription is just an ID
+            const fullSubscription = await stripe.subscriptions.retrieve(
+              subscriptionIdString,
+              { expand: ["default_payment_method", "latest_invoice"] }
             );
-            await updateSubscriptionFromStripe(subscription);
+            await updateSubscriptionFromStripe(fullSubscription);
           }
           break;
         }

@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { apiClient, ConversationSummary } from "@/lib/api"
+import { toast } from "react-toastify"
 
 interface ChatSidebarProps {
   service: "VITAAI" | "EXECUWELL"
@@ -112,8 +113,18 @@ export function ChatSidebar({
       
       // Switch to the new conversation
       onNewConversation(response.conversationId)
+      
+      toast.success("新しいチャットを作成しました", {
+        position: "top-right",
+        autoClose: 3000,
+      })
     } catch (error) {
       console.error("Failed to create new chat:", error)
+      const errorMessage = error instanceof Error ? error.message : "チャットの作成に失敗しました"
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+      })
       throw error
     }
   }
@@ -131,7 +142,7 @@ export function ChatSidebar({
   const handleDeleteConfirm = async () => {
     if (!conversationToDelete) return
     
-    const { id: conversationId } = conversationToDelete
+    const { id: conversationId, title } = conversationToDelete
     
     try {
       setDeletingConversationId(conversationId)
@@ -153,9 +164,19 @@ export function ChatSidebar({
       // Close dialog and reset state
       setIsDeleteDialogOpen(false)
       setConversationToDelete(null)
+      
+      toast.success(`「${title}」を削除しました`, {
+        position: "top-right",
+        autoClose: 3000,
+      })
     } catch (error) {
       console.error("Failed to delete conversation:", error)
-      alert(`Failed to delete conversation: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      const errorMessage = error instanceof Error ? error.message : "チャットの削除に失敗しました"
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+      })
+      // Remove the alert line - toast handles it now
     } finally {
       setDeletingConversationId(null)
     }
@@ -198,7 +219,7 @@ export function ChatSidebar({
             )}>
               <MessageSquare className="w-4 h-4 text-white" />
             </div>
-            <h2 className="font-semibold text-gray-900">
+            <h2 className="font-semibold text-primary-foreground">
               {service === "VITAAI" ? "VitaAI" : "ExecuWell"}チャット
             </h2>
           </div>
@@ -229,15 +250,15 @@ export function ChatSidebar({
           {isLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="p-3 rounded-lg bg-gray-100 animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                <div key={i} className="p-3 rounded-lg bg-slate-800/50 animate-pulse border border-slate-700/50">
+                  <div className="h-4 bg-slate-700/50 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-slate-700/50 rounded w-1/2"></div>
                 </div>
               ))}
             </div>
           ) : filteredConversations?.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <div className="text-center py-8 text-slate-400">
+              <MessageCircle className="w-12 h-12 mx-auto mb-3 text-slate-600" />
               <p className="text-sm">
                 {searchQuery ? "会話が見つかりません" : "まだ会話がありません"}
               </p>
@@ -246,7 +267,7 @@ export function ChatSidebar({
                   onClick={() => setIsNewChatDialogOpen(true)}
                   variant="outline"
                   size="sm"
-                  className="mt-3"
+                  className="mt-3 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
                 >
                   最初のチャットを開始
                 </Button>
@@ -258,10 +279,10 @@ export function ChatSidebar({
                 <div
                   key={conversation.id}
                   className={cn(
-                    "group relative p-3 rounded-lg cursor-pointer transition-all duration-200",
+                    "group relative p-3 rounded-lg cursor-pointer transition-all duration-200 border",
                     currentConversationId === conversation.id
-                      ? "bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200"
-                      : "hover:bg-gray-50"
+                      ? "bg-gradient-to-r from-slate-800/80 to-slate-700/80 border-green-500/50 shadow-lg shadow-green-500/10"
+                      : "hover:bg-slate-800/60 bg-slate-800/40 border-slate-700/50 hover:border-slate-600"
                   )}
                   onClick={() => onConversationSelect(conversation.id)}
                 >
@@ -279,14 +300,14 @@ export function ChatSidebar({
                                 handleCancelEdit()
                               }
                             }}
-                            className="h-6 text-sm"
+                            className="h-6 text-sm bg-slate-900 border-slate-700 text-slate-200"
                             autoFocus
                           />
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => handleSaveTitle(conversation.id)}
-                            className="h-6 w-6 p-0"
+                            className="h-6 w-6 p-0 text-green-400 hover:text-green-300 hover:bg-green-500/20"
                           >
                             ✓
                           </Button>
@@ -294,29 +315,29 @@ export function ChatSidebar({
                             size="sm"
                             variant="ghost"
                             onClick={handleCancelEdit}
-                            className="h-6 w-6 p-0"
+                            className="h-6 w-6 p-0 text-slate-400 hover:text-slate-300 hover:bg-slate-700"
                           >
                             ✕
                           </Button>
                         </div>
                       ) : (
-                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                        <h3 className="text-sm font-medium text-slate-100 truncate">
                           {conversation.title || `チャット ${conversation.id.slice(-8)}`}
                         </h3>
                       )}
                       
                       {conversation.lastMessage && (
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                        <p className="text-xs text-slate-400 mt-1 line-clamp-2">
                           {conversation.lastMessage.sender === "USER" ? "あなた: " : ""}
                           {truncateText(conversation.lastMessage.content, 60)}
                         </p>
                       )}
                       
                       <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-slate-500">
                           {formatDate(conversation.lastMessage?.createdAt || conversation.createdAt)}
                         </span>
-                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5 bg-slate-700/50 text-slate-300 border-slate-600">
                           {conversation.messageCount}件のメッセージ
                         </Badge>
                       </div>
@@ -327,18 +348,19 @@ export function ChatSidebar({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                          className="h-6 w-6 p-0 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <span className="text-lg font-bold leading-none">⋯</span>
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation()
                             handleEditTitle(conversation.id, conversation.title || "")
                           }}
+                          className="text-slate-200 hover:bg-slate-700 focus:bg-slate-700"
                         >
                           <Edit2 className="w-4 h-4 mr-2" />
                           名前を変更
@@ -348,7 +370,7 @@ export function ChatSidebar({
                             e.stopPropagation()
                             handleDeleteClick(conversation.id)
                           }}
-                          className="text-red-600"
+                          className="text-red-400 hover:bg-red-500/20 focus:bg-red-500/20"
                           disabled={deletingConversationId === conversation.id}
                         >
                           <Trash2 className="w-4 h-4 mr-2" />

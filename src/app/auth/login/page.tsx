@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth-context"
 import { loginSchema, type LoginFormData } from "@/lib/validations/validation"
 import { Loader2 } from "lucide-react"
 import { translateSupabaseAuthError } from "@/lib/supabase-error-translator"
+import { toast } from "react-toastify"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -36,7 +37,8 @@ export default function LoginPage() {
       await login(data.email, data.password)
       router.push("/dashboard")
     } catch (err: any) {
-      setError(translateSupabaseAuthError(err))
+      const errorMessage = translateSupabaseAuthError(err)
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -44,7 +46,10 @@ export default function LoginPage() {
 
   const handleLineLogin = () => {
     // Mock LINE login - in production, implement OAuth flow
-    alert("LINEログインはOAuthフローで実装されます")
+    toast.info("LINEログインはOAuthフローで実装されます", {
+      position: "top-right",
+      autoClose: 6000,
+    })
   }
 
   return (

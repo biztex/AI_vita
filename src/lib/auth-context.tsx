@@ -6,6 +6,7 @@ import { apiClient } from "./api"
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import type { NewsCategory } from "../../shared/news-categories"
 import { translateSupabaseAuthError } from "./supabase-error-translator"
+import { toast } from "react-toastify"
 
 export type User = {
   id: string
@@ -20,7 +21,7 @@ type AuthContextType = {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (data: { email: string; password: string; name: string; company?: string; industries?: NewsCategory[] }) => Promise<void>
+  register: (data: { email: string; password: string; name: string; company?: string; industries?: NewsCategory[] }) => Promise<{ success: boolean; requiresEmailConfirmation: boolean; email?: string }>
   logout: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
 }
@@ -94,13 +95,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await signIn(email, password)
       
       if (error) {
-        throw new Error(translateSupabaseAuthError(error.message || error))
+        const errorMessage = translateSupabaseAuthError(error.message || error)
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 5000,
+        })
+        throw new Error(errorMessage)
       }
 
       if (data.user) {
         const convertedUser = convertSupabaseUser(data.user)
         setUser(convertedUser)
         apiClient.setAuthToken(data.session?.access_token || null)
+        toast.success("ログインに成功しました", {
+          position: "top-right",
+          autoClose: 3000,
+        })
       }
     } catch (error) {
       console.error("Login failed:", error)
@@ -119,9 +129,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (error) {
         console.log("error",error.message);
-        throw new Error(translateSupabaseAuthError(error.message || error))
+        const errorMessage = translateSupabaseAuthError(error.message || error)
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 5000,
+        })
+        throw new Error(errorMessage)
       }
-      // console.log("authData",authData);     
 
       // Step 2: If Supabase registration succeeds, register with backend
       if (authData.user) {
@@ -134,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         if (session?.access_token) {
+          // Session created - user is automatically registered and logged in
           // Set auth token to call backend
           apiClient.setAuthToken(session.access_token)
           
@@ -147,6 +162,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               industries: data.industries || [],
             })
             console.log("Backend registration successful")
+            
+            // User is now logged in (session exists)
+            const convertedUser = convertSupabaseUser(authData.user)
+            setUser(convertedUser)
+            
+            toast.success("アカウントが正常に作成されました", {
+              position: "top-right",
+              autoClose: 3000,
+            })
+            
+            // Return success with session created (auto-registered)
+            return { 
+              success: true, 
+              requiresEmailConfirmation: false,
+              email: data.email
+            }
           } catch (backendError: any) {
             console.error("Backend registration failed:", backendError)
             // Extract error message from response
@@ -154,6 +185,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                 backendError.response?.data?.error || 
                                 backendError.response?.data?.message ||
                                 "Backend registration failed. Please try again."
+            toast.error(errorMessage, {
+              position: "top-right",
+              autoClose: 5000,
+            })
             throw new Error(errorMessage)
           }
         } else {
@@ -161,11 +196,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Note: This should be rare if Supabase is configured to auto-confirm users
           // If this happens, backend registration will happen when user verifies email and signs in
           console.warn("No session available after signup - backend registration will happen on first login")
+          toast.info("確認メールを送信しました。メール内のリンクをクリックしてアカウントを有効化してください。", {
+            position: "top-right",
+            autoClose: 6000,
+          })
+          
+          // Return success but requires email confirmation
+          return { 
+            success: true, 
+            requiresEmailConfirmation: true,
+            email: data.email
+          }
         }
       }
 
       // Note: User will be set automatically when they verify their email
       // and the auth state change listener picks it up
+      return { success: false, requiresEmailConfirmation: false }
     } catch (error) {
       console.error("Registration failed:", error)
       throw error
@@ -176,11 +223,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { error } = await signOut()
       if (error) {
-        throw new Error(translateSupabaseAuthError(error.message || error))
+        const errorMessage = translateSupabaseAuthError(error.message || error)
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 5000,
+        })
+        throw new Error(errorMessage)
       }
       
       setUser(null)
       apiClient.setAuthToken(null)
+      toast.success("ログアウトしました", {
+        position: "top-right",
+        autoClose: 3000,
+      })
     } catch (error) {
       console.error("Logout failed:", error)
       throw error
@@ -191,8 +247,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await resetPassword(email)
       if (error) {
-        throw new Error(translateSupabaseAuthError(error.message || error))
+        const errorMessage = translateSupabaseAuthError(error.message || error)
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 5000,
+        })
+        throw new Error(errorMessage)
       }
+      toast.success("パスワードリセットメールを送信しました", {
+        position: "top-right",
+        autoClose: 5000,
+      })
     } catch (error) {
       console.error("Password reset failed:", error)
       throw error
