@@ -40,6 +40,59 @@ router.get("/", requireAuth(), async (req: any, res: any, next: any) => {
   }
 });
 
+// PATCH/UPDATE Personal Profile basic information
+router.patch("/", requireAuth(), async (req: any, res: any, next: any) => {
+  try {
+    const userId = req.user.id;
+    const { fullName, company, position, birthDate } = req.body;
+
+    // Get or create personal profile
+    let personalProfile = await prisma.personalProfile.findUnique({
+      where: { ownerId: userId },
+    });
+
+    if (!personalProfile) {
+      personalProfile = await prisma.personalProfile.create({
+        data: {
+          ownerId: userId,
+          fullName: fullName || null,
+          company: company || null,
+          position: position || null,
+          birthDate: birthDate ? new Date(birthDate) : null,
+        },
+      });
+    } else {
+      // Update existing profile
+      personalProfile = await prisma.personalProfile.update({
+        where: { ownerId: userId },
+        data: {
+          fullName: fullName !== undefined ? fullName : personalProfile.fullName,
+          company: company !== undefined ? company : personalProfile.company,
+          position: position !== undefined ? position : personalProfile.position,
+          birthDate: birthDate !== undefined ? (birthDate ? new Date(birthDate) : null) : personalProfile.birthDate,
+        },
+      });
+    }
+
+    // Also update AppUser if name/email changed
+    if (fullName) {
+      await prisma.appUser.update({
+        where: { supabaseUserId: userId },
+        data: {} as any, // Update user metadata if needed
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "プロフィールを更新しました",
+      profile: personalProfile,
+    });
+  } catch (error: any) {
+    console.error("[PROFILE] Update error:", error);
+    next(error);
+  }
+});
+
 // POST/UPDATE ExecuWell profile
 router.post("/execuwell", requireAuth(), async (req: any, res: any, next: any) => {
   try {

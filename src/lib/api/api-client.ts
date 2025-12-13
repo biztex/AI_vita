@@ -308,6 +308,21 @@ class APIClient {
         }
       }>("/profile"),
 
+    update: (data: {
+      fullName?: string
+      company?: string
+      position?: string
+      birthDate?: string
+    }) =>
+      this.request<{
+        success: boolean
+        message: string
+        profile: any
+      }>("/profile", {
+        method: "PATCH",
+        body: data,
+      }),
+
     saveExecuWell: (data: {
       mbti?: string
       enneagram?: number
