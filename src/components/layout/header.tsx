@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Image from "next/image"
 import {
   DropdownMenu,
@@ -24,6 +24,17 @@ export function Header() {
   const { user, logout } = useAuth()
   const [news, setNews] = useState<Array<{ id: string; title: string; url?: string; time?: string }>>([])
   const [loadingNews, setLoadingNews] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+
+  // Load avatar from database
+  useEffect(() => {
+    if (user?.avatarPath) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://execuwell.jp/api'
+      setAvatarUrl(`${apiUrl}${user.avatarPath}`)
+    } else {
+      setAvatarUrl(null)
+    }
+  }, [user?.avatarPath])
 
   useEffect(() => {
     if (!user) {
@@ -52,12 +63,12 @@ export function Header() {
   }, [user])
 
   const navItems = [
-    { href: "/dashboard", label: "ダッシュボード", protected: true },
-    { href: "/information", label: "情報", protected: true },
-    { href: "/vitaai/chat", label: "VitaAI", protected: true },
-    { href: "/execuwell/chat", label: "ExecuWell", protected: true },
-    { href: "/subscription", label: "サブスクリプション", protected: true },
-    { href: "/profile", label: "プロフィール", protected: true },
+    { href: "http://execuwell.jp/dashboard", label: "ダッシュボード", protected: true },
+    { href: "http://execuwell.jp/information", label: "情報", protected: true },
+    { href: "http:/vitaai.jp/vitaai/chat", label: "VitaAI", protected: true },
+    { href: "http://execuwell.jp/execuwell/chat", label: "ExecuWell", protected: true },
+    { href: "http://execuwell.jp/subscription", label: "サブスクリプション", protected: true },
+    { href: "http://execuwell.jp/profile", label: "プロフィール", protected: true },
   ]
 
   // Add admin link if user is admin
@@ -158,18 +169,26 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-primary/10 transition-all duration-300 hover:scale-105 group">
                     <Avatar className="ring-2 ring-primary/20 hover:ring-primary/40 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-primary/25">
-                      <AvatarFallback className="bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
-                        {user.name?.charAt(0).toUpperCase() || "U"}
-                      </AvatarFallback>
+                      {avatarUrl ? (
+                        <AvatarImage src={avatarUrl} alt={user.name || "ユーザー"} />
+                      ) : (
+                        <AvatarFallback className="bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
+                          {user.name?.charAt(0).toUpperCase() || "ユ"}
+                        </AvatarFallback>
+                      )}
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 bg-card/95 backdrop-blur-md border-border/50 shadow-xl">
                   <div className="flex items-center justify-start gap-2 p-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold text-xs">
-                        {user.name?.charAt(0).toUpperCase() || "U"}
-                      </AvatarFallback>
+                      {avatarUrl ? (
+                        <AvatarImage src={avatarUrl} alt={user.name || "ユーザー"} />
+                      ) : (
+                        <AvatarFallback className="bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold text-xs">
+                          {user.name?.charAt(0).toUpperCase() || "ユ"}
+                        </AvatarFallback>
+                      )}
                     </Avatar>
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium text-foreground">{user.name}</p>

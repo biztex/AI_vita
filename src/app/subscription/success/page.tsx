@@ -30,10 +30,14 @@ function SuccessContent() {
     // Wait a moment for webhook to process, then fetch subscription
     const checkSubscription = async () => {
       try {
-        // Wait 2 seconds for webhook to process
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+        console.log("[StripeSuccess] Waiting for webhook to process...")
+        // Wait 3 seconds for webhook to process and auth to stabilize
+        await new Promise((resolve) => setTimeout(resolve, 3000))
         
+        console.log("[StripeSuccess] Fetching subscription...")
         const data = await apiClient.stripe.getSubscription()
+        console.log("[StripeSuccess] Subscription data:", data)
+        
         if (data.active && data.subscription) {
           setSubscription(data.subscription)
           toast.success("サブスクリプションが正常にアクティベートされました", {
@@ -41,9 +45,12 @@ function SuccessContent() {
             autoClose: 3000,
           })
         } else {
-          // Retry once more after another 2 seconds
-          await new Promise((resolve) => setTimeout(resolve, 2000))
+          console.log("[StripeSuccess] Subscription not active yet, retrying in 3 seconds...")
+          // Retry once more after another 3 seconds
+          await new Promise((resolve) => setTimeout(resolve, 3000))
           const retryData = await apiClient.stripe.getSubscription()
+          console.log("[StripeSuccess] Retry subscription data:", retryData)
+          
           if (retryData.active && retryData.subscription) {
             setSubscription(retryData.subscription)
             toast.success("サブスクリプションが正常にアクティベートされました", {
@@ -58,7 +65,7 @@ function SuccessContent() {
           }
         }
       } catch (error) {
-        console.error("Failed to fetch subscription:", error)
+        console.error("[StripeSuccess] Failed to fetch subscription:", error)
         toast.error("サブスクリプション情報の取得に失敗しました", {
           position: "top-right",
           autoClose: 5000,

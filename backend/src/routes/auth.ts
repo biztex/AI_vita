@@ -2,13 +2,47 @@ import express from "express";
 import { prisma } from "../prisma";
 import { verifyToken } from "../middlewares/auth";
 import { isNewsCategory, NEWS_CATEGORIES, type NewsCategory } from "../utils/news-categories.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 const router = express.Router();
 
 const VALID_NEWS_CATEGORIES = new Set(NEWS_CATEGORIES);
 
+// Create upload/avatars directory if it doesn't exist
+const avatarsDir = path.resolve("upload", "avatars");
+if (!fs.existsSync(avatarsDir)) {
+  fs.mkdirSync(avatarsDir, { recursive: true });
+}
+
+// Configure multer for avatar uploads during registration
+const avatarStorage = multer.diskStorage({
+  destination: (_req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
+    cb(null, avatarsDir);
+  },
+  filename: (_req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
+    const ext = path.extname(file.originalname || '') || '.jpg';
+    const base = Date.now().toString() + '_' + Math.random().toString(36).substring(7);
+    cb(null, `${base}${ext}`);
+  },
+});
+
+const avatarUpload = multer({ 
+  storage: avatarStorage, 
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (_req: any, file: any, cb: any) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('画像ファイルのみアップロード可能です'), false);
+    }
+  },
+});
+
 // Register endpoint - creates user in database after Supabase registration
-router.post("/register", async (req:any, res:any, next:any) => {
+// Now accepts FormData with optional avatar and profile data
+router.post("/register", avatarUpload.single("avatar"), async (req: any, res: any, next: any) => {
   console.log("[AUTH] Register endpoint called");
   try {
     // Verify the token from Supabase
@@ -34,7 +68,17 @@ router.post("/register", async (req:any, res:any, next:any) => {
         .filter((value: unknown): value is NewsCategory => VALID_NEWS_CATEGORIES.has(value as NewsCategory) && isNewsCategory(value));
     }
 
-    console.log("[AUTH] Processing registration for user:", { sub, email, role, interestCategories });
+    // Extract profile data from request body (FormData fields)
+    const { fullName, company, position, birthDate, name } = req.body;
+
+    console.log("[AUTH] Processing registration for user:", { 
+      sub, 
+      email, 
+      name,
+      role, 
+      interestCategories, 
+      hasAvatar: !!req.file 
+    });
 
     // Check if user already exists
     const existingUser = await prisma.appUser.findUnique({
@@ -49,17 +93,28 @@ router.post("/register", async (req:any, res:any, next:any) => {
         user: {
           id: existingUser.supabaseUserId,
           email: existingUser.email,
+          name: existingUser.name,
           role: existingUser.role,
         },
       });
     }
 
-    // Prepare user data
+    // Handle avatar upload if provided
+    let avatarPath: string | null = null;
+    if (req.file) {
+      avatarPath = `/uploads/avatars/${path.basename(req.file.path)}`;
+    }
+
+    // Prepare user data (NO subscription field - as requested)
+    // Include name from FormData or fallback to fullName or meta.name
+    const userName = name || fullName || meta.name || null;
+    
     const userData: any = {
       supabaseUserId: sub,
-      email: email || null, // Email is optional in schema
+      email: email || null,
+      name: userName,
       role: role.toUpperCase() as any,
-      subscription: meta.subscription ? (String(meta.subscription).toUpperCase() as any) : "INTEGRATED",
+      avatarPath: avatarPath || null,
     };
 
     // Only add categories if we have valid ones
@@ -72,13 +127,29 @@ router.post("/register", async (req:any, res:any, next:any) => {
       data: userData,
     });
 
+    // Create PersonalProfile if profile data is provided
+    // Use fullName for PersonalProfile (can be different from AppUser.name)
+    if (fullName || company || position || birthDate) {
+      await prisma.personalProfile.create({
+        data: {
+          ownerId: sub,
+          fullName: fullName || userName || null, // Fallback to name if fullName not provided
+          company: company || null,
+          position: position || null,
+          birthDate: birthDate ? new Date(birthDate) : null,
+        },
+      });
+    }
+
     res.json({
       success: true,
       message: "ユーザーの登録が完了しました",
       user: {
         id: user.supabaseUserId,
         email: user.email,
+        name: user.name,
         role: user.role,
+        avatarPath: user.avatarPath,
       },
     });
   } catch (error: any) {

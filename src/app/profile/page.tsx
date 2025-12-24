@@ -14,30 +14,45 @@ import { Badge } from "@/components/ui/badge"
 import { ProtectedRoute } from "@/features/auth/components/protected-route"
 import { useAuth } from "@/lib/auth-context"
 import { apiClient } from "@/lib/api"
-import { Loader2, Upload, CheckCircle2, Clock, CreditCard, Calendar, X, Camera, Crown, Brain, Activity } from "lucide-react"
+import { Loader2, Upload, CheckCircle2, Clock, CreditCard, Calendar, X, Camera, Crown, Brain, Activity, ChevronDown, CheckIcon } from "lucide-react"
 import { toast } from "react-toastify"
+import { NEWS_CATEGORIES, NEWS_CATEGORY_LABELS_JA, type NewsCategory } from "../../../shared/news-categories"
+
+const CATEGORY_OPTIONS: Array<{ value: NewsCategory; label: string }> = NEWS_CATEGORIES.map((category) => ({
+  value: category,
+  label: NEWS_CATEGORY_LABELS_JA[category] ?? category,
+}))
 
 // Profile form schema
 const profileSchema = z.object({
   fullName: z.string().min(2, "名前は2文字以上である必要があります"),
   company: z.string().optional(),
   position: z.string().optional(),
-  birthDate: z.string().optional(),
+  industries: z.array(z.string()).optional(),
 })
 
 type ProfileFormData = z.infer<typeof profileSchema>
 
 function ProfileContent() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const [activeTab, setActiveTab] = useState("basic")
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
   const [profile, setProfile] = useState<any>(null)
+  const [userData, setUserData] = useState<{ 
+    avatarPath: string | null; 
+    email: string | null; 
+    name: string | null;
+    industries: string[];
+  } | null>(null)
   const [subscriptionData, setSubscriptionData] = useState<any>(null)
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Load profile data
   useEffect(() => {
@@ -50,6 +65,14 @@ function ProfileContent() {
       setIsLoadingProfile(true)
       const response = await apiClient.profile.get()
       setProfile(response.profile)
+      setUserData(response.user || null)
+      
+      // Set avatar preview if user has avatarPath
+      if (response.user?.avatarPath) {
+        // Construct full URL to avatar
+        const avatarUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://execuwell.jp/api'}${response.user.avatarPath}`
+        setAvatarPreview(avatarUrl)
+      }
     } catch (error) {
       console.error("Failed to load profile:", error)
       toast.error("プロフィールの読み込みに失敗しました", {
@@ -78,27 +101,63 @@ function ProfileContent() {
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
+    setValue,
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       fullName: "",
       company: "",
       position: "",
-      birthDate: "",
+      industries: [],
     },
   })
 
+  const selectedIndustries = watch("industries") || []
+
   // Reset form when profile loads
   useEffect(() => {
-    if (profile) {
+    if (profile || userData) {
       reset({
-        fullName: profile.fullName || user?.name || "",
-        company: profile.company || user?.company || "",
-        position: profile.position || "",
-        birthDate: profile.birthDate ? new Date(profile.birthDate).toISOString().split("T")[0] : "",
+        fullName: profile?.fullName || userData?.name || user?.name || "",
+        company: profile?.company || user?.company || "",
+        position: profile?.position || "",
+        industries: userData?.industries || [],
       })
     }
-  }, [profile, user, reset])
+  }, [profile, userData, user, reset])
+
+  const handleIndustryToggle = (category: string) => {
+    const current = selectedIndustries || []
+    if (current.includes(category)) {
+      setValue("industries", current.filter((ind) => ind !== category))
+    } else {
+      setValue("industries", [...current, category])
+    }
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false)
+        setSearchQuery("")
+      }
+    }
+
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isDropdownOpen])
+
+  // Filter categories based on search
+  const filteredCategories = CATEGORY_OPTIONS.filter((category) =>
+    category.label.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click()
@@ -145,25 +204,38 @@ function ProfileContent() {
   const onSubmit = async (data: ProfileFormData) => {
     setIsLoading(true)
     try {
-      // Update profile
-      await apiClient.profile.update({
+      // Update profile with FormData (includes avatar if selected)
+      const result = await apiClient.profile.update({
         fullName: data.fullName,
         company: data.company,
         position: data.position,
-        birthDate: data.birthDate,
+        industries: data.industries,
+        avatar: avatarFile || undefined,
       })
 
-      // TODO: Upload avatar if selected
-      if (avatarFile) {
-        // Implement avatar upload logic here
-        console.log("Avatar upload:", avatarFile)
+      // Update avatar preview if new avatar was uploaded
+      if (result.avatarPath) {
+        const avatarUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://execuwell.jp/api'}${result.avatarPath}`
+        setAvatarPreview(avatarUrl)
       }
 
       await loadProfile()
+      
+      // Refresh user data in auth context to update header avatar
+      if (refreshUser) {
+        await refreshUser()
+      }
+      
       toast.success("プロフィールを更新しました", {
         position: "top-right",
         autoClose: 3000,
       })
+      
+      // Clear file input after successful upload
+      setAvatarFile(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
     } catch (error: any) {
       console.error("Failed to update profile:", error)
       toast.error(error?.response?.data?.error || "プロフィールの更新に失敗しました", {
@@ -286,14 +358,14 @@ function ProfileContent() {
                 <div className="flex items-center space-x-6 mx-auto">
                   <div className="relative group">
                     <Avatar 
-                      className="h-24 w-24 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/40 transition-all duration-300 hover:scale-105"
+                      className="h-24 w-24 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/40 transition-all duration-300"
                       onClick={handleAvatarClick}
                     >
                       {avatarPreview ? (
                         <AvatarImage src={avatarPreview} alt="Avatar preview" />
                       ) : (
                         <AvatarFallback className="bg-gradient-to-r from-primary to-accent text-3xl text-primary-foreground">
-                          {profile?.fullName?.charAt(0).toUpperCase() || user?.name?.charAt(0).toUpperCase() || "U"}
+                          {profile?.fullName?.charAt(0).toUpperCase() || userData?.name?.charAt(0).toUpperCase() || user?.name?.charAt(0).toUpperCase() || "ユ"}
                         </AvatarFallback>
                       )}
                     </Avatar>
@@ -351,17 +423,89 @@ function ProfileContent() {
                   <Input id="company" {...register("company")} placeholder="株式会社サンプル" />
                 </div>
 
-                {/* Position */}
+                {/* Industries - Editable */}
                 <div className="space-y-2">
-                  <Label htmlFor="position">役職</Label>
-                  <Input id="position" placeholder="CEO、CTOなど" {...register("position")} />
+                  <Label>業界・関心分野</Label>
+                  <div className="relative" ref={dropdownRef}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="w-full justify-between hover:bg-secondary/80"
+                    >
+                      <span className="truncate">
+                        {selectedIndustries.length > 0
+                          ? `${selectedIndustries.length}個選択中`
+                          : "業界を選択してください"}
+                      </span>
+                      <ChevronDown className={`ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+                    </Button>
+                    
+                    {isDropdownOpen && (
+                      <div className="absolute z-50 w-full mt-2 bg-card border border-border rounded-md shadow-lg">
+                        <div className="p-2 border-b border-border">
+                          <Input
+                            type="text"
+                            placeholder="業界を検索..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="h-9"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto p-1">
+                          {filteredCategories.length > 0 ? (
+                            filteredCategories.map((category) => {
+                              const isSelected = selectedIndustries.includes(category.value)
+                              return (
+                                <div
+                                  key={category.value}
+                                  onClick={() => handleIndustryToggle(category.value)}
+                                  className="flex items-center space-x-2 w-full px-2 py-2 cursor-pointer rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                                >
+                                  <div
+                                    className={`flex h-4 w-4 items-center justify-center rounded-sm border ${
+                                      isSelected
+                                        ? "bg-primary text-primary-foreground border-primary"
+                                        : "border-input"
+                                    }`}
+                                  >
+                                    {isSelected && (
+                                      <CheckIcon className="h-3 w-3" />
+                                    )}
+                                  </div>
+                                  <span className="text-sm">{category.label}</span>
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                              結果が見つかりません
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {selectedIndustries.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedIndustries.map((industry) => {
+                        const label = CATEGORY_OPTIONS.find((opt) => opt.value === industry)?.label || industry
+                        return (
+                          <Badge key={industry} variant="secondary" className="capitalize">
+                            {label}
+                          </Badge>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
 
-                {/* Birth Date */}
-                <div className="space-y-2">
-                  <Label htmlFor="birthDate">生年月日</Label>
-                  <Input id="birthDate" type="date" {...register("birthDate")} />
-                </div>
+                {/* Position */}
+                {/* <div className="space-y-2">
+                  <Label htmlFor="position">役職</Label>
+                  <Input id="position" placeholder="CEO、CTOなど" {...register("position")} />
+                </div> */}
 
                 {/* Email (read-only) */}
                 <div className="space-y-2">

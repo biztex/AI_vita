@@ -15,6 +15,7 @@ type RequestOptions = {
   body?: any
   query?: Record<string, string>
   headers?: Record<string, string>
+  isFormData?: boolean
 }
 
 class APIClient {
@@ -30,14 +31,18 @@ class APIClient {
   }
 
   private async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-    const { method = "GET", body, query, headers = {} } = options
+    const { method = "GET", body, query, headers = {}, isFormData = false } = options
 
     // Ensure we have a valid auth token
     if (!this.authToken) {
+      console.log("[API Client] No auth token, checking Supabase session...")
       const { supabase } = await import("@/lib/supabase")
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.access_token) {
+        console.log("[API Client] Session found, setting auth token")
         this.authToken = session.access_token
+      } else {
+        console.warn("[API Client] No session found in Supabase")
       }
     }
 
@@ -48,14 +53,24 @@ class APIClient {
       url += `?${params.toString()}`
     }
 
-    // Build headers
-    const requestHeaders: Record<string, string> = {
-      "Content-Type": "application/json",
+    // Prepare headers
+    const requestHeaders: HeadersInit = {
       ...headers,
     }
 
-    if (this.authToken) {
-      requestHeaders["Authorization"] = `Bearer ${this.authToken}`
+    // Only add Authorization and Content-Type if not FormData
+    if (!isFormData) {
+      if (this.authToken) {
+        requestHeaders["Authorization"] = `Bearer ${this.authToken}`
+      }
+      if (body && typeof body === "object" && !(body instanceof FormData)) {
+        requestHeaders["Content-Type"] = "application/json"
+      }
+    } else {
+      // For FormData, only add Authorization (browser will set Content-Type with boundary)
+      if (this.authToken) {
+        requestHeaders["Authorization"] = `Bearer ${this.authToken}`
+      }
     }
 
     // Make request
@@ -63,7 +78,7 @@ class APIClient {
       const response = await fetch(url, {
         method,
         headers: requestHeaders,
-        body: body ? JSON.stringify(body) : undefined,
+        body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
       })
 
       // Handle non-JSON responses
@@ -78,6 +93,37 @@ class APIClient {
       const data = await response.json()
 
       if (!response.ok) {
+        // Handle 401/403 - authentication errors
+        if (response.status === 401 || response.status === 403) {
+          console.error("[API Client] Authentication error, attempting to refresh session...")
+          this.authToken = null
+          
+          // Try to get a fresh session
+          const { supabase } = await import("@/lib/supabase")
+          const { data: { session } } = await supabase.auth.getSession()
+          
+          if (session?.access_token && session.access_token !== this.authToken) {
+            console.log("[API Client] Got fresh session, retrying request...")
+            this.authToken = session.access_token
+            
+            // Retry the request once with the new token
+            requestHeaders["Authorization"] = `Bearer ${this.authToken}`
+            const retryResponse = await fetch(url, {
+              method,
+              headers: requestHeaders,
+              body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
+            })
+            
+            if (retryResponse.ok) {
+              const retryContentType = retryResponse.headers.get("content-type")
+              if (retryContentType?.includes("application/json")) {
+                return await retryResponse.json()
+              }
+              return {} as T
+            }
+          }
+        }
+        
         // Backend may return error in different formats
         const errorMessage = data.message || data.error || `HTTP ${response.status}: ${response.statusText}`
         const error = new Error(errorMessage) as any
@@ -100,10 +146,11 @@ class APIClient {
         body: data,
       }),
 
-    register: (data: RegisterRequest) =>
+    register: (data: RegisterRequest | FormData) =>
       this.request<RegisterResponse>("/auth/register", {
         method: "POST",
         body: data,
+        isFormData: data instanceof FormData,
       }),
 
     logout: () =>
@@ -306,22 +353,42 @@ class APIClient {
           createdAt: string
           updatedAt: string
         }
+        user?: {
+          avatarPath: string | null
+          email: string | null
+          name: string | null
+          industries: string[]
+        }
       }>("/profile"),
 
     update: (data: {
       fullName?: string
       company?: string
       position?: string
-      birthDate?: string
-    }) =>
-      this.request<{
+      industries?: string[]
+      avatar?: File
+    }) => {
+      const formData = new FormData()
+      if (data.fullName !== undefined) formData.append("fullName", data.fullName)
+      if (data.company !== undefined) formData.append("company", data.company)
+      if (data.position !== undefined) formData.append("position", data.position)
+      if (data.industries !== undefined) {
+        // Send as JSON string for FormData
+        formData.append("industries", JSON.stringify(data.industries))
+      }
+      if (data.avatar) formData.append("avatar", data.avatar)
+
+      return this.request<{
         success: boolean
         message: string
         profile: any
+        avatarPath?: string
       }>("/profile", {
         method: "PATCH",
-        body: data,
-      }),
+        body: formData,
+        isFormData: true,
+      })
+    },
 
     saveExecuWell: (data: {
       mbti?: string

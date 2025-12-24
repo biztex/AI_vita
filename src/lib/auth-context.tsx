@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react"
 import { supabase, signIn, signUp, signOut, getCurrentUser, resetPassword } from "./supabase"
 import { apiClient } from "./api"
 import type { User as SupabaseUser } from '@supabase/supabase-js'
@@ -15,15 +15,16 @@ export type User = {
   role: "user" | "admin"
   company?: string
   subscription?: "vitaai" | "execuwell" | "integrated"
+  avatarPath?: string | null  // Add avatarPath
 }
 
 type AuthContextType = {
   user: User | null
   loading: boolean
+  register: (data: { email: string; password: string; name: string; company?: string; industries?: NewsCategory[]; avatar?: File; position?: string; birthDate?: string }) => Promise<{ success: boolean; requiresEmailConfirmation: boolean; email: string }>
   login: (email: string, password: string) => Promise<void>
-  register: (data: { email: string; password: string; name: string; company?: string; industries?: NewsCategory[] }) => Promise<{ success: boolean; requiresEmailConfirmation: boolean; email?: string }>
   logout: () => Promise<void>
-  resetPassword: (email: string) => Promise<void>
+  refreshUser?: () => Promise<void>  // Add refreshUser
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -31,17 +32,62 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const isRegisteringRef = useRef(false)
 
   // Convert Supabase user to our User type
-  const convertSupabaseUser = (supabaseUser: SupabaseUser): User => {
+  const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> => {
     const userMetadata = supabaseUser.user_metadata || {}
-    return {
-      id: supabaseUser.id,
-      email: supabaseUser.email || '',
-      name: userMetadata.name || userMetadata.full_name || supabaseUser.email?.split('@')[0] || 'User',
-      role: userMetadata.role || 'user',
-      company: userMetadata.company,
-      subscription: userMetadata.subscription || 'integrated',
+    
+    // Fetch user data from backend to get avatarPath and other database fields
+    try {
+      const profileResponse = await apiClient.profile.get()
+      const dbUser = profileResponse.user
+      
+      console.log("[Auth] Successfully fetched user profile from backend")
+      
+      return {
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        name: dbUser?.name || userMetadata.name || userMetadata.full_name || supabaseUser.email?.split('@')[0] || 'ユーザー',
+        role: userMetadata.role || 'user',
+        company: userMetadata.company,
+        subscription: userMetadata.subscription || 'integrated',
+        avatarPath: dbUser?.avatarPath || null,
+      }
+    } catch (error: any) {
+      // Fallback if profile fetch fails (e.g., user not yet in database)
+      console.warn("[Auth] Failed to fetch user profile from backend, using fallback:", error?.message)
+      
+      // If error is 404 (user not in database), this might be during initial registration
+      // Use Supabase metadata as fallback
+      return {
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        name: userMetadata.name || userMetadata.full_name || supabaseUser.email?.split('@')[0] || 'User',
+        role: userMetadata.role || 'user',
+        company: userMetadata.company,
+        subscription: userMetadata.subscription || 'integrated',
+        avatarPath: null,
+      }
+    }
+  }
+
+  // Add function to refresh user data
+  const refreshUser = async () => {
+    try {
+      // Get session first to ensure auth token is set
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) {
+        apiClient.setAuthToken(session.access_token)
+      }
+      
+      const { user: supabaseUser } = await getCurrentUser()
+      if (supabaseUser) {
+        const updatedUser = await convertSupabaseUser(supabaseUser)
+        setUser(updatedUser)
+      }
+    } catch (error) {
+      console.error("Failed to refresh user:", error)
     }
   }
 
@@ -49,24 +95,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const { user: supabaseUser, error } = await getCurrentUser()
+        console.log("[Auth] Initializing auth state...")
         
-        if (error) {
-          console.error('Error getting current user:', error)
-          setUser(null)
-        } else if (supabaseUser) {
-          setUser(convertSupabaseUser(supabaseUser))
-          // Get session for access token
-          const { data: { session } } = await supabase.auth.getSession()
-          apiClient.setAuthToken(session?.access_token || null)
+        // Small delay to ensure localStorage is accessible and Supabase can restore session
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        // Get session first to set auth token
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        console.log("[Auth] Session retrieved:", session ? `Yes (user: ${session.user?.email})` : "No", sessionError ? `Error: ${sessionError.message}` : "")
+        
+        if (session?.access_token) {
+          // Set auth token before any API calls
+          console.log("[Auth] Session found, setting auth token")
+          apiClient.setAuthToken(session.access_token)
+          
+          // If we have a session, we should have a user
+          if (session.user) {
+            console.log("[Auth] User found in session, converting...")
+            const convertedUser = await convertSupabaseUser(session.user)
+            setUser(convertedUser)
+            console.log("[Auth] User state set successfully from session")
+          } else {
+            console.warn("[Auth] Session exists but no user found")
+            setUser(null)
+            apiClient.setAuthToken(null)
+          }
         } else {
-          setUser(null)
+          console.log("[Auth] No session found, checking for user via API...")
+          
+          // Fallback: try to get user directly (this makes an API call)
+          const { user: supabaseUser, error } = await getCurrentUser()
+          
+          if (error) {
+            console.error('[Auth] Error getting current user:', error)
+            setUser(null)
+            apiClient.setAuthToken(null)
+          } else if (supabaseUser) {
+            console.log("[Auth] User found via API, getting session again...")
+            // If we found a user, we should have a session - get it again
+            const { data: { session: newSession } } = await supabase.auth.getSession()
+            if (newSession?.access_token) {
+              apiClient.setAuthToken(newSession.access_token)
+            }
+            const convertedUser = await convertSupabaseUser(supabaseUser)
+            setUser(convertedUser)
+            console.log("[Auth] User state set successfully from API")
+          } else {
+            console.log("[Auth] No user found")
+            setUser(null)
+            apiClient.setAuthToken(null)
+          }
         }
       } catch (error) {
-        console.error('Auth initialization error:', error)
+        console.error('[Auth] Auth initialization error:', error)
         setUser(null)
+        apiClient.setAuthToken(null)
       } finally {
         setLoading(false)
+        console.log("[Auth] Auth initialization complete, loading set to false")
       }
     }
 
@@ -75,15 +162,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          const convertedUser = convertSupabaseUser(session.user)
-          setUser(convertedUser)
+        console.log("[Auth] Auth state change event:", event, "session exists:", !!session, "isRegistering:", isRegisteringRef.current)
+        
+        if (event === 'INITIAL_SESSION') {
+          // Initial session is already handled by initializeAuth
+          console.log("[Auth] INITIAL_SESSION - already handled by initializeAuth")
+        } else if (event === 'SIGNED_IN' && session?.user && !isRegisteringRef.current) {
+          // User signed in (not during registration)
+          console.log("[Auth] SIGNED_IN - updating user state")
           apiClient.setAuthToken(session.access_token)
+          const convertedUser = await convertSupabaseUser(session.user)
+          setUser(convertedUser)
         } else if (event === 'SIGNED_OUT') {
+          console.log("[Auth] SIGNED_OUT - clearing user state")
           setUser(null)
           apiClient.setAuthToken(null)
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log("[Auth] TOKEN_REFRESHED - updating token and user")
+          apiClient.setAuthToken(session.access_token)
+          const convertedUser = await convertSupabaseUser(session.user)
+          setUser(convertedUser)
+        } else if (event === 'USER_UPDATED' && session?.user) {
+          console.log("[Auth] USER_UPDATED - refreshing user data")
+          const convertedUser = await convertSupabaseUser(session.user)
+          setUser(convertedUser)
         }
-        setLoading(false)
+        
+        // Only set loading to false if it's not already false
+        if (event !== 'INITIAL_SESSION') {
+          setLoading(false)
+        }
       }
     )
 
@@ -104,7 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
-        const convertedUser = convertSupabaseUser(data.user)
+        const convertedUser = await convertSupabaseUser(data.user)
         setUser(convertedUser)
         apiClient.setAuthToken(data.session?.access_token || null)
         toast.success("ログインに成功しました", {
@@ -118,8 +226,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (data: { email: string; password: string; name: string; company?: string; industries?: NewsCategory[] }) => {
+  const register = async (data: { 
+    email: string; 
+    password: string; 
+    name: string; 
+    company?: string; 
+    industries?: NewsCategory[];
+    avatar?: File;
+    position?: string;
+    birthDate?: string;
+  }) => {
     try {
+      // Set flag to prevent auth state change handler from interfering
+      isRegisteringRef.current = true
+      
       // Step 1: Register with Supabase
       const { data: authData, error } = await signUp(data.email, data.password, {
         name: data.name,
@@ -139,47 +259,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Step 2: If Supabase registration succeeds, register with backend
       if (authData.user) {
-        // Check if session is available from signUp response or get it
         let session = authData.session
         if (!session) {
-          // Try to get session if not in response
           const { data: { session: currentSession } } = await supabase.auth.getSession()
           session = currentSession
         }
         
         if (session?.access_token) {
-          // Session created - user is automatically registered and logged in
-          // Set auth token to call backend
           apiClient.setAuthToken(session.access_token)
           
           try {
-            // Call backend register API to create user in database
-            await apiClient.auth.register({
-              email: data.email,
-              password: data.password, // Backend doesn't need this, but type requires it
-              name: data.name,
-              company: data.company,
-              industries: data.industries || [],
-            })
-            console.log("Backend registration successful")
+            // Prepare FormData for backend registration
+            const formData = new FormData()
+            formData.append("name", data.name) // Send name to AppUser
+            formData.append("fullName", data.name) // Also send as fullName for PersonalProfile
+            if (data.company) formData.append("company", data.company)
+            if (data.position) formData.append("position", data.position)
+            if (data.birthDate) formData.append("birthDate", data.birthDate)
+            if (data.avatar) formData.append("avatar", data.avatar)
+            if (data.industries && data.industries.length > 0) {
+              // Industries are sent via Supabase metadata, not FormData
+            }
+
+            // Call backend register API with FormData
+            console.log("[Auth] Calling backend registration...")
+            await apiClient.auth.register(formData)
+            console.log("[Auth] Backend registration successful")
             
-            // User is now logged in (session exists)
-            const convertedUser = convertSupabaseUser(authData.user)
+            // Now that backend registration is complete, convert user
+            // This will fetch the user from the database successfully
+            const convertedUser = await convertSupabaseUser(authData.user)
             setUser(convertedUser)
+            console.log("[Auth] User state set after registration")
             
             toast.success("アカウントが正常に作成されました", {
               position: "top-right",
               autoClose: 3000,
             })
             
-            // Return success with session created (auto-registered)
             return { 
               success: true, 
               requiresEmailConfirmation: false,
               email: data.email
             }
           } catch (backendError: any) {
-            console.error("Backend registration failed:", backendError)
+            console.error("[Auth] Backend registration failed:", backendError)
             // Extract error message from response
             const errorMessage = backendError.message || 
                                 backendError.response?.data?.error || 
@@ -190,6 +314,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               autoClose: 5000,
             })
             throw new Error(errorMessage)
+          } finally {
+            // Clear registration flag
+            isRegisteringRef.current = false
           }
         } else {
           // No session available yet (email confirmation required)
@@ -216,6 +343,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Registration failed:", error)
       throw error
+    } finally {
+      // Ensure registration flag is cleared even if error occurs
+      isRegisteringRef.current = false
     }
   }
 
@@ -264,7 +394,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, register, logout, resetPassword: handleResetPassword }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, loading, register, login, logout, refreshUser }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

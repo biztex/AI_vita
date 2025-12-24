@@ -1,50 +1,128 @@
 import express from "express";
 import { prisma } from "../prisma";
 import { requireAuth } from "../middlewares/auth";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 const router = express.Router();
 
-// GET current user's profile
+// Create upload/avatars directory if it doesn't exist
+const avatarsDir = path.resolve("upload", "avatars");
+if (!fs.existsSync(avatarsDir)) {
+  fs.mkdirSync(avatarsDir, { recursive: true });
+}
+
+// Configure multer for avatar uploads
+const avatarStorage = multer.diskStorage({
+  destination: (_req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
+    cb(null, avatarsDir);
+  },
+  filename: (_req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
+    const ext = path.extname(file.originalname || '') || '.jpg';
+    const base = Date.now().toString() + '_' + Math.random().toString(36).substring(7);
+    cb(null, `${base}${ext}`);
+  },
+});
+
+const avatarUpload = multer({ 
+  storage: avatarStorage, 
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (_req: any, file: any, cb: any) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('画像ファイルのみアップロード可能です'), false);
+    }
+  },
+});
+
+// GET profile
 router.get("/", requireAuth(), async (req: any, res: any, next: any) => {
   try {
     const userId = req.user.id;
 
-    // Get or create personal profile
-    let personalProfile = await prisma.personalProfile.findUnique({
+    // Get personal profile
+    const personalProfile = await prisma.personalProfile.findUnique({
       where: { ownerId: userId },
-      include: {
-        execuWell: true,
-        vitaAI: true,
+      include: { execuWell: true, vitaAI: true },
+    });
+
+    // Get user data (including avatarPath, name, and industries)
+    const user = await prisma.appUser.findUnique({
+      where: { supabaseUserId: userId },
+      select: {
+        avatarPath: true,
+        email: true,
+        name: true,
+        industries: true,
       },
     });
 
-    if (!personalProfile) {
-      // Create empty profile if it doesn't exist
-      personalProfile = await prisma.personalProfile.create({
-        data: {
-          ownerId: userId,
-        },
-        include: {
-          execuWell: true,
-          vitaAI: true,
-        },
-      });
-    }
-
     res.json({
       success: true,
-      profile: personalProfile,
+      profile: personalProfile || {
+        id: null,
+        ownerId: userId,
+        fullName: null,
+        company: null,
+        position: null,
+        birthDate: null,
+        execuWell: null,
+        vitaAI: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      user: user || { avatarPath: null, email: null, name: null, industries: [] },
     });
   } catch (error: any) {
+    console.error("[PROFILE] Get error:", error);
     next(error);
   }
 });
 
-// PATCH/UPDATE Personal Profile basic information
-router.patch("/", requireAuth(), async (req: any, res: any, next: any) => {
+// PATCH/UPDATE Personal Profile basic information (with optional avatar and industries)
+router.patch("/", requireAuth(), avatarUpload.single("avatar"), async (req: any, res: any, next: any) => {
   try {
     const userId = req.user.id;
-    const { fullName, company, position, birthDate } = req.body;
+    const { fullName, company, position, industries } = req.body;
+
+    // Handle avatar upload if provided
+    let avatarPath: string | null = null;
+    if (req.file) {
+      avatarPath = `/uploads/avatars/${path.basename(req.file.path)}`;
+      
+      // Update AppUser with avatar path
+      await prisma.appUser.update({
+        where: { supabaseUserId: userId },
+        data: { avatarPath },
+      });
+    }
+
+    // Handle industries update if provided
+    if (industries !== undefined) {
+      let industriesArray: string[] = [];
+      if (typeof industries === 'string') {
+        try {
+          industriesArray = JSON.parse(industries);
+        } catch {
+          industriesArray = [industries];
+        }
+      } else if (Array.isArray(industries)) {
+        industriesArray = industries;
+      }
+
+      // Validate and update industries in AppUser
+      const { isNewsCategory, NEWS_CATEGORIES } = await import("../utils/news-categories.js");
+      const validIndustries = industriesArray.filter((ind) => 
+        typeof ind === "string" && isNewsCategory(ind)
+      ) as any[];
+
+      await prisma.appUser.update({
+        where: { supabaseUserId: userId },
+        data: { industries: validIndustries },
+      });
+    }
 
     // Get or create personal profile
     let personalProfile = await prisma.personalProfile.findUnique({
@@ -58,27 +136,17 @@ router.patch("/", requireAuth(), async (req: any, res: any, next: any) => {
           fullName: fullName || null,
           company: company || null,
           position: position || null,
-          birthDate: birthDate ? new Date(birthDate) : null,
         },
       });
     } else {
-      // Update existing profile
+      // Update existing profile (no birthDate)
       personalProfile = await prisma.personalProfile.update({
         where: { ownerId: userId },
         data: {
-          fullName: fullName !== undefined ? fullName : personalProfile.fullName,
-          company: company !== undefined ? company : personalProfile.company,
-          position: position !== undefined ? position : personalProfile.position,
-          birthDate: birthDate !== undefined ? (birthDate ? new Date(birthDate) : null) : personalProfile.birthDate,
+          fullName: fullName !== undefined ? (fullName || null) : personalProfile.fullName,
+          company: company !== undefined ? (company || null) : personalProfile.company,
+          position: position !== undefined ? (position || null) : personalProfile.position,
         },
-      });
-    }
-
-    // Also update AppUser if name/email changed
-    if (fullName) {
-      await prisma.appUser.update({
-        where: { supabaseUserId: userId },
-        data: {} as any, // Update user metadata if needed
       });
     }
 
@@ -86,6 +154,7 @@ router.patch("/", requireAuth(), async (req: any, res: any, next: any) => {
       success: true,
       message: "プロフィールを更新しました",
       profile: personalProfile,
+      avatarPath: avatarPath || undefined,
     });
   } catch (error: any) {
     console.error("[PROFILE] Update error:", error);

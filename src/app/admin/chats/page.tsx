@@ -69,13 +69,13 @@ export default function AdminChatsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Conversations</CardTitle>
+          <CardTitle>会話</CardTitle>
           <div className="mt-4 flex flex-col gap-4 md:flex-row">
             {/* Search */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by user..."
+                placeholder="ユーザーで検索..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -85,7 +85,7 @@ export default function AdminChatsPage() {
             {/* Service Filter */}
             <Select value={serviceFilter} onValueChange={setServiceFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Filter by service" />
+                <SelectValue placeholder="サービスでフィルター" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">すべてのサービス</SelectItem>

@@ -115,14 +115,14 @@ const mbtiList = [
 ] as const
 
 const businessChallenges = [
-  "Business Growth & Scaling",
-  "Decision Making Under Pressure",
-  "Team Management & Culture",
-  "Innovation & Market Adaptation",
-  "Financial Management",
-  "Work-Life Balance",
-  "Stress Management",
-  "Stakeholder Communication",
+  "事業成長とスケーリング",
+  "プレッシャー下での意思決定",
+  "チームマネジメントと文化",
+  "イノベーションと市場適応",
+  "財務管理",
+  "ワークライフバランス",
+  "ストレス管理",
+  "ステークホルダーコミュニケーション",
 ]
 
 export default function InformationPage() {
@@ -337,7 +337,7 @@ export default function InformationPage() {
   return (
     <div className="container mx-auto px-4 py-10 space-y-8">
       <div className="flex flex-col gap-2">
-        <p className="text-sm text-muted-foreground">Assessment Center</p>
+        <p className="text-sm text-muted-foreground">診断センター</p>
         <h1 className="text-3xl font-bold">プロフィールデータを更新</h1>
         <p className="text-muted-foreground">
           ExecuWell / VitaAI 向けの診断データをアップロードし、AI推奨をパーソナライズします。
@@ -468,7 +468,7 @@ export default function InformationPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="enneagram">Enneagram</Label>
+                  <Label htmlFor="enneagram">エニアグラム</Label>
                   <Input
                     id="enneagram"
                     type="number"
@@ -586,7 +586,7 @@ export default function InformationPage() {
                       />
                       <div>
                         <p className="font-medium">{item}</p>
-                        <p className="text-xs text-muted-foreground">Strategy / Leadership / Personal</p>
+                        <p className="text-xs text-muted-foreground">戦略 / リーダーシップ / 個人</p>
                       </div>
                     </label>
                   ))}
@@ -611,11 +611,11 @@ export default function InformationPage() {
                   step={5}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Poor</span>
-                  <span>Fair</span>
-                  <span>Average</span>
-                  <span>Good</span>
-                  <span>Excellent</span>
+                  <span>低い</span>
+                  <span>やや低い</span>
+                  <span>普通</span>
+                  <span>良い</span>
+                  <span>優秀</span>
                 </div>
               </div>
 
@@ -631,11 +631,11 @@ export default function InformationPage() {
                   step={5}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Bad</span>
-                  <span>Fair</span>
-                  <span>Average</span>
-                  <span>Good</span>
-                  <span>Excellent</span>
+                  <span>悪い</span>
+                  <span>やや悪い</span>
+                  <span>普通</span>
+                  <span>良い</span>
+                  <span>優秀</span>
                 </div>
               </div>
             </CardContent>

@@ -56,7 +56,7 @@ app.use(cors({
   //credentials: true, // only if you use cookies or tokens
 }));
 
-app.use('/api/uploads', express.static(path.resolve('upload')));
+app.use('/uploads', express.static(path.resolve('upload')));
 app.use('/', router);
 
 app.use(errorHandler);

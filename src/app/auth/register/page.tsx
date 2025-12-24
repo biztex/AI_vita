@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
@@ -9,18 +9,19 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-context"
 import { registerSchema, type RegisterFormData } from "@/lib/validations/validation"
-import { Loader2, CheckCircle2, Mail, ArrowLeft } from "lucide-react"
+import { Loader2, CheckCircle2, Mail, ArrowLeft, ChevronDown, CheckIcon } from "lucide-react"
 import { NEWS_CATEGORIES, NEWS_CATEGORY_LABELS_JA, type NewsCategory } from "../../../../shared/news-categories"
 import { translateSupabaseAuthError } from "@/lib/supabase-error-translator"
 import { toast } from "react-toastify"
+import { cn } from "@/lib/utils"
 
 const CATEGORY_OPTIONS: Array<{ value: NewsCategory; label: string }> = NEWS_CATEGORIES.map((category) => ({
   value: category,
   label: NEWS_CATEGORY_LABELS_JA[category] ?? category,
-}));
+}))
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -30,6 +31,9 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false)
   const [userEmail, setUserEmail] = useState<string>("")
   const [requiresEmailConfirmation, setRequiresEmailConfirmation] = useState(false)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const {
     register,
@@ -46,13 +50,36 @@ export default function RegisterPage() {
 
   const industries = watch("industries") || []
 
-  const handleIndustryChange = (categoryValue: NewsCategory, checked: boolean) => {
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false)
+        setSearchQuery("")
+      }
+    }
+
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isDropdownOpen])
+
+  // Filter categories based on search
+  const filteredCategories = CATEGORY_OPTIONS.filter((category) =>
+    category.label.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const handleIndustryToggle = (categoryValue: NewsCategory) => {
     const currentIndustries = industries || []
-    if (checked) {
-      const updated = [...currentIndustries, categoryValue] as NewsCategory[]
+    if (currentIndustries.includes(categoryValue)) {
+      const updated = currentIndustries.filter((ind) => ind !== categoryValue) as NewsCategory[]
       setValue("industries", updated as RegisterFormData["industries"])
     } else {
-      const updated = currentIndustries.filter((ind) => ind !== categoryValue) as NewsCategory[]
+      const updated = [...currentIndustries, categoryValue] as NewsCategory[]
       setValue("industries", updated as RegisterFormData["industries"])
     }
   }
@@ -210,33 +237,84 @@ export default function RegisterPage() {
               {errors.company && <p className="text-sm text-destructive">{errors.company.message}</p>}
             </div>
 
-            {/* Interest categories (multiple selection) */}
+            {/* Interest categories - Dropdown with checkmarks */}
             <div className="space-y-2">
               <Label>
                 興味・関心のあるカテゴリ <span className="text-muted-foreground">(複数選択可能)</span>
               </Label>
-              <div className="grid grid-cols-2 gap-3 rounded-lg border p-4">
-                {CATEGORY_OPTIONS.map((category) => {
-                  const isChecked = industries?.includes(category.value) || false
-                  return (
-                    <div key={category.value} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`interest-${category.value}`}
-                        checked={isChecked}
-                        onCheckedChange={(checked) => 
-                          handleIndustryChange(category.value, checked as boolean)
-                        }
+              <div className="relative" ref={dropdownRef}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="w-full justify-between hover:bg-secondary/80"
+                >
+                  <span className="truncate">
+                    {industries.length > 0
+                      ? `${industries.length}個選択中`
+                      : "カテゴリを選択してください"}
+                  </span>
+                  <ChevronDown className={`ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+                </Button>
+                
+                {isDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-2 bg-card border border-border rounded-md shadow-lg">
+                    <div className="p-2 border-b border-border">
+                      <Input
+                        type="text"
+                        placeholder="カテゴリを検索..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="h-9"
+                        onClick={(e) => e.stopPropagation()}
                       />
-                      <Label
-                        htmlFor={`interest-${category.value}`}
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        {category.label}
-                      </Label>
                     </div>
-                  )
-                })}
+                    <div className="max-h-[300px] overflow-y-auto p-1">
+                      {filteredCategories.length > 0 ? (
+                        filteredCategories.map((category) => {
+                          const isSelected = industries.includes(category.value)
+                          return (
+                            <div
+                              key={category.value}
+                              onClick={() => handleIndustryToggle(category.value)}
+                              className="flex items-center space-x-2 w-full px-2 py-2 cursor-pointer rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                            >
+                              <div
+                                className={`flex h-4 w-4 items-center justify-center rounded-sm border ${
+                                  isSelected
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "border-input"
+                                }`}
+                              >
+                                {isSelected && (
+                                  <CheckIcon className="h-3 w-3" />
+                                )}
+                              </div>
+                              <span className="text-sm">{category.label}</span>
+                            </div>
+                          )
+                        })
+                      ) : (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          結果が見つかりません
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
+              {industries.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {industries.map((industry) => {
+                    const label = CATEGORY_OPTIONS.find((opt) => opt.value === industry)?.label || industry
+                    return (
+                      <Badge key={industry} variant="secondary">
+                        {label}
+                      </Badge>
+                    )
+                  })}
+                </div>
+              )}
               {errors.industries && (
                 <p className="text-sm text-destructive">{errors.industries.message}</p>
               )}

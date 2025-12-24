@@ -66,7 +66,7 @@ const plans: Plan[] = [
   {
     id: "INTEGRATED",
     name: "統合プラン",
-    nameEn: "Integrated Plan",
+    nameEn: "統合プラン",
     subtitle: "完全版インフラ",
     monthlyPrice: 18000,
     enrollmentFee: 30000,

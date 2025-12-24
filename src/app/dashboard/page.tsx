@@ -97,7 +97,7 @@ const vitaAIMonthlyData = {
     { label: "疲労リスク", average: 3.8 }
   ],
   trend_graph: {
-    labels: ["Week1", "Week2", "Week3", "Week4"],
+    labels: ["週1", "週2", "週3", "週4"],
     data: [3.2, 3.0, 2.6, 2.4]
   },
   next_focus: [
@@ -145,7 +145,7 @@ const execuWellMonthlyData = {
     overall_comment: "意思決定の質は安定していましたが、判断回数の多さによる疲労が見られました。"
   },
   decision_trend: {
-    labels: ["Week1", "Week2", "Week3", "Week4"],
+    labels: ["週1", "週2", "週3", "週4"],
     data: [4.0, 4.1, 3.8, 3.6]
   },
   behavior_analysis: {
@@ -357,7 +357,7 @@ function DashboardContent() {
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
-              Daily
+              日次
             </button>
             <button
               onClick={() => setPeriod("monthly")}
@@ -369,7 +369,7 @@ function DashboardContent() {
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
-              Monthly
+              月次
             </button>
           </div>
         </div>
