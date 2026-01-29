@@ -65,7 +65,7 @@ export function Header() {
   const navItems = [
     { href: "http://execuwell.jp/dashboard", label: "ダッシュボード", protected: true },
     { href: "http://execuwell.jp/information", label: "情報", protected: true },
-    { href: "http:/vitaai.jp/vitaai/chat", label: "VitaAI", protected: true },
+    { href: "http://vitaai.jp/vitaai/chat", label: "VitaAI", protected: true },
     { href: "http://execuwell.jp/execuwell/chat", label: "ExecuWell", protected: true },
     { href: "http://execuwell.jp/subscription", label: "サブスクリプション", protected: true },
     { href: "http://execuwell.jp/profile", label: "プロフィール", protected: true },
