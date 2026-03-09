@@ -7,7 +7,7 @@ const must = (v: string | undefined, name: string) => {
 
 export const ENV = {
   PORT: Number(process.env.PORT || 8080),
-  DATABASE_URL: must(process.env.DATABASE_URL, "DATABASE_URL"),
+  DATABASE_URL: must(process.env.DATABASE_URL, "postgresql://postgres:TempExecu2026!@db.yfeuvwztvzowensjamqn.supabase.co:5432/postgres"),
   NEWSDATA_API_KEY: must(process.env.NEWSDATA_API_KEY, "NEWSDATA_API_KEY"),
   NEWS_INTEREST_KEYWORDS: (process.env.NEWS_INTEREST_KEYWORDS || "")
     .split(",")
@@ -32,4 +32,11 @@ export const ENV = {
   STRIPE_PRICE_EXECUWELL: must(process.env.STRIPE_PRICE_EXECUWELL, "STRIPE_PRICE_EXECUWELL"),
   STRIPE_PRICE_INTEGRATED: must(process.env.STRIPE_PRICE_INTEGRATED, "STRIPE_PRICE_INTEGRATED"),
   FRONTEND_URL: must(process.env.FRONTEND_URL, "FRONTEND_URL"),
+  // LINE Messaging API
+  LINE_CHANNEL_SECRET: process.env.LINE_CHANNEL_SECRET || '',
+  LINE_CHANNEL_ACCESS_TOKEN: (process.env.LINE_CHANNEL_ACCESS_TOKEN || '').replace(/^"|"$/g, ''),
+  // LINE Login (OAuth)
+  LINE_LOGIN_CHANNEL_ID: process.env.LINE_LOGIN_CHANNEL_ID || '',
+  LINE_LOGIN_CHANNEL_SECRET: process.env.LINE_LOGIN_CHANNEL_SECRET || '',
+  LINE_LOGIN_CALLBACK_URL: process.env.LINE_LOGIN_CALLBACK_URL || '',
 };

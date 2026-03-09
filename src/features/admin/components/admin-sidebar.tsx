@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Users, MessageSquare, FileText, LayoutDashboard } from "lucide-react"
+import { Users, MessageSquare, FileText, LayoutDashboard, MessagesSquare, FlaskConical } from "lucide-react"
 
 const sidebarItems = [
   {
@@ -20,6 +20,16 @@ const sidebarItems = [
     title: "会話",
     href: "/admin/chats",
     icon: MessageSquare,
+  },
+  {
+    title: "LINEユーザー",
+    href: "/admin/line-users",
+    icon: MessagesSquare,
+  },
+  {
+    title: "プロンプトテスト",
+    href: "/admin/test-prompt",
+    icon: FlaskConical,
   },
   {
     title: "レポート",

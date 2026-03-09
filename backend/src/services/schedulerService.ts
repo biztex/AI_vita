@@ -4,6 +4,7 @@ import { analyzeBusinessItemsJA, buildEmailContentJA } from './analysisService.j
 import { sendDailyDigest } from './emailService.js';
 import { prisma } from '../prisma.js';
 import type { NewsCategory } from '../utils/news-categories.js';
+import { runMorningLinePush } from './morningLineService.js';
 
 async function getAllMembersWithInterests(): Promise<Array<{ email: string; interests: NewsCategory[] }>> {
   const users = await prisma.appUser.findMany({
@@ -128,6 +129,13 @@ export function startDailyNewsJob() {
       }
       
       // console.log(`[Scheduler] Sent daily digest to ${members.length} recipients`);
+
+      // ── Morning LINE push (after news is ready) ──
+      try {
+        await runMorningLinePush();
+      } catch (lineErr) {
+        console.error('[Scheduler] Morning LINE push failed:', lineErr);
+      }
     } catch (e) {
       console.error('[Scheduler] Failed to send daily digest:', e);
     }

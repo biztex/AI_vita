@@ -34,37 +34,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const isRegisteringRef = useRef(false)
 
-  // Convert Supabase user to our User type
-  const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> => {
+  // Convert Supabase user to our User type.
+  // If the user has confirmed email but AppUser was never created (404), sync by calling register then retry.
+  const convertSupabaseUser = async (supabaseUser: SupabaseUser, options?: { skipSyncOn404?: boolean }): Promise<User> => {
     const userMetadata = supabaseUser.user_metadata || {}
     
-    // Fetch user data from backend to get avatarPath and other database fields
-    try {
+    const tryGetProfile = async (): Promise<User> => {
       const profileResponse = await apiClient.profile.get()
       const dbUser = profileResponse.user
-      
-      console.log("[Auth] Successfully fetched user profile from backend")
-      
       return {
         id: supabaseUser.id,
         email: supabaseUser.email || '',
-        name: dbUser?.name || userMetadata.name || userMetadata.full_name || supabaseUser.email?.split('@')[0] || 'ユーザー',
-        role: userMetadata.role || 'user',
+        name: dbUser?.name ?? userMetadata.name ?? userMetadata.full_name ?? supabaseUser.email?.split('@')[0] ?? 'ユーザー',
+        role: (userMetadata.role as 'user' | 'admin') || 'user',
         company: userMetadata.company,
         subscription: userMetadata.subscription || 'integrated',
-        avatarPath: dbUser?.avatarPath || null,
+        avatarPath: dbUser?.avatarPath ?? null,
       }
+    }
+
+    try {
+      const user = await tryGetProfile()
+      console.log("[Auth] Successfully fetched user profile from backend")
+      return user
     } catch (error: any) {
-      // Fallback if profile fetch fails (e.g., user not yet in database)
+      const status = error?.response?.status
+      const isUserNotFound = status === 404
+
+      // After email confirmation, Supabase has a session but AppUser may not exist yet. Create it from JWT/metadata.
+      if (isUserNotFound && !options?.skipSyncOn404) {
+        console.log("[Auth] User not in database (e.g. after email confirm), syncing via register...")
+        try {
+          const formData = new FormData()
+          const name = userMetadata.name ?? userMetadata.full_name ?? supabaseUser.email?.split('@')[0] ?? ''
+          formData.append("name", name)
+          formData.append("fullName", name)
+          if (userMetadata.company) formData.append("company", String(userMetadata.company))
+          if (userMetadata.position) formData.append("position", String(userMetadata.position))
+          if (userMetadata.birthDate) formData.append("birthDate", String(userMetadata.birthDate))
+          await apiClient.auth.register(formData)
+          console.log("[Auth] Backend registration (sync) successful after email confirmation")
+          const user = await tryGetProfile()
+          return user
+        } catch (syncError: any) {
+          console.warn("[Auth] Sync after 404 failed:", syncError?.message)
+        }
+      }
+
+      // Fallback if profile fetch fails for other reasons
       console.warn("[Auth] Failed to fetch user profile from backend, using fallback:", error?.message)
-      
-      // If error is 404 (user not in database), this might be during initial registration
-      // Use Supabase metadata as fallback
       return {
         id: supabaseUser.id,
         email: supabaseUser.email || '',
-        name: userMetadata.name || userMetadata.full_name || supabaseUser.email?.split('@')[0] || 'User',
-        role: userMetadata.role || 'user',
+        name: userMetadata.name ?? userMetadata.full_name ?? supabaseUser.email?.split('@')[0] ?? 'User',
+        role: (userMetadata.role as 'user' | 'admin') || 'user',
         company: userMetadata.company,
         subscription: userMetadata.subscription || 'integrated',
         avatarPath: null,

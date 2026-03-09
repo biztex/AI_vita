@@ -8,7 +8,6 @@ import { ChatInput } from "@/features/chat/components/chat-input"
 import { ChatInfoPanel } from "@/features/chat/components/chat-info-panel"
 import { ChatSidebar } from "@/features/chat/components/chat-sidebar"
 import { ChatMobileSidebar } from "@/features/chat/components/chat-mobile-sidebar"
-import { PersonalityAssessmentModal } from "@/features/personality/components/personality-assessment-modal"
 import { Button } from "@/components/ui/button"
 import { Briefcase, Settings } from "lucide-react"
 import { apiClient, ConversationMessage } from "@/lib/api"
@@ -28,8 +27,6 @@ function ExecuWellChatContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [isLoadingConversation, setIsLoadingConversation] = useState(false)
-  const [showPersonalityModal, setShowPersonalityModal] = useState(false)
-  const [hasCheckedPersonality, setHasCheckedPersonality] = useState(false)
 
   // Load conversation when conversationId changes
   const loadConversation = async (conversationId: string) => {
@@ -69,42 +66,34 @@ function ExecuWellChatContent() {
     loadConversation(conversationId)
   }
 
-  // Check for personality results on mount
+  // Load MyAI personalized welcome when no conversation is selected
   useEffect(() => {
-    const checkPersonalityResults = async () => {
-      if (hasCheckedPersonality) return
-      try {
-        const response = await apiClient.personality.getResults()
-        const results = response.results
-        // Check if user has all 4 personality test results
-        const requiredTests = ["SIXTEEN_PERSONALITIES", "ENNEAGRAM", "DISC", "CLIFTONSTRENGTHS"]
-        const completedTests = results.map(r => r.testType)
-        const hasAllTests = requiredTests.every(test => completedTests.includes(test))
-        
-        if (!hasAllTests) {
-          setShowPersonalityModal(true)
+    if (currentConversationId) return
+    let cancelled = false
+    apiClient.chats
+      .getMyAIWelcome()
+      .then((data) => {
+        if (!cancelled) {
+          setMessages([{
+            id: "welcome",
+            role: "assistant",
+            content: data.greeting,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          }])
         }
-        setHasCheckedPersonality(true)
-      } catch (error) {
-        console.error("Failed to check personality results:", error)
-        setHasCheckedPersonality(true)
-      }
-    }
-    
-    checkPersonalityResults()
-  }, [hasCheckedPersonality])
-
-  // Load initial conversation or show welcome message
-  useEffect(() => {
-    if (!currentConversationId && messages.length === 0 && !showPersonalityModal) {
-      setMessages([{
-        id: "welcome",
-        role: "assistant",
-        content: "ExecuWellへようこそ！私はあなたのビジネスインテリジェンスパートナーです。市場インサイト、経済分析、戦略的推奨事項を提供します。業界トレンド、競争環境、新たな機会について情報を提供し続けることができます。今日は何を探求したいですか？",
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      }])
-    }
-  }, [currentConversationId, messages.length, showPersonalityModal])
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMessages([{
+            id: "welcome",
+            role: "assistant",
+            content: "ExecuWellへようこそ！私はあなたのビジネスインテリジェンスパートナーです。今日はどんなことを話そうか？",
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          }])
+        }
+      })
+    return () => { cancelled = true }
+  }, [currentConversationId])
 
   const handleSendMessage = async (content: string, type: "text" | "voice" | "image", file?: File) => {
     // Add user message
@@ -161,16 +150,7 @@ function ExecuWellChatContent() {
     }
   }
 
-  const handlePersonalityComplete = async () => {
-    setShowPersonalityModal(false)
-  }
-
   return (
-    <>
-      <PersonalityAssessmentModal 
-        isOpen={showPersonalityModal} 
-        onComplete={handlePersonalityComplete}
-      />
     <div className="flex h-[calc(100vh-4rem)]">
       {/* Desktop Sidebar */}
       <div className="hidden md:flex md:w-80">
@@ -259,7 +239,6 @@ function ExecuWellChatContent() {
         onNewConversation={handleNewConversation}
       />
     </div>
-    </>
   )
 }
 

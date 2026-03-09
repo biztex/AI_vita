@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../middlewares/auth.js";
-import { processChat, validateChatInput, getOrCreateConversation, saveMessage, getConversationHistory } from "../services/chatService.js";
+import { processChat, validateChatInput, getOrCreateConversation, saveMessage, getConversationHistory, getMyAIWelcome } from "../services/chatService.js";
 import OpenAI from "openai";
 import { ENV } from "../env.js";
 
@@ -34,6 +34,19 @@ const storage = multer.diskStorage({
 const upload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 } });
 
 // rateLimit((req) => `chat:${req.user.id}`, 30, 60),
+
+// GET MyAI welcome message (personalized greeting for empty chat)
+// Accepts optional ?service=VITAAI|EXECUWELL for service-specific greeting
+r.get("/myai-welcome", requireAuth(), async (req: any, res: any, next: any) => {
+  try {
+    const service = req.query.service as string | undefined;
+    const { greeting, name } = await getMyAIWelcome(req.user.id, service);
+    res.json({ greeting, name });
+  } catch (e) {
+    console.error('MyAI welcome error:', e);
+    next(e);
+  }
+});
 
 r.post("/", requireAuth(), async (req: any, res: any, next: any) => {
   try {

@@ -8,13 +8,19 @@ import router from "./routes/index.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { logDailyNewsPreview } from "./services/newsService.js";
 import { startDailyNewsJob } from "./services/schedulerService.js";
+import { setupRichMenu } from "./services/lineRichMenu.js";
 
 const app = express();
 
-// ⚠️ IMPORTANT: Exclude webhook route from JSON body parser
-// Stripe webhook needs raw body for signature verification
+// ⚠️ IMPORTANT: Exclude webhook routes from JSON body parser
+// Stripe & LINE webhooks need raw body for signature verification
+
 app.use((req, res, next) => {
-  if (req.path === '/api/stripe/webhook' || req.path === '/stripe/webhook') {
+  if (
+    req.path === '/api/stripe/webhook' || req.path === '/stripe/webhook' ||
+    req.path === '/line/webhook' || req.path === '/api/line/webhook'
+  ) {
+    console.log('Skipping body parsing for webhook');
     return next(); // Skip body parsing for webhook
   }
   bodyParser.json()(req, res, next);
@@ -75,5 +81,10 @@ app.listen(ENV.PORT, async () => {
     console.log('📅 Daily news job scheduled at 07:00 Asia/Tokyo');
   } catch (e) {
     console.error('Failed to start scheduler:', e);
+  }
+
+  // Setup LINE Rich Menu (non-blocking)
+  if (ENV.LINE_CHANNEL_ACCESS_TOKEN) {
+    setupRichMenu().catch((e) => console.warn('LINE Rich Menu setup skipped:', e.message));
   }
 });

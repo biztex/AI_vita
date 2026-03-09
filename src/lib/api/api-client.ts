@@ -30,7 +30,7 @@ class APIClient {
     this.authToken = token
   }
 
-  private async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const { method = "GET", body, query, headers = {}, isFormData = false } = options
 
     // Ensure we have a valid auth token
@@ -198,6 +198,9 @@ class APIClient {
 
     getConversation: (conversationId: string) =>
       this.request<{ conversationId: string; messages: ConversationMessage[]; timestamp: string }>(`/chat/conversation/${conversationId}`),
+
+    getMyAIWelcome: () =>
+      this.request<{ greeting: string; name: string }>("/chat/myai-welcome"),
 
     updateConversationTitle: (conversationId: string, title: string) =>
       this.request<{ conversationId: string; title: string; timestamp: string }>(`/chat/conversation/${conversationId}`, {
@@ -431,6 +434,126 @@ class APIClient {
         method: "POST",
         body: data,
       }),
+  }
+
+  // Diagnostic endpoints
+  diagnostic = {
+    get: () =>
+      this.request<{
+        result: {
+          id: string
+          ownerId: string
+          answers: Record<string, string>
+          mbtiType: string | null
+          mbtiLabel: string | null
+          discType: string | null
+          discLabel: string | null
+          enneagramTop3: number[] | null
+          cognitiveTrend: string | null
+          summary: string | null
+          completedAt: string
+          createdAt: string
+          updatedAt: string
+        } | null
+      }>("/diagnostic"),
+
+    save: (data: {
+      answers: Record<string, string>
+      mbtiType: string
+      mbtiLabel: string
+      discType: string
+      discLabel: string
+      enneagramTop3: number[]
+      cognitiveTrend: string
+      summary: string
+    }) =>
+      this.request<{
+        ok: boolean
+        diagnostic: any
+      }>("/diagnostic", {
+        method: "POST",
+        body: data,
+      }),
+
+    phaseComplete: (data: {
+      phase: "MBTI" | "DISC" | "ENNEAGRAM"
+      answers: Record<string, string>
+      mbtiType?: string
+      discType?: string
+      enneagramTop3?: number[]
+    }) =>
+      this.request<{
+        ok: boolean
+        phase: string
+        insight: string
+      }>("/diagnostic/phase-complete", {
+        method: "POST",
+        body: data,
+      }),
+  }
+
+  // LINE integration endpoints
+  line = {
+    getStatus: () =>
+      this.request<{
+        linked: boolean
+        lineUserId: string | null
+        userMode: string | null
+        morningPushEnabled: boolean
+      }>("/line/status"),
+
+    // Modern LINE Login (OAuth)
+    getLoginUrl: (state: string) =>
+      this.request<{ url: string }>("/line/login-url", {
+        query: { state },
+      }),
+
+    linkOAuth: (code: string, state: string, expectedState: string) =>
+      this.request<{
+        ok: boolean
+        lineUserId: string
+        displayName: string | null
+        linked: boolean
+      }>("/line/link-oauth", {
+        method: "POST",
+        body: { code, state, expectedState },
+      }),
+
+    // Legacy manual linking (deprecated)
+    link: (lineUserId: string) =>
+      this.request<{ ok: boolean; message: string }>("/line/link", {
+        method: "POST",
+        body: { lineUserId },
+      }),
+
+    unlink: () =>
+      this.request<{ ok: boolean; message: string }>("/line/unlink", {
+        method: "POST",
+      }),
+
+    toggleMorningPush: (enabled: boolean) =>
+      this.request<{ ok: boolean; morningPushEnabled: boolean }>("/line/morning-push", {
+        method: "POST",
+        body: { enabled },
+      }),
+  }
+
+  // MyAI Payload (unified JSON)
+  myaiPayload = {
+    get: () =>
+      this.request<{
+        user_id: string
+        name: string
+        mbti: string
+        disc: string
+        enneagram: string[]
+        cognitive: string
+        strengths: string[]
+        career: string
+        goals: string
+        values: string[]
+        lifestyle: string[]
+      }>("/profile/myai-payload"),
   }
 
   // Stripe endpoints

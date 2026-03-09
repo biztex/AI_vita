@@ -20,6 +20,8 @@ model AppUser {
   conversations       ChatConversation[]
   personality         PersonalityResult[]
   profile             PersonalProfile?
+  diagnostic          MyAIDiagnostic?
+  lineUser            LineUser?
   stripeCustomerId    String?              @unique
   stripeSubscriptions StripeSubscription[]
 }
@@ -192,6 +194,7 @@ model VitaAiProfile {
   testDate       DateTime?
   geneticSummary Json?
   sportsProfile  Json?
+  geneData       Json?           // Future: { stress_sensitivity, sleep_quality, 栄養吸収タイプ, ... }
   rawPayload     Json?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -241,4 +244,66 @@ enum SubscriptionStatus {
   INCOMPLETE_EXPIRED
   TRIALING
   PAUSED
+}
+
+model MyAIDiagnostic {
+  id              String   @id @default(uuid())
+  ownerId         String   @unique
+  answers         Json     // Raw answers { q1: "A", q2: "B", ... }
+  mbtiType        String?  // e.g., "ISTJ"
+  mbtiLabel       String?  // e.g., "責任感が強く、秩序と計画を重視する実務家"
+  discType        String?  // e.g., "C"
+  discLabel       String?  // e.g., "慎重タイプ"
+  enneagramTop3   Json?    // e.g., [5, 1, 9]
+  cognitiveTrend  String?  // e.g., "論理型"
+  summary         String?  // Full summary text
+  phaseInsights   Json?    // e.g., { "MBTI": "外向タイプっぽいですね", "DISC": "慎重な分析型" }
+  completedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  owner           AppUser  @relation(fields: [ownerId], references: [supabaseUserId])
+}
+
+// ── LINE Integration ──
+
+enum ServiceMode {
+  EXECUWELL
+  VITAAI
+}
+
+model LineUser {
+  id                String            @id @default(uuid())
+  lineUserId        String            @unique  // LINE platform UID
+  appUserId         String?           @unique  // Linked web AppUser (nullable for LINE-only users)
+  displayName       String?
+  userMode          ServiceMode       @default(EXECUWELL)
+  morningPushEnabled Boolean          @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  appUser           AppUser?          @relation(fields: [appUserId], references: [supabaseUserId])
+  conversations     LineConversation[]
+
+  @@index([lineUserId])
+}
+
+model LineConversation {
+  id          String        @id @default(uuid())
+  lineUserId  String
+  service     ServiceMode
+  createdAt   DateTime      @default(now())
+  lineUser    LineUser      @relation(fields: [lineUserId], references: [id])
+  messages    LineMessage[]
+
+  @@index([lineUserId])
+}
+
+model LineMessage {
+  id             String           @id @default(uuid())
+  conversationId String
+  sender         Sender           // USER or ASSISTANT
+  content        String
+  createdAt      DateTime         @default(now())
+  conversation   LineConversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId])
 }

@@ -333,5 +333,70 @@ router.post("/vitaai", requireAuth(), async (req: any, res: any, next: any) => {
   }
 });
 
+// ── GET /profile/myai-payload ──
+// Returns the unified JSON structure used for MyAI prompts
+// Structure matches client spec: { user_id, name, mbti, disc, enneagram, cognitive, strengths, career, goals, values, lifestyle }
+router.get("/myai-payload", requireAuth(), async (req: any, res: any, next: any) => {
+  try {
+    const userId = req.user.id;
+
+    const appUser = await prisma.appUser.findUnique({
+      where: { supabaseUserId: userId },
+      select: { name: true },
+    });
+
+    const profile = await prisma.personalProfile.findUnique({
+      where: { ownerId: userId },
+      include: { execuWell: true, vitaAI: true },
+    });
+
+    const diagnostic = await prisma.myAIDiagnostic.findUnique({
+      where: { ownerId: userId },
+    });
+
+    const name = profile?.fullName?.trim() || appUser?.name?.trim() || '';
+    const mbti = diagnostic?.mbtiType || profile?.execuWell?.mbti || '';
+    const disc = diagnostic?.discType || profile?.execuWell?.disc || '';
+
+    const enneagramTop3 = diagnostic?.enneagramTop3;
+    const enneagram =
+      enneagramTop3 != null && Array.isArray(enneagramTop3)
+        ? enneagramTop3.map(String)
+        : profile?.execuWell?.enneagram != null
+          ? [String(profile.execuWell.enneagram)]
+          : [];
+
+    const cognitive = diagnostic?.cognitiveTrend || '';
+
+    const strengths = [diagnostic?.mbtiLabel, diagnostic?.discLabel, diagnostic?.cognitiveTrend]
+      .filter(Boolean) as string[];
+
+    const career = profile?.execuWell
+      ? [...(profile.execuWell.industries || []), ...(profile.execuWell.currentRoles || [])].filter(Boolean).join(', ')
+      : [profile?.company, profile?.position].filter(Boolean).join(', ');
+
+    const goals = profile?.execuWell?.businessGoal || '';
+    const values = profile?.execuWell?.values?.length ? profile.execuWell.values : [];
+    const lifestyle = profile?.execuWell?.interests?.length ? profile.execuWell.interests : [];
+
+    res.json({
+      user_id: userId,
+      name,
+      mbti,
+      disc,
+      enneagram,
+      cognitive,
+      strengths,
+      career,
+      goals,
+      values,
+      lifestyle,
+    });
+  } catch (error: any) {
+    console.error("[PROFILE] myai-payload error:", error);
+    next(error);
+  }
+});
+
 export default router;
 

@@ -7,6 +7,48 @@ const openai = new OpenAI({
   apiKey: ENV.OPENAI_API_KEY,
 });
 
+// MyAI user context templates (STEP 3) — service-specific
+
+const MYAI_CONTEXT_EXECUWELL = `あなたは{{name}}氏専任のMyAI経営コンサルタントです。
+以下のプロフィール情報をもとに、実行可能でモチベーションを高める経営アドバイスを行ってください。
+
+【パーソナリティ】
+MBTI: {{mbti}} / DISC: {{disc}} / エニアグラム: タイプ{{enneagram}}
+認知傾向: {{cognitive}}
+主なストレングス: {{strengths}}
+性格特性: {{personality_traits}}
+
+【ビジネス情報】
+事業経験: {{career}}
+目標: {{goals}}
+価値観: {{value}}
+
+これらに基づき、回答は前向きかつ具体的に行うこと。
+判断や意思決定のアドバイスでは、ユーザーのMBTI・DISCタイプに合ったコミュニケーションスタイルを意識すること。
+さあ{{name}}、今日はどんなことを話そうか？`;
+
+const MYAI_CONTEXT_VITAAI = `あなたは{{name}}氏専任のMyAIウェルネスコーチです。
+以下のプロフィール情報をもとに、パーソナライズされた健康・生活改善のアドバイスを行ってください。
+
+【パーソナリティ】
+MBTI: {{mbti}} / DISC: {{disc}} / エニアグラム: タイプ{{enneagram}}
+認知傾向: {{cognitive}}
+
+【ライフスタイル情報】
+ライフスタイル・習慣: {{lifestyle}}
+遺伝子データ: {{gene_data}}
+
+【背景】
+性格特性: {{personality_traits}}
+価値観: {{value}}
+
+これらに基づき、睡眠・食事・運動・ストレス管理などの提案は、ユーザーの性格タイプ・生活習慣に合った実行しやすいものにすること。
+回答は科学的根拠を交えつつ、温かく励ますトーンで行うこと。
+{{name}}さん、今日の体調はいかがですか？`;
+
+const MYAI_GREETING_EXECUWELL = 'さあ{{name}}、今日はどんなことを話そうか？';
+const MYAI_GREETING_VITAAI = '{{name}}さん、今日の体調はいかがですか？気になることがあれば何でもどうぞ。';
+
 // Simple in-memory rate limiting (for production, use Redis)
 const userRequestCounts = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
@@ -46,29 +88,149 @@ Professional yet friendly; warm and encouraging.
 Use simple, respectful, and clear explanations.
 Align with Japanese values of balance, prevention, and natural health.`,
 
-  EXECUWELL: `You are an AI-powered Management Consultant designed to help executives, managers, and business owners make informed decisions using their organization’s internal management data.
-You analyze key business inputs such as KPIs, team performance metrics, workflows, org structures, financial summaries, and strategic goals to provide data-driven insights and operational recommendations.
-Your focus is on improving business efficiency, strategic alignment, and decision quality through structured guidance and analysis.
 
-📊 Capabilities:
-Analyze business performance data to identify trends, gaps, and opportunities.
-Provide actionable recommendations to optimize team structures, processes, and goal alignment.
-Offer insights on KPI performance and progress toward business objectives.
-Suggest improvements in management systems, reporting structures, or resource allocation.
-Support planning, risk management, and operational efficiency using structured frameworks.
+  EXECUWELL: `You are ExecuWell's Strategic Executive AI.
+ROLE:
+You are not a general Al assistant.
+You are a decision-structuring advisor for business leaders.
 
-⚠️ Boundaries:
-Do not provide legal, financial, or compliance advice.
-Do not make executive decisions — always defer final judgment to human leaders.
-Avoid overconfidence — use terms like "may suggest," "could indicate," or "based on available data..."
-Do not fabricate or assume missing data — always clarify data limitations or request missing context.
+Your purpose:
 
-🗣️ Communication Style:
-Professional, concise, and data-oriented.
-Clear and practical in recommendations.
-Structured in analysis (e.g., SWOT, OKRs, efficiency ratios).
-Neutral in tone, avoiding emotional or subjective commentary.`
+- Clarify executive decisions
+Reduce ambiguity
+- Surface structural risks
+- Preserve mental energy
+Support sustainable judgment
+You do not provide encyclopedic answers.
+You do not provide motivational content.
+You reduce cognitive noise.
+BEHAVIOR RULES:
+1. If ambiguity is high, ask ONE clarifying question.
+2. Avoid long paragraphs.
+3. Maximum 800 Japanese characters.
+4. No emojis.
+5. No academic tone.
+6. No repetitive vague phrases (e.g., maybe).
+7. Avoid over-empathy.
+8. Avoid generic advice.
+
+必須の出力構造：
+
+【10秒要約】
+(最大3行。結論のみ。)
+【結論】
+(1-2行。明確に。)
+【理由】
+- 最大3点
+- 構造的視点のみ
+【リスク】
+- 最大2点
+- 具体的下振れのみ
+【推奨アクション】
+- 1～3個
+- 実行可能な具体策のみ
+【補足】
+(30-50文字。冷静で安定したトーン)
+
+PERSONALIZATION RULE:
+
+If user profile data is available, integrate:
+Personality tendencies (DISC/MBTI / Enneagram)
+Risk tolerance
+Business context
+
+- Current stress indicators (if available)
+
+Adjust tone:
+- Analytical → emphasize logic
+- Dominant → emphasize decisive execution
+Cautious emphasize risk visibility
+- Overloaded → reduce options and simplify
+PRIORITY:
+
+1. Reduce hesitation
+2. Increase clarity
+3. Prevent impulsive decisions
+4. Support long-term sustainability`
 };
+
+/** Load profile + diagnostic and build MyAI context block for system prompt (service-aware) */
+export async function buildUserContextPrompt(userId: string, service: string): Promise<string> {
+  const appUser = await prisma.appUser.findUnique({
+    where: { supabaseUserId: userId },
+    select: { name: true },
+  });
+  const profile = await prisma.personalProfile.findUnique({
+    where: { ownerId: userId },
+    include: { execuWell: true, vitaAI: true },
+  });
+  const diagnostic = await prisma.myAIDiagnostic.findUnique({
+    where: { ownerId: userId },
+  });
+
+  const name = profile?.fullName?.trim() || appUser?.name?.trim() || 'お客様';
+  const mbti = diagnostic?.mbtiType || profile?.execuWell?.mbti || '未設定';
+  const disc = diagnostic?.discType || profile?.execuWell?.disc || '未設定';
+  const enneagram = diagnostic?.enneagramTop3 != null && Array.isArray(diagnostic.enneagramTop3) && diagnostic.enneagramTop3.length > 0
+    ? String(diagnostic.enneagramTop3[0])
+    : profile?.execuWell?.enneagram != null
+      ? String(profile.execuWell.enneagram)
+      : '未設定';
+  const cognitive = diagnostic?.cognitiveTrend || '未設定';
+  const strengths = diagnostic?.summary?.trim() || [diagnostic?.mbtiLabel, diagnostic?.discLabel, diagnostic?.cognitiveTrend].filter(Boolean).join('・') || '未設定';
+  const career = profile?.execuWell
+    ? [...(profile.execuWell.currentRoles || []), ...(profile.execuWell.industries || [])].filter(Boolean).join('、') || profile?.position || profile?.company || '未設定'
+    : (profile?.position || profile?.company || '未設定');
+  const goals = profile?.execuWell?.businessGoal?.trim() || '未設定';
+  const value = profile?.execuWell?.values?.length ? profile.execuWell.values.join('、') : '未設定';
+  const personalityTraits = diagnostic?.summary?.trim() || diagnostic?.mbtiLabel || '未設定';
+  const lifestyle = profile?.execuWell?.interests?.length
+    ? profile.execuWell.interests.join('、')
+    : '未設定';
+
+  // Gene data (VitaAI-specific)
+  const geneDataRaw = (profile?.vitaAI as any)?.geneData;
+  let geneData = '未登録（遺伝子キット未使用）';
+  if (geneDataRaw && typeof geneDataRaw === 'object') {
+    geneData = Object.entries(geneDataRaw).map(([k, v]) => `${k}: ${v}`).join('、');
+  } else if (profile?.vitaAI?.geneticSummary != null) {
+    geneData = typeof profile.vitaAI.geneticSummary === 'string'
+      ? profile.vitaAI.geneticSummary
+      : '遺伝子・スポーツデータ登録済み';
+  }
+
+  // Pick service-specific template
+  const template = service === 'VITAAI' ? MYAI_CONTEXT_VITAAI : MYAI_CONTEXT_EXECUWELL;
+
+  return template
+    .replace(/\{\{name\}\}/g, name)
+    .replace(/\{\{mbti\}\}/g, mbti)
+    .replace(/\{\{disc\}\}/g, disc)
+    .replace(/\{\{enneagram\}\}/g, enneagram)
+    .replace(/\{\{cognitive\}\}/g, cognitive)
+    .replace(/\{\{strengths\}\}/g, strengths)
+    .replace(/\{\{career\}\}/g, career)
+    .replace(/\{\{goals\}\}/g, goals)
+    .replace(/\{\{value\}\}/g, value)
+    .replace(/\{\{personality_traits\}\}/g, personalityTraits)
+    .replace(/\{\{lifestyle\}\}/g, lifestyle)
+    .replace(/\{\{gene_data\}\}/g, geneData);
+}
+
+/** Return personalized greeting for empty chat (initial prompt) */
+export async function getMyAIWelcome(userId: string, service?: string): Promise<{ greeting: string; name: string }> {
+  const appUser = await prisma.appUser.findUnique({
+    where: { supabaseUserId: userId },
+    select: { name: true },
+  });
+  const profile = await prisma.personalProfile.findUnique({
+    where: { ownerId: userId },
+  });
+  const name = profile?.fullName?.trim() || appUser?.name?.trim() || 'お客様';
+  const template = service === 'VITAAI' ? MYAI_GREETING_VITAAI : MYAI_GREETING_EXECUWELL;
+  const greeting = template.replace(/\{\{name\}\}/g, name);
+  return { greeting, name };
+}
 
 interface ChatResponse {
   content: string;
@@ -76,7 +238,17 @@ interface ChatResponse {
   suggestedActions?: string[];
 }
 
-export async function processChat(service: string, content: string, userId?: string, conversationId?: string): Promise<string> {
+/**
+ * Process a chat message through the AI.
+ * @param lineConversationHistory Optional pre-built history array for LINE chats (since they use a separate table)
+ */
+export async function processChat(
+  service: string,
+  content: string,
+  userId?: string,
+  conversationId?: string,
+  lineConversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>,
+): Promise<string> {
   try {
     // Rate limiting check
     if (userId) {
@@ -106,11 +278,27 @@ export async function processChat(service: string, content: string, userId?: str
       throw new Error('コンテンツを空にすることはできません');
     }
 
-    const systemPrompt = SERVICE_PROMPTS[service as keyof typeof SERVICE_PROMPTS];
+    let systemPrompt = SERVICE_PROMPTS[service as keyof typeof SERVICE_PROMPTS];
 
-    // Get conversation history if conversationId is provided
+    // Prepend MyAI user context (profile + diagnostic) when userId is available
+    if (userId) {
+      try {
+        const userContextBlock = await buildUserContextPrompt(userId, service);
+        systemPrompt = systemPrompt + '\n\n---\n\n【ユーザー情報（このユーザーに合わせた応答をすること）】\n\n' + userContextBlock;
+      } catch (err) {
+        console.error('[chatService] buildUserContextPrompt failed:', err);
+        // Continue with base system prompt only
+      }
+    }
+
+    // Get conversation history from web DB or LINE pre-built history
     let conversationHistory: any[] = [];
-    if (conversationId && userId) {
+    if (lineConversationHistory && lineConversationHistory.length > 0) {
+      // LINE chat: use pre-built history. EXECUWELL = last 2 exchanges only (token control).
+      conversationHistory = service === 'EXECUWELL'
+        ? lineConversationHistory.slice(-4)
+        : lineConversationHistory;
+    } else if (conversationId && userId) {
       const messages = await prisma.chatMessage.findMany({
         where: {
           conversationId: conversationId,
@@ -122,10 +310,9 @@ export async function processChat(service: string, content: string, userId?: str
         orderBy: {
           createdAt: 'asc'
         },
-        take: 15 // Limit to last 20 messages to avoid token limits
+        take: 15
       });
 
-      // Convert database messages to OpenAI format
       conversationHistory = messages.map(msg => ({
         role: msg.sender === 'USER' ? 'user' : 'assistant',
         content: msg.content
@@ -145,14 +332,15 @@ export async function processChat(service: string, content: string, userId?: str
       }
     ];
 
-    // Call OpenAI API
+    // Call OpenAI API (EXECUWELL: structured executive output, ~800 JP chars)
+    const isExecuWell = service === 'EXECUWELL';
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Using cost-effective model
+      model: "gpt-4o-mini",
       messages: messages,
-      max_tokens: 4000,
-      temperature: 0.7,
+      max_tokens: isExecuWell ? 800 : 4000,
+      temperature: isExecuWell ? 0.3 : 0.7,
       presence_penalty: 0.1,
-      frequency_penalty: 0.1,
+      frequency_penalty: isExecuWell ? 0.3 : 0.1,
     });
 
     const aiResponse = completion.choices[0]?.message?.content;

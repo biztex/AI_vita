@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import Image from "next/image"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -14,9 +15,14 @@ import { Badge } from "@/components/ui/badge"
 import { ProtectedRoute } from "@/features/auth/components/protected-route"
 import { useAuth } from "@/lib/auth-context"
 import { apiClient } from "@/lib/api"
-import { Loader2, Upload, CheckCircle2, Clock, CreditCard, Calendar, X, Camera, Crown, Brain, Activity, ChevronDown, CheckIcon } from "lucide-react"
+import { Loader2, Upload, CheckCircle2, Clock, CreditCard, Calendar, X, Camera, Crown, Brain, Activity, ChevronDown, CheckIcon, ClipboardCheck, MessageSquare, Link2, Unlink, Bell, BellOff } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { toast } from "react-toastify"
 import { NEWS_CATEGORIES, NEWS_CATEGORY_LABELS_JA, type NewsCategory } from "../../../shared/news-categories"
+import { DiagnosticResultsCard } from "@/features/diagnostic/components/diagnostic-results-card"
+import type { DiagnosticResult } from "@/lib/diagnostic/scoring"
+
+const LINE_FRIEND_URL = process.env.NEXT_PUBLIC_LINE_FRIEND_URL || "https://line.me/R/ti/p/@389rupfv"
 
 const CATEGORY_OPTIONS: Array<{ value: NewsCategory; label: string }> = NEWS_CATEGORIES.map((category) => ({
   value: category,
@@ -35,7 +41,15 @@ type ProfileFormData = z.infer<typeof profileSchema>
 
 function ProfileContent() {
   const { user, refreshUser } = useAuth()
-  const [activeTab, setActiveTab] = useState("basic")
+  // Support ?tab=line URL param for deep linking from dashboard
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      const tab = params.get("tab")
+      if (tab && ["basic", "diagnostic", "line", "billing"].includes(tab)) return tab
+    }
+    return "basic"
+  })
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
   const [profile, setProfile] = useState<any>(null)
@@ -47,6 +61,18 @@ function ProfileContent() {
   } | null>(null)
   const [subscriptionData, setSubscriptionData] = useState<any>(null)
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true)
+  const [diagnosticResult, setDiagnosticResult] = useState<DiagnosticResult | null>(null)
+  const [isLoadingDiagnostic, setIsLoadingDiagnostic] = useState(true)
+  // LINE link state
+  const [lineStatus, setLineStatus] = useState<{
+    linked: boolean
+    lineUserId: string | null
+    userMode: string | null
+    morningPushEnabled: boolean
+  } | null>(null)
+  const [isLoadingLine, setIsLoadingLine] = useState(true)
+  const [linkInput, setLinkInput] = useState("")
+  const [isLinking, setIsLinking] = useState(false)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -58,7 +84,101 @@ function ProfileContent() {
   useEffect(() => {
     loadProfile()
     loadSubscription()
+    loadDiagnostic()
+    loadLineStatus()
   }, [])
+
+  const loadLineStatus = async () => {
+    try {
+      setIsLoadingLine(true)
+      const data = await apiClient.line.getStatus()
+      setLineStatus(data)
+    } catch (error) {
+      console.error("Failed to load LINE status:", error)
+    } finally {
+      setIsLoadingLine(false)
+    }
+  }
+
+  // Modern LINE Login (OAuth) - replaces manual input
+  const handleLineLoginStart = async () => {
+    setIsLinking(true)
+    try {
+      // Generate random state for CSRF protection
+      const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+      sessionStorage.setItem("line_login_state", state)
+
+      // Get LINE Login URL from backend
+      const { url } = await apiClient.line.getLoginUrl(state)
+
+      // Redirect user to LINE Login
+      window.location.href = url
+    } catch (error: any) {
+      toast.error(error?.message || "LINE Login URL取得に失敗しました", { position: "top-right", autoClose: 5000 })
+      setIsLinking(false)
+    }
+  }
+
+  // Legacy manual linking (kept for backward compatibility, but hidden by default)
+  const handleLineLink = async () => {
+    if (!linkInput.trim()) return
+    setIsLinking(true)
+    try {
+      await apiClient.line.link(linkInput.trim())
+      toast.success("LINEアカウントを連携しました", { position: "top-right", autoClose: 3000 })
+      setLinkInput("")
+      await loadLineStatus()
+    } catch (error: any) {
+      toast.error(error?.message || "LINE連携に失敗しました", { position: "top-right", autoClose: 5000 })
+    } finally {
+      setIsLinking(false)
+    }
+  }
+
+  const handleLineUnlink = async () => {
+    try {
+      await apiClient.line.unlink()
+      toast.success("LINE連携を解除しました", { position: "top-right", autoClose: 3000 })
+      await loadLineStatus()
+    } catch (error: any) {
+      toast.error(error?.message || "解除に失敗しました", { position: "top-right", autoClose: 5000 })
+    }
+  }
+
+  const handleToggleMorningPush = async (enabled: boolean) => {
+    try {
+      const resp = await apiClient.line.toggleMorningPush(enabled)
+      setLineStatus((prev) => prev ? { ...prev, morningPushEnabled: resp.morningPushEnabled } : prev)
+      toast.success(enabled ? "朝のメッセージを有効にしました" : "朝のメッセージを無効にしました", {
+        position: "top-right",
+        autoClose: 2000,
+      })
+    } catch (error: any) {
+      toast.error("設定の更新に失敗しました", { position: "top-right", autoClose: 3000 })
+    }
+  }
+
+  const loadDiagnostic = async () => {
+    try {
+      setIsLoadingDiagnostic(true)
+      const data = await apiClient.diagnostic.get()
+      if (data.result) {
+        setDiagnosticResult({
+          mbtiType: data.result.mbtiType || "",
+          mbtiLabel: data.result.mbtiLabel || "",
+          discType: data.result.discType || "",
+          discLabel: data.result.discLabel || "",
+          enneagramTop3: data.result.enneagramTop3 || [],
+          cognitiveTrend: data.result.cognitiveTrend || "",
+          summary: data.result.summary || "",
+        })
+      }
+    } catch (error) {
+      console.error("Failed to load diagnostic:", error)
+    } finally {
+      setIsLoadingDiagnostic(false)
+    }
+  }
 
   const loadProfile = async () => {
     try {
@@ -340,9 +460,17 @@ function ProfileContent() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="basic">基本情報</TabsTrigger>
-          <TabsTrigger value="billing">請求・サブスクリプション</TabsTrigger>
+          <TabsTrigger value="diagnostic" className="gap-1.5">
+            <ClipboardCheck className="w-4 h-4" />
+            診断結果
+          </TabsTrigger>
+          <TabsTrigger value="line" className="gap-1.5">
+            <MessageSquare className="w-4 h-4" />
+            LINE連携
+          </TabsTrigger>
+          <TabsTrigger value="billing">サブスクリプション</TabsTrigger>
         </TabsList>
 
         {/* Basic Information Tab */}
@@ -538,6 +666,180 @@ function ProfileContent() {
                 <p className="mt-6 text-xs text-muted-foreground">
                   最終更新: {new Date(profile.updatedAt).toLocaleString("ja-JP")}
                 </p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Diagnostic Tab */}
+        <TabsContent value="diagnostic" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardCheck className="w-5 h-5 text-primary" />
+                MyAI パーソナル診断結果
+              </CardTitle>
+              <CardDescription>
+                MBTI・DISC・エニアグラムを統合したあなたのプロファイル
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingDiagnostic ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : diagnosticResult ? (
+                <DiagnosticResultsCard result={diagnosticResult} />
+              ) : (
+                <div className="text-center py-12">
+                  <ClipboardCheck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground mb-4">
+                    まだ診断を受けていません
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    ダッシュボードから21問の診断を受けて、あなた専用のプロファイルを作成しましょう
+                  </p>
+                  <Button asChild>
+                    <a href="/dashboard">ダッシュボードへ</a>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* LINE Integration Tab */}
+        <TabsContent value="line" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-green-600" />
+                LINE連携
+              </CardTitle>
+              <CardDescription>
+                LINEアカウントを連携して、MyAIとLINE上で会話したり朝のニュース配信を受け取れます
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {isLoadingLine ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : lineStatus?.linked ? (
+                <>
+                  {/* Connected status */}
+                  <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-800 p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                        <Link2 className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-green-700 dark:text-green-400">LINE連携済み</p>
+                        <p className="text-sm text-muted-foreground">
+                          モード: {lineStatus.userMode === "VITAAI" ? "VitaAI" : "ExecuWell"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Morning push toggle */}
+                  <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="flex items-center gap-3">
+                      {lineStatus.morningPushEnabled ? (
+                        <Bell className="w-5 h-5 text-amber-500" />
+                      ) : (
+                        <BellOff className="w-5 h-5 text-muted-foreground" />
+                      )}
+                      <div>
+                        <p className="font-medium">朝の一言メッセージ</p>
+                        <p className="text-sm text-muted-foreground">
+                          毎朝MyAIからニュース要約をLINEで受信
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={lineStatus.morningPushEnabled}
+                      onCheckedChange={handleToggleMorningPush}
+                    />
+                  </div>
+
+                  {/* Unlink button */}
+                  <Button
+                    variant="outline"
+                    className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                    onClick={handleLineUnlink}
+                  >
+                    <Unlink className="w-4 h-4 mr-2" />
+                    LINE連携を解除
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {/* Not connected – friend add + modern LINE Login flow */}
+                  <div className="text-center py-4">
+                    <p className="text-muted-foreground mb-2">
+                      Webアカウントとの連携がまだ完了していません
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                      LINEログインで連携すると、あなたの診断結果やプロフィールに基づいたパーソナルな応答が可能になります
+                    </p>
+                  </div>
+
+                  {/* Friend Add QR + Link */}
+                  <div className="flex flex-col items-center gap-3 mb-6">
+                    <p className="font-medium">① 公式LINEを友だち追加</p>
+
+                    <div className="rounded-xl shadow-sm p-4 border max-w-xs w-full flex flex-col items-center">
+                      <div className="relative w-48 h-48 mb-3">
+                        <Image
+                          src="/line-friend-qr.png"
+                          alt="ExecuWell / VitaAI 公式LINE 友だち追加用QRコード"
+                          fill
+                          className="object-contain rounded-md"
+                        />
+                      </div>
+
+                      <a
+                        href={LINE_FRIEND_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm font-medium text-[#06C755] underline"
+                      >
+                        友だち追加ページを開く
+                      </a>
+
+                      <p className="mt-2 text-xs text-muted-foreground text-center">
+                        スマートフォンのカメラでQRコードを読み取るか、上のリンクからLINEアプリを開いて「追加」をタップしてください。
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* LINE Login Button */}
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={handleLineLoginStart}
+                      disabled={isLinking}
+                      size="lg"
+                      className="bg-[#06C755] hover:bg-[#05b34d] text-white font-medium px-8 py-6 rounded-lg shadow-lg transition-all hover:shadow-xl"
+                    >
+                      {isLinking ? (
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      ) : (
+                        <Link2 className="w-5 h-5 mr-2" />
+                      )}
+                      ② LINEで連携する
+                    </Button>
+                  </div>
+
+                  <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground mt-4 max-w-md mx-auto">
+                    <p className="font-medium mb-2">連携の流れ：</p>
+                    <ol className="list-decimal list-inside space-y-1">
+                      <li>① 上の「友だち追加」で公式LINEを追加</li>
+                      <li>② 「LINEで連携する」ボタンでアカウント連携</li>
+                      <li>完了後、LINEでMyAIとチャットできます</li>
+                    </ol>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

@@ -7,6 +7,8 @@ import news from "./news";
 import auth from "./auth";
 import profile from "./profile";
 import stripe from "./stripe";
+import diagnostic from "./diagnostic";
+import line from "./line";
 
 const router = express.Router();
 router.get("/test", (_req, res) => {
@@ -20,4 +22,6 @@ router.use("/admin", admin);
 router.use("/news", news);
 router.use("/profile", profile);
 router.use("/stripe", stripe);
+router.use("/diagnostic", diagnostic);
+router.use("/line", line);
 export default router;

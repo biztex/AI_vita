@@ -33,7 +33,6 @@ function VitaAIChatContent() {
     setIsLoadingConversation(true)
     try {
       const response = await apiClient.chats.getConversation(conversationId)
-      console.log("resdata",response);
       const formattedMessages: Message[] = response.messages.map((msg: ConversationMessage) => ({
         id: msg.id,
         role: msg.sender === "USER" ? "user" : "assistant",
@@ -67,17 +66,34 @@ function VitaAIChatContent() {
     loadConversation(conversationId)
   }
 
-  // Load initial conversation or show welcome message
+  // Load MyAI personalized welcome when no conversation is selected
   useEffect(() => {
-    if (!currentConversationId && messages.length === 0) {
-      setMessages([{
-        id: "welcome",
-        role: "assistant",
-        content: "こんにちは！私はVitaAI、あなた専用の健康インテリジェンスアシスタントです。遺伝子データの理解、パーソナライズされた健康推奨事項の提供、ウェルビーイングに関する質問への回答をお手伝いします。今日はどのようにお手伝いできますか？",
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      }])
-    }
-  }, [currentConversationId, messages.length])
+    if (currentConversationId) return
+    let cancelled = false
+    apiClient.chats
+      .getMyAIWelcome()
+      .then((data) => {
+        if (!cancelled) {
+          setMessages([{
+            id: "welcome",
+            role: "assistant",
+            content: data.greeting,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          }])
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMessages([{
+            id: "welcome",
+            role: "assistant",
+            content: "こんにちは！私はVitaAI、あなた専用の健康インテリジェンスアシスタントです。今日はどんなことを話そうか？",
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          }])
+        }
+      })
+    return () => { cancelled = true }
+  }, [currentConversationId])
 
   const handleSendMessage = async (content: string, type: "text" | "voice" | "image", file?: File) => {
     // Add user message

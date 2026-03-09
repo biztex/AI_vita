@@ -1,11 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { ProtectedRoute } from "@/features/auth/components/protected-route"
 import { useAuth } from "@/lib/auth-context"
+import { MyAIDiagnosticModal } from "@/features/diagnostic/components/myai-diagnostic-modal"
+import { DiagnosticResultsCard } from "@/features/diagnostic/components/diagnostic-results-card"
+import { apiClient } from "@/lib/api"
+import type { DiagnosticResult } from "@/lib/diagnostic/scoring"
 import { 
   Activity, 
   Brain, 
@@ -16,7 +21,11 @@ import {
   Target,
   Zap,
   Sparkles,
-  Award
+  Award,
+  ClipboardCheck,
+  ArrowRight,
+  MessageSquare,
+  ExternalLink
 } from "lucide-react"
 import {
   Chart as ChartJS,
@@ -189,6 +198,44 @@ function DashboardContent() {
   const { user } = useAuth()
   const [service, setService] = useState<"vitaai" | "execuwell">("vitaai")
   const [period, setPeriod] = useState<"daily" | "monthly">("daily")
+  const [isDiagnosticOpen, setIsDiagnosticOpen] = useState(false)
+  const [diagnosticResult, setDiagnosticResult] = useState<DiagnosticResult | null>(null)
+  const [isLoadingDiagnostic, setIsLoadingDiagnostic] = useState(true)
+  const [isLineLinked, setIsLineLinked] = useState<boolean | null>(null)
+
+  // Load existing diagnostic result
+  useEffect(() => {
+    const loadDiagnostic = async () => {
+      try {
+        const data = await apiClient.diagnostic.get()
+        if (data.result) {
+          setDiagnosticResult({
+            mbtiType: data.result.mbtiType || "",
+            mbtiLabel: data.result.mbtiLabel || "",
+            discType: data.result.discType || "",
+            discLabel: data.result.discLabel || "",
+            enneagramTop3: data.result.enneagramTop3 || [],
+            cognitiveTrend: data.result.cognitiveTrend || "",
+            summary: data.result.summary || "",
+          })
+        }
+      } catch (error) {
+        console.error("Failed to load diagnostic:", error)
+      } finally {
+        setIsLoadingDiagnostic(false)
+      }
+    }
+    loadDiagnostic()
+
+    // Load LINE status
+    apiClient.line.getStatus()
+      .then((data) => setIsLineLinked(data.linked))
+      .catch(() => setIsLineLinked(false))
+  }, [])
+
+  const handleDiagnosticComplete = (result: DiagnosticResult) => {
+    setDiagnosticResult(result)
+  }
 
   const currentData = 
     service === "vitaai" 
@@ -317,6 +364,94 @@ function DashboardContent() {
           {new Date().toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' })}
         </Badge>
       </div>
+
+      {/* MyAI Diagnostic Section */}
+      {!isLoadingDiagnostic && !diagnosticResult && (
+        <Card className="border-2 border-dashed border-primary/40 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-amber-500/5 shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-primary/60">
+          <CardContent className="p-8">
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              <div className="flex-shrink-0">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-amber-500 flex items-center justify-center shadow-lg">
+                  <ClipboardCheck className="w-10 h-10 text-white" />
+                </div>
+              </div>
+              <div className="flex-1 text-center md:text-left">
+                <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-400 via-purple-400 to-amber-400 bg-clip-text text-transparent">
+                  MyAI パーソナル診断
+                </h2>
+                <p className="text-muted-foreground text-base leading-relaxed max-w-xl">
+                  21問の診断に答えるだけで、MBTI・DISC・エニアグラムを統合したあなた専用のプロファイルが完成。
+                  MyAIがあなたの"人生の副操縦士"になります。
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                <Button
+                  onClick={() => setIsDiagnosticOpen(true)}
+                  size="lg"
+                  className="text-lg px-8 py-6 rounded-xl bg-gradient-to-r from-blue-600 via-purple-600 to-amber-600 hover:from-blue-700 hover:via-purple-700 hover:to-amber-700 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                >
+                  <ClipboardCheck className="w-5 h-5 mr-2" />
+                  診断を開始する
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Diagnostic Results (if completed) */}
+      {!isLoadingDiagnostic && diagnosticResult && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <ClipboardCheck className="w-5 h-5 text-primary" />
+              MyAI パーソナル診断結果
+            </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDiagnosticOpen(true)}
+              className="text-xs"
+            >
+              再診断する
+            </Button>
+          </div>
+          <DiagnosticResultsCard result={diagnosticResult} compact />
+        </div>
+      )}
+
+      {/* Diagnostic Modal */}
+      <MyAIDiagnosticModal
+        isOpen={isDiagnosticOpen}
+        onClose={() => setIsDiagnosticOpen(false)}
+        onComplete={handleDiagnosticComplete}
+      />
+
+      {/* LINE Integration Prompt */}
+      {isLineLinked === false && (
+        <Card className="border border-green-200 dark:border-green-800 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10">
+          <CardContent className="p-6 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-[#06C755] flex items-center justify-center flex-shrink-0">
+                <MessageSquare className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">LINE連携で、MyAIをもっと活用しよう</h3>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  LINEと連携すると、毎朝のニュース配信やMyAIとのチャットがLINE上で使えます
+                </p>
+              </div>
+            </div>
+            <Button asChild className="bg-[#06C755] hover:bg-[#05b34d] text-white flex-shrink-0">
+              <a href="/profile?tab=line">
+                連携する
+                <ExternalLink className="w-4 h-4 ml-2" />
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Service & Period Tabs */}
       <div className="space-y-4">
