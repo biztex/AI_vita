@@ -278,6 +278,8 @@ model LineUser {
   displayName       String?
   userMode          ServiceMode       @default(EXECUWELL)
   morningPushEnabled Boolean          @default(true)
+  /** JST日単位で閾値超過プッシュを抑制するための最終送信時刻 */
+  lastVitaThresholdPushAt DateTime?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   appUser           AppUser?          @relation(fields: [appUserId], references: [supabaseUserId])
@@ -306,4 +308,50 @@ model LineMessage {
   conversation   LineConversation @relation(fields: [conversationId], references: [id])
 
   @@index([conversationId])
+}
+
+// ── VitaAI Daily Log (今日を記録する) ──
+
+model DailyLog {
+  id          String   @id @default(uuid())
+  lineUserId  String                         // LINE platform UID
+  condition   String?                        // 体調（physical/mental condition）
+  decisions   String?                        // 判断・行動（decisions or actions today）
+  meals       String?                        // 食事（meals / nutrition）
+  memo        String?                        // 自由記述メモ（free memo）
+  logDate     DateTime @default(now())       // Date this log represents
+  createdAt   DateTime @default(now())
+
+  @@index([lineUserId])
+  @@index([logDate])
+}
+
+/// 管理栄養士が設計した個別設計シート（3ヶ月サイクル更新想定）。AIは isActive かつ最新 version を最優先参照。
+model VitaNutritionPlan {
+  id                    String    @id @default(uuid())
+  lineUserId            String
+  ownerId               String?
+  version               Int       @default(1)
+  effectiveFrom         DateTime  @default(now())
+  nextReviewAt          DateTime?
+  payload               Json
+  isActive              Boolean   @default(true)
+  lastHearingReminderAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([lineUserId, isActive])
+  @@index([ownerId, isActive])
+}
+
+/// 重要意思決定イベント（日次ログとは別テーブルで蓄積）
+model VitaDecisionEvent {
+  id                   String   @id @default(uuid())
+  lineUserId           String
+  hasImportantDecision Boolean  @default(false)
+  hesitationLevel      Int?
+  content              String?
+  createdAt            DateTime @default(now())
+
+  @@index([lineUserId])
 }

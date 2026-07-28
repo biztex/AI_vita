@@ -6,7 +6,8 @@
     "outDir": "dist",                   // compiled output folder
     "esModuleInterop": true,            // allows default import from CJS libs
     "strict": true,                     // enable strict type checking
-    "skipLibCheck": true                // faster build (optional)
+    "skipLibCheck": true,               // faster build (optional)
+    "resolveJsonModule": true           // allow JSON imports (demo sample data)
   },
   "include": ["src/**/*"]               // compile everything inside src/
 }

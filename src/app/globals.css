@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Shippori+Mincho:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -92,8 +93,9 @@
 
 @theme inline {
   /* Typography */
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-sans), "Noto Sans JP", sans-serif;
   --font-mono: var(--font-mono);
+  --font-mincho: "Shippori Mincho", "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
 
   /* Core Colors - Dark Theme */
   --color-background: var(--background);
@@ -209,6 +211,29 @@
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
+}
+
+/* ── Landing page editorial typography ── */
+.lp-root {
+  font-feature-settings: "palt" 1;
+  letter-spacing: 0.015em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.lp-root .font-mincho {
+  font-feature-settings: "palt" 1;
+  font-optical-sizing: auto;
+}
+.lp-kicker {
+  font-feature-settings: "kern" 1;
+}
+
+/* Subtle hairline grid background (matches rich menu's quiet luxury feel) */
+.lp-hairline-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 60px 60px;
 }
 
 /* Focus visible styles */

@@ -4,7 +4,6 @@ import { analyzeBusinessItemsJA, buildEmailContentJA } from './analysisService.j
 import { sendDailyDigest } from './emailService.js';
 import { prisma } from '../prisma.js';
 import type { NewsCategory } from '../utils/news-categories.js';
-import { runMorningLinePush } from './morningLineService.js';
 
 async function getAllMembersWithInterests(): Promise<Array<{ email: string; interests: NewsCategory[] }>> {
   const users = await prisma.appUser.findMany({
@@ -23,8 +22,8 @@ async function getAllMembersWithInterests(): Promise<Array<{ email: string; inte
 }
 
 export function startDailyNewsJob() {
-  // Run daily at 07:00 Asia/Tokyo
-  cron.schedule('45 2 * * *', async () => {
+  // Run daily at 07:00 Asia/Tokyo (cron expr is in JST per the {timezone} option below)
+  cron.schedule('0 7 * * *', async () => {
     try {
       // Step 1: Fetch common news (10 items: 4 JP + 2 global + 2 crypto + 2 market)
       const commonNews = await getCommonNews();
@@ -130,12 +129,11 @@ export function startDailyNewsJob() {
       
       // console.log(`[Scheduler] Sent daily digest to ${members.length} recipients`);
 
-      // ── Morning LINE push (after news is ready) ──
-      try {
-        await runMorningLinePush();
-      } catch (lineErr) {
-        console.error('[Scheduler] Morning LINE push failed:', lineErr);
-      }
+      // ── Scheduled LINE delivery: REMOVED per client direction 2026-07-26 ──
+      // AXEL must never push messages on a schedule. Users initiate contact;
+      // any future notification feature requires explicit per-user opt-in.
+      // (runMorningLinePush also drove the hearing reminders — both stopped.
+      // News fetch/DB/email digest above are unaffected.)
     } catch (e) {
       console.error('[Scheduler] Failed to send daily digest:', e);
     }

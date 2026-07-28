@@ -28,3 +28,34 @@ export const registerSchema = z
   })
 
 export type RegisterFormData = z.infer<typeof registerSchema>
+
+// Contact / Inquiry schema (LP お問い合わせフォーム)
+export const InquiryTypeEnum = z.enum(["document", "consultation", "other"])
+export const InquiryPlanEnum = z.enum(["small", "corporate", "undecided"])
+
+export const contactSchema = z.object({
+  company: z.string().max(120).optional().or(z.literal("")),
+  name: z.string().min(1, "お名前を入力してください").max(80),
+  position: z.string().max(80).optional().or(z.literal("")),
+  email: z.string().email("有効なメールアドレスを入力してください"),
+  phone: z
+    .string()
+    .regex(/^[0-9+\-()\s]*$/, "電話番号の形式が正しくありません")
+    .max(30)
+    .optional()
+    .or(z.literal("")),
+  inquiryType: InquiryTypeEnum,
+  plan: InquiryPlanEnum.optional(),
+  employees: z
+    .string()
+    .regex(/^[0-9]*$/, "半角数字で入力してください")
+    .max(6)
+    .optional()
+    .or(z.literal("")),
+  message: z.string().max(2000).optional().or(z.literal("")),
+  agreement: z.literal(true, {
+    errorMap: () => ({ message: "個人情報の取り扱いへの同意が必要です" }),
+  }),
+})
+
+export type ContactFormData = z.infer<typeof contactSchema>

@@ -536,6 +536,78 @@ class APIClient {
         method: "POST",
         body: { enabled },
       }),
+
+    /** For LIFF detail view: get message content and parsed sections (no auth; pass lineUserId) */
+    getMessage: (messageId: string, lineUserId: string) =>
+      this.request<{
+        id: string
+        content: string
+        sections: { 要点整理: string; 判断軸: string; リスク: string; 推奨アクション: string; 補足: string }
+      }>("/line/message/" + encodeURIComponent(messageId), {
+        query: { lineUserId },
+      }),
+
+    /** LIFF 5秒入力: daily condition/fatigue log */
+    saveLiffLog: (data: {
+      lineUserId: string
+      stateLevel?: 1 | 2 | 3
+      fatigueLevel?: 1 | 2 | 3
+      comment?: string
+      condition?: string
+      decisions?: string
+      meals?: string
+      memo?: string
+    }) =>
+      this.request<{ ok: boolean; id: string; normalized?: { stateLevel: number | null; fatigueLevel: number | null } }>(
+        "/line/liff/log",
+        {
+          method: "POST",
+          body: data,
+        },
+      ),
+
+    /** LIFF イベントログ: 重要意思決定 + 迷い度 */
+    saveEventLog: (data: {
+      lineUserId: string
+      hasImportantDecision: boolean
+      hesitationLevel?: 1 | 2 | 3 | 4 | 5
+      content?: string
+    }) =>
+      this.request<{ ok: boolean; id: string }>("/line/liff/event-log", {
+        method: "POST",
+        body: data,
+      }),
+
+    /** LIFF カルテ: profile + logs + event logs */
+    getKarte: (lineUserId: string) =>
+      this.request<{
+        displayName: string | null
+        userMode: string
+        profile: any
+        subscription: any
+        logs: any[]
+        eventLogs: Array<{
+          id: string
+          logDate: string
+          decisions: string
+          source?: "vita_decision_event" | "legacy_daily_log"
+        }>
+        nutritionPlan: {
+          id: string
+          version: number
+          nextReviewAt: string | null
+          effectiveFrom: string
+        } | null
+      }>("/line/liff/karte", {
+        query: { lineUserId },
+      }),
+
+    /** LIFF 即時アドバイス */
+    getLiffAdvice: (lineUserId: string, note?: string) =>
+      this.request<{ ok: boolean; advice: string }>("/line/liff/advice", {
+        method: "POST",
+        body: { lineUserId, note },
+      }),
   }
 
   // MyAI Payload (unified JSON)

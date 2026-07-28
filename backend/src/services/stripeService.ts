@@ -302,6 +302,26 @@ export async function updateSubscriptionFromStripe(
     return null;
   }
 
+  // 7.5. Sync LineUser.userMode to match subscription (best-effort).
+  // - INTEGRATED → no userMode change (AXEL is computed at runtime from active sub)
+  // - VITAAI     → set userMode = VITAAI
+  // - EXECUWELL  → set userMode = EXECUWELL
+  // Skipped silently when no LineUser is linked yet.
+  if (status === "ACTIVE" && (subscriptionType === "VITAAI" || subscriptionType === "EXECUWELL")) {
+    try {
+      const lineUser = await prisma.lineUser.findFirst({ where: { appUserId: userId } });
+      if (lineUser && lineUser.userMode !== subscriptionType) {
+        await prisma.lineUser.update({
+          where: { id: lineUser.id },
+          data: { userMode: subscriptionType },
+        });
+        console.log(`[Stripe] Synced LineUser ${lineUser.id} userMode → ${subscriptionType}`);
+      }
+    } catch (err) {
+      console.error("[Stripe] LineUser userMode sync failed:", err);
+    }
+  }
+
   // 8. Upsert subscription
   const subscription = await prisma.stripeSubscription.upsert({
     where: {

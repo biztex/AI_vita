@@ -24,3 +24,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.tsc
+# local env files (secrets) — never commit
+.env.local
+/env
+backend/.env
+
+# runtime logs
+/log
+backend.log
+backend/backend.log
+
+# stale build output
+backend/dist/

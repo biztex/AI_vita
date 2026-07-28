@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { ENV } from '../env.js';
+import { tuningParams } from './openaiParams.js';
 import type { NewsItem, Industry, NewsOrigin } from './newsService.js';
 import { NEWS_CATEGORIES, NEWS_CATEGORY_LABELS_JA, type NewsCategory } from '../utils/news-categories.js';
 
@@ -140,14 +141,13 @@ ${list}
 JSON形式のみで出力してください。`;
 
 	const completion = await openai.chat.completions.create({
-		model: 'gpt-4o-mini',
+		model: ENV.AXEL_UPDATER_MODEL,
 		messages: [
 			{ role: 'system', content: system },
 			{ role: 'user', content: user },
 		],
-		max_tokens: 3000,
-		temperature: 0.5,
 		response_format: { type: 'json_object' },
+		...(tuningParams(ENV.AXEL_UPDATER_MODEL, { maxTokens: 3000, temperature: 0.5 }) as any),
 	});
 
 	const content = completion.choices[0]?.message?.content?.trim() || '{}';

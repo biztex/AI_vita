@@ -1,78 +1,40 @@
 /**
- * Morning LINE push – builds mode-specific "朝の一言" and pushes to all opted-in LINE users.
- * ExecuWell users get business news; VitaAI users get wellness tips.
+ * Morning LINE push — "Silent Concierge" edition.
+ *
+ * Old behaviour: every opted-in user got a generic morning push every day
+ * asking them to record their condition. This violated the client's stated
+ * vision of "the user wants someone they can call on, not someone who
+ * pushes daily notifications".
+ *
+ * New behaviour:
+ *  - The default after onboarding is morningPushEnabled = false.
+ *  - The job only runs for users who have EXPLICITLY opted in.
+ *  - The push is short, soft, name-aware, and contains no URL.
+ *  - If the user has been silent for a long time, the message becomes
+ *    a gentle check-in instead of a "please record" prompt.
+ *  - LIFF links removed entirely — AXEL is LINE-only.
  */
 import { prisma } from '../prisma';
-import OpenAI from 'openai';
-import { ENV } from '../env';
 import { pushText } from './lineService';
+import { getOnboardingAnswers } from './lineConversationStore';
+import { runVitaHearingReminders } from './vitaAlertService';
 
-const openai = new OpenAI({ apiKey: ENV.OPENAI_API_KEY });
-
-// ── ExecuWell: business news snippet ──
-
-async function buildBusinessSnippet(): Promise<string> {
-  const latestNews = await prisma.newsItem.findMany({
-    orderBy: { newsDate: 'desc' },
-    take: 5,
-    select: { title: true, description: true },
-  });
-
-  if (latestNews.length === 0) {
-    return '・今日の主要ニュースはまだ取得中です。';
-  }
-
-  const headlines = latestNews.map((n, i) => `${i + 1}. ${n.title}`).join('\n');
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 300,
-      temperature: 0.5,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'あなたは経営者向けの朝のニュース要約アシスタントです。以下のニュース見出しから最も重要な2〜3本を選び、それぞれ1行で「・」で始まる箇条書きにまとめてください。日本語で、簡潔に。',
-        },
-        { role: 'user', content: headlines },
-      ],
-    });
+function softMorningMessage(name: string, lastLogDaysAgo: number | null): string {
+  // Less is more. Close, warm, like a quick check-in from someone who knows you.
+  const greet = name && name !== 'お客' ? `${name}さん、おはよう。` : 'おはよう。';
+  if (lastLogDaysAgo == null || lastLogDaysAgo >= 7) {
     return (
-      completion.choices[0]?.message?.content?.trim() ||
-      latestNews.slice(0, 3).map((n) => `・${n.title}`).join('\n')
+      `${greet}\n\n` +
+      'しばらく話せてなかったね。最近、体調やお仕事はどんな感じ？\n' +
+      '何か気になることがあれば、いつでも話して。'
     );
-  } catch (err) {
-    console.error('[Morning LINE] GPT business summary failed:', err);
-    return latestNews.slice(0, 3).map((n) => `・${n.title}`).join('\n');
   }
+  return (
+    `${greet}\n\n` +
+    '今日も無理しないようにね。\n' +
+    '相談ごとがあれば、いつでもどうぞ。'
+  );
 }
-
-// ── VitaAI: wellness morning tip ──
-
-async function buildWellnessTip(): Promise<string> {
-  try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 200,
-      temperature: 0.9,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'あなたはVitaAIウェルネスアシスタントです。毎朝ユーザーに送る短い健康アドバイスを1つ生成してください。睡眠、栄養、運動、ストレス管理、水分補給などのテーマからランダムに選び、実行しやすい具体的なアドバイスを日本語で2〜3文で書いてください。絵文字を1つだけ使ってOK。',
-        },
-        { role: 'user', content: '今日の朝の健康アドバイスをください。' },
-      ],
-    });
-    return completion.choices[0]?.message?.content?.trim() || '・今日も水分をしっかり摂って、いい一日にしましょう。';
-  } catch (err) {
-    console.error('[Morning LINE] GPT wellness tip failed:', err);
-    return '・深呼吸を3回して、リラックスした状態で1日をスタートしましょう。';
-  }
-}
-
-// ── Push per user with mode-specific content ──
 
 export async function runMorningLinePush(): Promise<void> {
   try {
@@ -82,37 +44,32 @@ export async function runMorningLinePush(): Promise<void> {
     });
 
     if (lineUsers.length === 0) {
-      console.log('[Morning LINE] No opted-in users.');
+      console.log('[Morning AXEL push] No opted-in users (default is silent).');
       return;
     }
-
-    // Pre-build snippets (shared across users of same mode)
-    const hasExecuWell = lineUsers.some((u) => u.userMode === 'EXECUWELL');
-    const hasVitaAI = lineUsers.some((u) => u.userMode === 'VITAAI');
-
-    const [businessSnippet, wellnessTip] = await Promise.all([
-      hasExecuWell ? buildBusinessSnippet() : Promise.resolve(''),
-      hasVitaAI ? buildWellnessTip() : Promise.resolve(''),
-    ]);
 
     let sent = 0;
     for (const lu of lineUsers) {
       try {
-        const name = lu.appUser?.name || lu.displayName || 'ユーザー';
+        // Personal name precedence: onboarding answer > linked app user > LINE display
+        const onboarding = getOnboardingAnswers(lu.lineUserId);
+        const name =
+          onboarding?.name?.trim() ||
+          lu.appUser?.name?.trim() ||
+          lu.displayName?.trim() ||
+          'お客';
 
-        let text: string;
-        if (lu.userMode === 'VITAAI') {
-          text =
-            `おはようございます、${name}さん。\n\n` +
-            `【今日のウェルネスアドバイス】\n${wellnessTip}\n\n` +
-            `今日も健康的な1日を過ごしましょう。VitaAIがサポートします。`;
-        } else {
-          text =
-            `おはようございます、${name}さん。\n\n` +
-            `今日はこれだけチェックしておくといいかも：\n${businessSnippet}\n\n` +
-            `引き続き、目標に集中できる1日になりますように。`;
-        }
+        // How many days since the user's last daily log? Used to soften.
+        const lastLog = await prisma.dailyLog.findFirst({
+          where: { lineUserId: lu.lineUserId },
+          orderBy: { logDate: 'desc' },
+          select: { logDate: true },
+        });
+        const lastLogDaysAgo = lastLog
+          ? Math.floor((Date.now() - lastLog.logDate.getTime()) / (1000 * 60 * 60 * 24))
+          : null;
 
+        const text = softMorningMessage(name, lastLogDaysAgo);
         await pushText(lu.lineUserId, text);
         sent++;
       } catch (err) {
@@ -120,7 +77,16 @@ export async function runMorningLinePush(): Promise<void> {
       }
     }
 
-    console.log(`[Morning LINE] Pushed morning message to ${sent} users.`);
+    try {
+      const reminded = await runVitaHearingReminders(14, 7);
+      if (reminded > 0) {
+        console.log(`[Morning LINE] VitaAI hearing reminders sent: ${reminded}`);
+      }
+    } catch (e) {
+      console.error('[Morning LINE] Hearing reminders failed:', e);
+    }
+
+    console.log(`[Morning AXEL push] Soft morning push sent to ${sent} explicit opt-in users.`);
   } catch (err) {
     console.error('[Morning LINE] Push failed:', err);
   }

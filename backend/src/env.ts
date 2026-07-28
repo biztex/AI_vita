@@ -17,6 +17,18 @@ export const ENV = {
   SUPABASE_ISSUER: must(process.env.SUPABASE_ISSUER, "SUPABASE_ISSUER"),
   SUPABASE_AUDIENCE: must(process.env.SUPABASE_AUDIENCE, "SUPABASE_AUDIENCE"),
   OPENAI_API_KEY: must(process.env.OPENAI_API_KEY, "OPENAI_API_KEY"),
+  // AXEL conversation model — current OpenAI flagship (client's benchmark is
+  // ChatGPT, which runs this generation; verified available on this API key
+  // 2026-07-24). Also used by the LIFF web chat and the demo preview so every
+  // client-facing surface shows the same quality tier.
+  AXEL_MODEL: process.env.AXEL_MODEL || 'gpt-5.6-sol',
+  // Budget-tier model of the same generation for the async understanding-update
+  // pass — extraction accuracy here directly drives the "AXEL understands me"
+  // feeling, so it tracks the current family rather than 2024's gpt-4o-mini.
+  AXEL_UPDATER_MODEL: process.env.AXEL_UPDATER_MODEL || 'gpt-5.6-luna',
+  // Reasoning effort for GPT-5-family calls. "low" is empirically as good as
+  // "medium" for conversational work and markedly faster (LINE reply window).
+  AXEL_REASONING_EFFORT: (process.env.AXEL_REASONING_EFFORT || 'low') as 'minimal' | 'low' | 'medium' | 'high',
   // SMTP (optional - if absent, emails are skipped and output is logged)
   SMTP_HOST: process.env.SMTP_HOST,
   SMTP_PORT: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
@@ -39,4 +51,7 @@ export const ENV = {
   LINE_LOGIN_CHANNEL_ID: process.env.LINE_LOGIN_CHANNEL_ID || '',
   LINE_LOGIN_CHANNEL_SECRET: process.env.LINE_LOGIN_CHANNEL_SECRET || '',
   LINE_LOGIN_CALLBACK_URL: process.env.LINE_LOGIN_CALLBACK_URL || '',
+  // LIFF: ExecuWell 詳細ボタン・VitaAI 記録URLなど。複数 LIFF がある場合は PAGES 用 ID を優先。
+  LIFF_ID: process.env.LIFF_ID || '',
+  LIFF_ID_PAGES: process.env.LIFF_ID_PAGES || '',
 };

@@ -9,6 +9,7 @@ import profile from "./profile";
 import stripe from "./stripe";
 import diagnostic from "./diagnostic";
 import line from "./line";
+import demo from "./demo";
 
 const router = express.Router();
 router.get("/test", (_req, res) => {
@@ -24,4 +25,5 @@ router.use("/profile", profile);
 router.use("/stripe", stripe);
 router.use("/diagnostic", diagnostic);
 router.use("/line", line);
+router.use("/demo", demo);
 export default router;
