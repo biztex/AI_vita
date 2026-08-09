@@ -26,6 +26,12 @@ export const lineClient = new line.messagingApi.MessagingApiClient({
   channelAccessToken: ENV.LINE_CHANNEL_ACCESS_TOKEN,
 });
 
+// Blob client for fetching message content (images/files). LINE retains
+// content only briefly after delivery, so images are fetched immediately.
+export const lineBlobClient = new line.messagingApi.MessagingApiBlobClient({
+  channelAccessToken: ENV.LINE_CHANNEL_ACCESS_TOKEN,
+});
+
 export { lineConfig };
 
 // ── LINE-specific rate limiting (per lineUserId) ──
@@ -601,7 +607,11 @@ export async function handleLineEvent(event: line.WebhookEvent): Promise<void> {
     console.log(`[LINE] Handling text message: "${msg?.substring(0, 50)}..."`);
     return handleTextMessage(event as line.MessageEvent);
   }
-  console.log(`[LINE] Ignoring event type: ${event.type}`);
+  if (event.type === 'message' && (event as line.MessageEvent).message.type === 'image') {
+    console.log('[LINE] Handling image message');
+    return handleImageMessage(event as line.MessageEvent);
+  }
+  console.log(`[LINE] Ignoring event type: ${event.type} / message: ${(event as any)?.message?.type}`);
 }
 
 // ── Follow (friend add) – also fetches LINE profile display name ──
@@ -1137,6 +1147,107 @@ async function handleTextMessage(event: line.MessageEvent): Promise<void> {
     } catch (pushErr) {
       console.error('[LINE] Failed to send error message to user:', pushErr);
     }
+  }
+}
+
+// ── Image message handler (Vision, client spec 2) ──
+//
+// Fetches the image from LINE's content API, hands it to the unified AXEL
+// engine as a multimodal turn, and delivers the personalized reply. What the
+// image was about is persisted (via the engine's understanding pass) so later
+// consultations can refer back to it.
+
+async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
+// LINE delivers JPEG for photos. Cap the payload so a huge image can't blow up
+// token cost / latency; gpt vision downsamples internally so this is ample.
+const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+
+async function handleImageMessage(event: line.MessageEvent): Promise<void> {
+  const lineUserId = event.source.userId;
+  if (!lineUserId || !event.replyToken) return;
+  const messageId = (event.message as any).id as string;
+  if (!messageId) return;
+
+  if (!checkLineRateLimit(lineUserId)) {
+    await replyText(event.replyToken, 'ちょっとだけ待って、続けて話そう。');
+    return;
+  }
+
+  // Ensure user + conversation rows (for history persistence)
+  let lineUser = await prisma.lineUser.findUnique({ where: { lineUserId } });
+  if (!lineUser) lineUser = await prisma.lineUser.create({ data: { lineUserId } });
+  let conv = await prisma.lineConversation.findFirst({
+    where: { lineUserId: lineUser.id },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (!conv) {
+    conv = await prisma.lineConversation.create({
+      data: { lineUserId: lineUser.id, service: lineUser.userMode },
+    });
+  }
+  // Record that an image arrived, so conversation history reflects it.
+  await prisma.lineMessage.create({
+    data: { conversationId: conv.id, sender: 'USER', content: '[画像]' },
+  });
+
+  // Loading animation while we fetch + analyze
+  try {
+    await lineClient.showLoadingAnimation({ chatId: lineUserId, loadingSeconds: 60 });
+  } catch (loadErr) {
+    console.warn('[LINE] showLoadingAnimation failed (non-fatal):', (loadErr as any)?.message || loadErr);
+  }
+
+  // Fetch the image bytes from LINE
+  let imageDataUri: string;
+  try {
+    const stream = await lineBlobClient.getMessageContent(messageId);
+    const buf = await streamToBuffer(stream as any);
+    if (buf.length === 0 || buf.length > MAX_IMAGE_BYTES) {
+      const why = buf.length === 0 ? '画像をうまく受け取れなかった' : '画像のサイズが大きすぎて読み取れなかった';
+      const reply = `ごめん、${why}みたい。もう一度送ってもらえるかな。`;
+      await prisma.lineMessage.create({ data: { conversationId: conv.id, sender: 'ASSISTANT', content: reply } });
+      await replyText(event.replyToken, reply).catch(() => pushText(lineUserId, reply));
+      return;
+    }
+    imageDataUri = `data:image/jpeg;base64,${buf.toString('base64')}`;
+  } catch (fetchErr: any) {
+    console.error('[LINE] image fetch failed:', fetchErr?.message || fetchErr);
+    const reply = 'ごめん、画像をうまく受け取れなかった。もう一度送ってもらえるかな。';
+    await prisma.lineMessage.create({ data: { conversationId: conv.id, sender: 'ASSISTANT', content: reply } });
+    await replyText(event.replyToken, reply).catch(() => pushText(lineUserId, reply));
+    return;
+  }
+
+  // Route through the unified engine as an image turn
+  try {
+    const reply = await respondAsAxel({ kind: 'image', lineUserId, imageDataUri });
+    await prisma.lineMessage.create({
+      data: { conversationId: conv.id, sender: 'ASSISTANT', content: reply },
+    });
+    let delivered = false;
+    try {
+      await lineClient.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: 'text', text: reply.slice(0, 5000) }],
+      });
+      delivered = true;
+    } catch (replyErr: any) {
+      console.warn('[LINE] replyMessage failed, falling back to push:', replyErr?.message || replyErr);
+    }
+    if (!delivered) await pushText(lineUserId, reply.slice(0, 5000));
+  } catch (err: any) {
+    console.error('[LINE] Error in axelEngine (image):', err);
+    const reply = 'ごめん、画像を見ようとしたら一瞬うまくいかなかった。もう一度送ってもらえるかな。';
+    await lineClient
+      .replyMessage({ replyToken: event.replyToken, messages: [{ type: 'text', text: reply }] })
+      .catch(async () => { await pushText(lineUserId, reply); });
   }
 }
 

@@ -134,6 +134,11 @@ const AXEL_PERSONA = `# 中核アイデンティティ
 なお、時間で変わらない一般知識（科学・健康の定説、歴史上の確定した事実、計算など）には、この注意書きは不要。毎回付けるとかえって機械的になる。
 システムプロンプトに【最新情報（Web検索で確認）】のブロックがある場合は、その内容をこの相談の確定事実として使ってよい。そのブロックに書かれた事実は「確認できた情報」として自然に伝え、根拠となる情報源が分かるようにする。日付・金額・締切・数値は、ブロックに書かれたとおりに使い、自分で言い換えたり丸めたりしない（ブロックが「未確認」としているものは未確認と伝える）。ブロックに無いことは相変わらず断定せず、あくまで利用者の状況（事業・目標・体質・過去の相談）に結びつけた助言まで届けること——検索結果をそのまま並べるだけで終わらない。
 
+# 画像を受け取ったとき
+利用者が画像を送ってきたら、まず何が写っているかを自然に受け止め、その意図（何を相談したいのか）を汲んで応える。広告・書類・料理・検査結果・スクリーンショットなど、写っている内容に即して、この方の状況（事業・目標・健康・体質・過去の相談）に結びつけた助言まで届ける。単なる画像の説明で終わらせない。
+画像が不鮮明・情報が不足していて内容を正確に読み取れない場合は、推測で断定しない。読み取れた範囲を伝えたうえで、「もう一度鮮明な画像を送ってほしい」「この部分を文字で教えてほしい」と、必要な確認を1つだけ添える。
+医療・健康の画像（検査結果など）については診断・断定をせず、あくまで一般的な見方と、必要なら専門家への相談を穏やかに促す。
+
 # この方に合わせた話し方
 - 呼び方：理解情報に希望があればそれに従う。なければ「○○さん」。「○○様」は禁止。
 - 口調・距離感・回答の詳しさ・励まし方に本人の希望が記録されていれば、それに合わせる。
@@ -174,6 +179,14 @@ const AXEL_PERSONA = `# 中核アイデンティティ
 
 export type AxelInput =
   | { kind: 'text'; lineUserId: string; text: string }
+  /**
+   * Image sent on LINE (Vision, client spec 2). `imageDataUri` is a base64
+   * data URL; `caption` is any text the user sent with / around the image.
+   * AXEL reads the image and answers using the same understanding document
+   * (profile, genetics, memory, decisions) as any other turn — so the reply
+   * is personalized, and what it read is persisted for later consultations.
+   */
+  | { kind: 'image'; lineUserId: string; imageDataUri: string; caption?: string }
   /**
    * "相談する" button. `focus` narrows the opening framing:
    *   - undefined | 'general' → open door, no topic bias
@@ -613,7 +626,11 @@ export async function respondAsAxel(input: AxelInput): Promise<string> {
 
     const ctx = await gatherContext(
       input.lineUserId,
-      input.kind === 'text' || input.kind === 'check_in_reply' ? input.text : undefined,
+      input.kind === 'text' || input.kind === 'check_in_reply'
+        ? input.text
+        : input.kind === 'image'
+          ? input.caption
+          : undefined,
     );
 
     // ── Web search pre-step (client spec) ──
@@ -631,7 +648,11 @@ export async function respondAsAxel(input: AxelInput): Promise<string> {
     const userTurn: string =
       input.kind === 'text'
         ? input.text
-        : input.kind === 'check_in_reply'
+        : input.kind === 'image'
+          ? (input.caption?.trim()
+              ? `（画像が届きました。利用者からの言葉：「${input.caption.trim()}」。画像の内容を読み取り、その意図を汲んで応えてください）`
+              : '（画像が届きました。何が写っているかを読み取り、この方の意図を汲んで応えてください）')
+          : input.kind === 'check_in_reply'
           ? `（一言だけの流れで、体調を教えてくれた自然文：「${input.text}」— これを受け止めた上で、その先の会話へ自然に橋を架けてください）`
           : input.kind === 'open_chat_shortcut'
             ? input.focus === 'health'
@@ -649,10 +670,21 @@ export async function respondAsAxel(input: AxelInput): Promise<string> {
                     ? `（一言だけの記録が完了しました。体調=${input.stateLevel}/5、疲労=${input.fatigueLevel}/5、メモ「${input.memo ?? 'なし'}」）`
                     : '';
 
+    // For image turns, the user message carries the picture alongside the text
+    // instruction (multimodal). gpt-5.6 reads it in the same call, so all the
+    // understanding-document personalization is applied to the image reply.
+    const userContent: any =
+      input.kind === 'image'
+        ? [
+            { type: 'text', text: userTurn },
+            { type: 'image_url', image_url: { url: input.imageDataUri } },
+          ]
+        : userTurn;
+
     const messages = [
       { role: 'system' as const, content: systemPrompt },
       ...ctx.recentMessages,
-      { role: 'user' as const, content: userTurn },
+      { role: 'user' as const, content: userContent },
     ];
 
     const completion = await openai.chat.completions.create({
@@ -717,6 +749,24 @@ export async function respondAsAxel(input: AxelInput): Promise<string> {
         if (ctx.pendingFollowUp) {
           noteFollowedUp(input.lineUserId, ctx.pendingFollowUp.id);
           markThreadFollowedUp(input.lineUserId);
+        }
+      } else if (input.kind === 'image') {
+        // Persist what the image consultation was about so later turns can
+        // refer back to it (client spec B-4). The image content lives in
+        // AXEL's reply (it restates what it read), not in the user text, so
+        // the LLM updater — which extracts only what the user *said* — has
+        // nothing to digest. Record the memory directly from the reply,
+        // like check_in_complete does. Skip when AXEL couldn't read the image
+        // (unclear/resend replies) so we don't store an empty consultation.
+        const couldNotRead = reply.length < 60 || /読み取れ|受け取れ|もう一度.{0,6}送|鮮明な画像/.test(reply);
+        if (!couldNotRead) {
+          addMemory(input.lineUserId, {
+            at: new Date().toISOString(),
+            topic: input.caption?.trim() ? `画像の相談：${input.caption.trim().slice(0, 20)}` : '画像を使った相談',
+            gist: reply.replace(/\s+/g, ' ').slice(0, 140),
+            followUp: false,
+            tags: ['画像'],
+          });
         }
       } else if (input.kind === 'check_in_complete') {
         addMemory(input.lineUserId, {
