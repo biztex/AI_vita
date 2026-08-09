@@ -17,7 +17,7 @@ const router = express.Router();
 // Create checkout session
 router.post("/create-checkout-session", requireAuth(), async (req: any, res: any, next: any) => {
   try {
-    const { subscriptionType } = req.body;
+    const { subscriptionType, lineUserId } = req.body;
     const userId = req.user.id;
     const email = req.user.email;
 
@@ -33,7 +33,15 @@ router.post("/create-checkout-session", requireAuth(), async (req: any, res: any
       });
     }
 
-    const session = await createCheckoutSession(userId, email, subscriptionType, req.user.name);
+    // Optional: when the checkout originates from a LINE context, link the
+    // payment to the LINE identity so AXEL activates automatically on success.
+    const session = await createCheckoutSession(
+      userId,
+      email,
+      subscriptionType,
+      req.user.name,
+      typeof lineUserId === "string" && lineUserId ? lineUserId : undefined,
+    );
 
     res.json({
       sessionId: session.id,

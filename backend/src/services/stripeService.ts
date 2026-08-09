@@ -4,7 +4,7 @@ import { ENV } from "../env.js";
 import { prisma } from "../prisma.js";
 
 export const stripe = new Stripe(ENV.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-11-17.clover", // keep whatever you're using now
+  apiVersion: "2026-01-28.clover", // matches installed SDK's pinned version
   typescript: true,
 });
 
@@ -68,7 +68,11 @@ export async function createCheckoutSession(
   userId: string,
   email: string,
   subscriptionType: SubscriptionType,
-  name?: string
+  name?: string,
+  // When the checkout is started from a LINE context (申込ボタン), the caller
+  // passes the LINE user id so the webhook can link the paying account to the
+  // LINE identity and activate AXEL automatically — no separate linking step.
+  lineUserId?: string,
 ) {
   const customer = await getOrCreateCustomer(userId, email, name);
   const priceId = PRICE_IDS[subscriptionType];
@@ -76,6 +80,9 @@ export async function createCheckoutSession(
   if (!priceId) {
     throw new Error(`Invalid subscription type: ${subscriptionType}`);
   }
+
+  const metadata: Record<string, string> = { userId, subscriptionType };
+  if (lineUserId) metadata.lineUserId = lineUserId;
 
   const session = await stripe.checkout.sessions.create({
     customer: customer.id,
@@ -90,15 +97,9 @@ export async function createCheckoutSession(
     locale: "ja",
     success_url: `${ENV.FRONTEND_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${ENV.FRONTEND_URL}/subscription?canceled=true`,
-    metadata: {
-      userId,
-      subscriptionType,
-    },
+    metadata,
     subscription_data: {
-      metadata: {
-        userId,
-        subscriptionType,
-      },
+      metadata,
     },
     allow_promotion_codes: true,
   });
@@ -322,6 +323,15 @@ export async function updateSubscriptionFromStripe(
     }
   }
 
+  // 7.6. Was this subscription already ACTIVE before this event? Used to fire
+  // the post-payment welcome exactly once (on the transition into ACTIVE),
+  // never again on renewal/update events.
+  const prior = await prisma.stripeSubscription.findUnique({
+    where: { stripeSubscriptionId: stripeSubscription.id },
+    select: { status: true },
+  });
+  const isNewActivation = status === "ACTIVE" && prior?.status !== "ACTIVE";
+
   // 8. Upsert subscription
   const subscription = await prisma.stripeSubscription.upsert({
     where: {
@@ -367,7 +377,45 @@ export async function updateSubscriptionFromStripe(
     },
   });
 
+  // 9. Link the LINE identity to the paying account + start AXEL (client spec 8).
+  // When checkout carried a lineUserId, the webhook — not a separate manual
+  // step — establishes AppUser↔LineUser, so a paying user's AXEL activates.
+  // A one-time welcome push provides the "決済完了後のAXEL利用開始導線".
+  const lineUserId = stripeSubscription.metadata?.lineUserId;
+  if (lineUserId && status === "ACTIVE") {
+    try {
+      await prisma.lineUser.upsert({
+        where: { lineUserId },
+        create: { lineUserId, appUserId: userId },
+        update: { appUserId: userId },
+      });
+      if (isNewActivation) {
+        await sendPostPaymentWelcome(lineUserId, subscriptionType);
+      }
+    } catch (err) {
+      console.error("[Stripe] LINE link / welcome failed (non-fatal):", err);
+    }
+  }
+
   return subscription;
+}
+
+/**
+ * One-time welcome pushed to LINE right after a subscription goes active.
+ * For INTEGRATED this is the moment AXEL becomes available, so the message
+ * invites the user to simply start talking. Uses a dynamic import to keep
+ * stripeService free of a static dependency on the LINE layer.
+ */
+async function sendPostPaymentWelcome(
+  lineUserId: string,
+  subscriptionType: SubscriptionType,
+) {
+  const { pushText } = await import("./lineService.js");
+  const msg =
+    subscriptionType === "INTEGRATED"
+      ? "ご登録ありがとう。これからは、判断のことも健康のことも、私がまとめて受け持つよ。\nさっそく、今いちばん気になっていることを聞かせて。メニューは気にせず、そのまま話しかけてくれて大丈夫。"
+      : "ご登録ありがとう。これから一緒に進めていくね。\n気になっていることを、そのまま話しかけて。";
+  await pushText(lineUserId, msg);
 }
 
 /**
