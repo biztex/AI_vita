@@ -60,6 +60,7 @@ import {
 } from './axelDecisionJournal';
 import { runUnderstandingUpdate } from './axelUnderstanding';
 import { tuningParams } from './openaiParams';
+import { researchIfNeeded, appendCitations, type WebSearchResult } from './axelWebSearch';
 
 const openai = new OpenAI({ apiKey: ENV.OPENAI_API_KEY });
 
@@ -131,6 +132,7 @@ const AXEL_PERSONA = `# 中核アイデンティティ
   悪い例「現在は終了しています。」（現在を断定している）
   良い例「私の知識では2024年時点で提供されていましたが、最新の状況は確認できないため断定できません。変わっている可能性もあるので、公式サイトでの確認が確実です。」
 なお、時間で変わらない一般知識（科学・健康の定説、歴史上の確定した事実、計算など）には、この注意書きは不要。毎回付けるとかえって機械的になる。
+システムプロンプトに【最新情報（Web検索で確認）】のブロックがある場合は、その内容をこの相談の確定事実として使ってよい。そのブロックに書かれた事実は「確認できた情報」として自然に伝え、根拠となる情報源が分かるようにする。日付・金額・締切・数値は、ブロックに書かれたとおりに使い、自分で言い換えたり丸めたりしない（ブロックが「未確認」としているものは未確認と伝える）。ブロックに無いことは相変わらず断定せず、あくまで利用者の状況（事業・目標・体質・過去の相談）に結びつけた助言まで届けること——検索結果をそのまま並べるだけで終わらない。
 
 # この方に合わせた話し方
 - 呼び方：理解情報に希望があればそれに従う。なければ「○○さん」。「○○様」は禁止。
@@ -349,8 +351,11 @@ async function gatherContext(lineUserId: string, currentUserText?: string): Prom
 // to draw on) is exactly what the client's concierge vision requires, and
 // exactly what rule-routers kept getting wrong.
 
-export function buildSystemPrompt(input: AxelInput, ctx: ContextSummary): string {
+export function buildSystemPrompt(input: AxelInput, ctx: ContextSummary, researchBlock?: string): string {
   const parts: string[] = [AXEL_PERSONA];
+  // Fresh, officially-sourced facts confirmed for this turn (web search).
+  // Placed high so the model treats it as the authoritative factual ground.
+  if (researchBlock) parts.push(researchBlock);
 
   // ── The understanding document: who this person is ──
   const a = ctx.onboarding;
@@ -610,7 +615,17 @@ export async function respondAsAxel(input: AxelInput): Promise<string> {
       input.lineUserId,
       input.kind === 'text' || input.kind === 'check_in_reply' ? input.text : undefined,
     );
-    const systemPrompt = buildSystemPrompt(input, ctx);
+
+    // ── Web search pre-step (client spec) ──
+    // For free-text turns, check whether the question needs current/external
+    // facts and, if so, fetch an officially-sourced brief. Fully gated and
+    // fail-safe: null → AXEL proceeds on its own knowledge with the freshness-
+    // honesty rules. The main reply below still does all the personalization.
+    let research: WebSearchResult | null = null;
+    if (input.kind === 'text') {
+      research = await researchIfNeeded(input.text);
+    }
+    const systemPrompt = buildSystemPrompt(input, ctx, research?.block);
 
     // Build messages for the model
     const userTurn: string =
@@ -668,6 +683,12 @@ export async function respondAsAxel(input: AxelInput): Promise<string> {
 
     // Strip any stray prefix the model might inject from learned habit
     reply = reply.replace(/^【AXEL】\s*/i, '').trim();
+
+    // Guarantee the citation requirement: if this turn used web search, ensure
+    // the sources are shown even if the model didn't surface them inline.
+    if (research?.citations?.length) {
+      reply = appendCitations(reply, research.citations);
+    }
 
     // Mark trust contract sent if 3+ profile items are known and not previously marked
     const profileItemCount = countProfileFacts(ctx.onboarding);

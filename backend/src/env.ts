@@ -29,6 +29,12 @@ export const ENV = {
   // Reasoning effort for GPT-5-family calls. "low" is empirically as good as
   // "medium" for conversational work and markedly faster (LINE reply window).
   AXEL_REASONING_EFFORT: (process.env.AXEL_REASONING_EFFORT || 'low') as 'minimal' | 'low' | 'medium' | 'high',
+  // Web search (client spec, 2026-08-04). 'on' enables the Responses-API
+  // web_search pre-step for text turns; 'off' disables it (test harnesses set
+  // this off to keep the chat.completions request path deterministic).
+  AXEL_WEB_SEARCH: (process.env.AXEL_WEB_SEARCH || 'on') as 'on' | 'off',
+  // Model for the web-search research pass (must support the web_search tool).
+  AXEL_SEARCH_MODEL: process.env.AXEL_SEARCH_MODEL || 'gpt-5.6-sol',
   // SMTP (optional - if absent, emails are skipped and output is logged)
   SMTP_HOST: process.env.SMTP_HOST,
   SMTP_PORT: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
