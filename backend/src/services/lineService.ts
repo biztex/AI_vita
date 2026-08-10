@@ -14,6 +14,7 @@ import {
   type OnboardingAnswers,
 } from './lineConversationStore';
 import { respondAsAxel } from './axelEngine';
+import { transcribeAudio } from './axelVoice';
 
 // ── LINE SDK clients ──
 
@@ -610,6 +611,10 @@ export async function handleLineEvent(event: line.WebhookEvent): Promise<void> {
   if (event.type === 'message' && (event as line.MessageEvent).message.type === 'image') {
     console.log('[LINE] Handling image message');
     return handleImageMessage(event as line.MessageEvent);
+  }
+  if (event.type === 'message' && (event as line.MessageEvent).message.type === 'audio') {
+    console.log('[LINE] Handling audio message');
+    return handleAudioMessage(event as line.MessageEvent);
   }
   console.log(`[LINE] Ignoring event type: ${event.type} / message: ${(event as any)?.message?.type}`);
 }
@@ -1245,6 +1250,95 @@ async function handleImageMessage(event: line.MessageEvent): Promise<void> {
   } catch (err: any) {
     console.error('[LINE] Error in axelEngine (image):', err);
     const reply = 'ごめん、画像を見ようとしたら一瞬うまくいかなかった。もう一度送ってもらえるかな。';
+    await lineClient
+      .replyMessage({ replyToken: event.replyToken, messages: [{ type: 'text', text: reply }] })
+      .catch(async () => { await pushText(lineUserId, reply); });
+  }
+}
+
+// ── Audio message handler (Voice, client spec 3) ──
+//
+// Fetches the voice clip from LINE, transcribes it to text, then routes the
+// transcript through the SAME text engine — so a spoken consultation gets the
+// full understanding document, web search, and deep-proposal treatment, and
+// the reply comes back as natural text.
+
+const MAX_AUDIO_BYTES = 25 * 1024 * 1024; // OpenAI transcription upload ceiling
+
+async function handleAudioMessage(event: line.MessageEvent): Promise<void> {
+  const lineUserId = event.source.userId;
+  if (!lineUserId || !event.replyToken) return;
+  const messageId = (event.message as any).id as string;
+  if (!messageId) return;
+
+  if (!checkLineRateLimit(lineUserId)) {
+    await replyText(event.replyToken, 'ちょっとだけ待って、続けて話そう。');
+    return;
+  }
+
+  // Ensure user + conversation rows
+  let lineUser = await prisma.lineUser.findUnique({ where: { lineUserId } });
+  if (!lineUser) lineUser = await prisma.lineUser.create({ data: { lineUserId } });
+  let conv = await prisma.lineConversation.findFirst({
+    where: { lineUserId: lineUser.id },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (!conv) {
+    conv = await prisma.lineConversation.create({
+      data: { lineUserId: lineUser.id, service: lineUser.userMode },
+    });
+  }
+
+  try {
+    await lineClient.showLoadingAnimation({ chatId: lineUserId, loadingSeconds: 60 });
+  } catch (loadErr) {
+    console.warn('[LINE] showLoadingAnimation failed (non-fatal):', (loadErr as any)?.message || loadErr);
+  }
+
+  // Fetch + transcribe
+  let transcript: string | null = null;
+  try {
+    const stream = await lineBlobClient.getMessageContent(messageId);
+    const buf = await streamToBuffer(stream as any);
+    if (buf.length > 0 && buf.length <= MAX_AUDIO_BYTES) {
+      transcript = await transcribeAudio(buf, 'audio.m4a');
+    }
+  } catch (fetchErr: any) {
+    console.error('[LINE] audio fetch failed:', fetchErr?.message || fetchErr);
+  }
+
+  if (!transcript) {
+    const reply = 'ごめん、うまく聞き取れなかった。もう一度送ってもらうか、文字で教えてもらえるかな。';
+    await prisma.lineMessage.create({ data: { conversationId: conv.id, sender: 'ASSISTANT', content: reply } });
+    await replyText(event.replyToken, reply).catch(() => pushText(lineUserId, reply));
+    return;
+  }
+
+  // Persist the transcript as the user turn (so history reflects what was said)
+  await prisma.lineMessage.create({
+    data: { conversationId: conv.id, sender: 'USER', content: transcript },
+  });
+
+  // Route the transcript through the unified engine as a normal text turn
+  try {
+    const reply = await respondAsAxel({ kind: 'text', lineUserId, text: transcript });
+    await prisma.lineMessage.create({
+      data: { conversationId: conv.id, sender: 'ASSISTANT', content: reply },
+    });
+    let delivered = false;
+    try {
+      await lineClient.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: 'text', text: reply.slice(0, 5000) }],
+      });
+      delivered = true;
+    } catch (replyErr: any) {
+      console.warn('[LINE] replyMessage failed, falling back to push:', replyErr?.message || replyErr);
+    }
+    if (!delivered) await pushText(lineUserId, reply.slice(0, 5000));
+  } catch (err: any) {
+    console.error('[LINE] Error in axelEngine (audio):', err);
+    const reply = 'ごめん、一瞬うまく言葉が出てこなかった。もう一度、声をかけてもらえるかな。';
     await lineClient
       .replyMessage({ replyToken: event.replyToken, messages: [{ type: 'text', text: reply }] })
       .catch(async () => { await pushText(lineUserId, reply); });
