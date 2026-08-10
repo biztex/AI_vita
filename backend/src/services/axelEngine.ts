@@ -61,6 +61,8 @@ import {
 import { runUnderstandingUpdate } from './axelUnderstanding';
 import { tuningParams } from './openaiParams';
 import { researchIfNeeded, appendCitations, type WebSearchResult } from './axelWebSearch';
+import { findActiveVitaNutritionPlan } from './vitaNutritionData';
+import { formatDiagnosticBlock, formatNutritionPlanBlock } from './axelPersonalContext';
 
 const openai = new OpenAI({ apiKey: ENV.OPENAI_API_KEY });
 
@@ -226,6 +228,10 @@ interface ContextSummary {
   personaPrefs: PersonaPrefs | null;
   /** Free-form running observations that fit no structured field. */
   understandingNotes: string | null;
+  /** Humanized personality-diagnosis understanding (MyAIDiagnostic), or null. */
+  diagnostic?: string | null;
+  /** Active nutritionist plan rendered for the prompt (VitaNutritionPlan), or null. */
+  nutritionPlan?: string | null;
 }
 
 async function gatherContext(lineUserId: string, currentUserText?: string): Promise<ContextSummary> {
@@ -337,6 +343,24 @@ async function gatherContext(lineUserId: string, currentUserText?: string): Prom
   const profileFactCount = countProfileFacts(onboarding);
   const state = getConversationState(lineUserId);
 
+  // ── Personality diagnosis + nutritionist plan into the DAILY engine ──
+  // (2026-08-11) These previously reached users only via the secondary
+  // processChat path; the client requires AXEL to use them in normal chat.
+  // Both are optional and fail-safe — missing data simply omits the block.
+  let diagnostic: string | null = null;
+  let nutritionPlan: string | null = null;
+  try {
+    const ownerId = dbUser?.appUser?.supabaseUserId ?? null;
+    const [diagRow, planRow] = await Promise.all([
+      ownerId ? prisma.myAIDiagnostic.findUnique({ where: { ownerId } }) : Promise.resolve(null),
+      findActiveVitaNutritionPlan(lineUserId, ownerId),
+    ]);
+    diagnostic = formatDiagnosticBlock(diagRow);
+    nutritionPlan = formatNutritionPlanBlock(planRow);
+  } catch (err) {
+    console.error('[axelEngine] diagnostic/plan load failed (non-fatal):', err);
+  }
+
   return {
     onboarding,
     recentMessages,
@@ -349,6 +373,8 @@ async function gatherContext(lineUserId: string, currentUserText?: string): Prom
     profileFactCount,
     personaPrefs: state?.personaPrefs ?? null,
     understandingNotes: state?.understandingNotes ?? null,
+    diagnostic,
+    nutritionPlan,
   };
 }
 
@@ -415,6 +441,10 @@ export function buildSystemPrompt(input: AxelInput, ctx: ContextSummary, researc
       `まだほとんど知りません。聞き出そうとせず、会話の流れの中で少しずつ自然に知っていってください（1ターンに確認は1つまで）。`,
     );
   }
+
+  // — Personality diagnosis (humanized) + nutritionist plan —
+  if (ctx.diagnostic) parts.push(ctx.diagnostic);
+  if (ctx.nutritionPlan) parts.push(ctx.nutritionPlan);
 
   // — Memory: digested past consultations —
   const memBlock = memoryPromptBlock(input.lineUserId);
