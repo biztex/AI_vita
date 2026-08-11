@@ -1,84 +1,97 @@
 #!/usr/bin/env python3
 """
-Build the AXEL Concierge rich menu image (2500x1686).
-Four quadrants, each labeled in Japanese, with a brass accent line — matching
-the LP's dark-navy + champagne brass identity.
+Rich-menu image generator — AXEL 6-item navigation (2026-08-11 client design).
+2500x1686, 3 rows x 2 cols. Outputs to backend/assets/ (committed, stable) and
+/tmp (legacy candidate path). Run:  python3 scripts/build-richmenu-image.py
 """
+import os
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 2500, 1686
-COL, ROW = W // 2, H // 2
+COL, ROW = W // 2, H // 3
 
-NAVY = (30, 58, 95, 255)        # #1E3A5F
-MID  = (45, 90, 142, 255)       # #2D5A8E
-LIGHT = (58, 122, 189, 255)     # #3A7ABD
-BRASS = (201, 168, 106, 255)    # #C9A86A
-WHITE = (255, 255, 255, 255)
-WHITE_DIM = (255, 255, 255, 180)
+NAVY = (30, 58, 95)
+NAVY2 = (39, 74, 120)
+BRASS = (201, 168, 106)
+WHITE = (255, 255, 255)
+LINE = (255, 255, 255, 40)
 
-SERIF_BOLD = "/usr/share/fonts/opentype/noto/NotoSerifCJK-Bold.ttc"
-SANS_REG = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
-
-img = Image.new("RGB", (W, H), NAVY)
-draw = ImageDraw.Draw(img, "RGBA")
-
-# ── Background quadrants ──
-# v11 (2026-07-05) — client's explicit 4-item proposal:
-#   相談する / 健康について相談 / 判断について相談 / 今日の状態を確認
-quadrants = [
-    (0, 0, COL, ROW, NAVY,   '相談する',       'なんでも、話したい',      '①'),
-    (COL, 0, W,   ROW, MID,    '健康の相談',     '体調・睡眠・疲労・食事',  '②'),
-    (0, ROW, COL, H,   LIGHT,  '判断の相談',     '経営・組織・戦略',        '③'),
-    (COL, ROW, W,   H,   NAVY,   '今日の状態',     '一言で、今日を教えて',    '④'),
+# 6 cells: (row, col) -> (label, sub, emoji)
+CELLS = [
+    ("AXELレポート", "あなたの理解をまとめて確認", "📋"),
+    ("パーソナルプラン", "管理栄養士の個別プラン", "🍽"),
+    ("性格診断", "性格タイプを診断・確認", "🧠"),
+    ("検査結果", "遺伝子検査の結果を見る", "🧬"),
+    ("面談予約", "カウンセリングを予約", "📅"),
+    ("マイページ", "契約・登録・各種設定", "⚙"),
 ]
 
-font_title = ImageFont.truetype(SERIF_BOLD, 120)
-font_sub   = ImageFont.truetype(SANS_REG, 52)
-font_num   = ImageFont.truetype(SERIF_BOLD, 60)
-font_logo  = ImageFont.truetype(SERIF_BOLD, 38)
+FONT_DIR = "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
+EMOJI_FONT = "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"
+EMOJI_NATIVE = 109  # NotoColorEmoji only rasterizes at this size
 
-for (x1, y1, x2, y2, color, title, sub, num) in quadrants:
-    # Solid background
-    draw.rectangle([x1, y1, x2-1, y2-1], fill=color)
 
-    # Subtle 2px inner border in brass
-    pad = 18
-    draw.rectangle([x1+pad, y1+pad, x2-pad-1, y2-pad-1], outline=(201, 168, 106, 80), width=2)
+def font(sz):
+    try:
+        return ImageFont.truetype(FONT_DIR, sz)
+    except Exception:
+        return ImageFont.load_default()
 
-    # Small number marker top-left
-    draw.text((x1 + 48, y1 + 30), num, fill=(201, 168, 106, 200), font=font_num)
 
-    # AXEL marker top-right
-    draw.text((x2 - 220, y1 + 38), 'AXEL', fill=(201, 168, 106, 200), font=font_logo)
+def paste_emoji(base, ch, center, target=120):
+    """Render a color emoji at its native size and paste it centered."""
+    try:
+        ef = ImageFont.truetype(EMOJI_FONT, EMOJI_NATIVE)
+        tile = Image.new("RGBA", (EMOJI_NATIVE * 2, EMOJI_NATIVE * 2), (0, 0, 0, 0))
+        ImageDraw.Draw(tile).text(
+            (EMOJI_NATIVE, EMOJI_NATIVE), ch, font=ef, anchor="mm", embedded_color=True
+        )
+        tile = tile.crop(tile.getbbox())
+        w, h = tile.size
+        scale = target / max(w, h)
+        tile = tile.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS)
+        base.paste(tile, (center[0] - tile.width // 2, center[1] - tile.height // 2), tile)
+    except Exception as e:
+        print("emoji paste failed:", ch, repr(e))
 
-    # Brass accent line below logo area
-    accent_y = y1 + 100
-    draw.line([(x1 + 60, accent_y), (x1 + 160, accent_y)], fill=BRASS, width=3)
 
-    # Title (center, 大き目)
-    bbox = draw.textbbox((0, 0), title, font=font_title)
-    tw = bbox[2] - bbox[0]
-    th = bbox[3] - bbox[1]
-    tx = x1 + (x2 - x1 - tw) // 2
-    ty = y1 + (y2 - y1) // 2 - th // 2 - 30
-    draw.text((tx, ty), title, fill=WHITE, font=font_title)
+def main():
+    img = Image.new("RGB", (W, H), NAVY)
+    d = ImageDraw.Draw(img)
+    # subtle vertical gradient
+    for y in range(H):
+        t = y / H
+        r = int(NAVY[0] + (NAVY2[0] - NAVY[0]) * t)
+        g = int(NAVY[1] + (NAVY2[1] - NAVY[1]) * t)
+        b = int(NAVY[2] + (NAVY2[2] - NAVY[2]) * t)
+        d.line([(0, y), (W, y)], fill=(r, g, b))
 
-    # Subtitle (center, under title)
-    bbox = draw.textbbox((0, 0), sub, font=font_sub)
-    sw = bbox[2] - bbox[0]
-    sx = x1 + (x2 - x1 - sw) // 2
-    sy = ty + th + 50
-    draw.text((sx, sy), sub, fill=WHITE_DIM, font=font_sub)
+    f_label = font(64)
+    f_sub = font(34)
 
-# ── Quadrant dividers ──
-# Vertical center line
-draw.line([(COL, 0), (COL, H)], fill=BRASS, width=4)
-# Horizontal center line
-draw.line([(0, ROW), (W, ROW)], fill=BRASS, width=4)
+    for i, (label, sub, emoji) in enumerate(CELLS):
+        r, c = divmod(i, 2)
+        x0, y0 = c * COL, r * ROW
+        cx = x0 + COL // 2
+        # cell separators
+        if c == 0:
+            d.line([(COL, y0 + 30), (COL, y0 + ROW - 30)], fill=BRASS, width=3)
+        if r > 0:
+            d.line([(x0 + 40, y0), (x0 + COL - 40, y0)], fill=BRASS, width=2)
+        # color emoji icon
+        paste_emoji(img, emoji, (cx, y0 + 140), target=120)
+        # label
+        d.text((cx, y0 + 300), label, font=f_label, fill=WHITE, anchor="mm")
+        # sub
+        d.text((cx, y0 + 400), sub, font=f_sub, fill=BRASS, anchor="mm")
 
-# ── Save ──
-out = "/tmp/axel_richmenu_2500x1686.png"
-img.save(out, "PNG", optimize=True)
-print(f"✓ Wrote {out}")
-import os
-print(f"  size: {os.path.getsize(out)} bytes")
+    here = os.path.dirname(os.path.abspath(__file__))
+    out_asset = os.path.join(here, "..", "assets", "axel_richmenu_2500x1686.png")
+    os.makedirs(os.path.dirname(out_asset), exist_ok=True)
+    img.save(out_asset, "PNG")
+    img.save("/tmp/axel_richmenu_2500x1686.png", "PNG")
+    print("wrote", os.path.normpath(out_asset), "and /tmp copy")
+
+
+if __name__ == "__main__":
+    main()

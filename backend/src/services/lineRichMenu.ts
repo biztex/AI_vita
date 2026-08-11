@@ -1,24 +1,21 @@
 /**
- * LINE Rich Menu – AXEL コンシェルジュ｜公式 (@389rupfv)
+ * LINE Rich Menu – AXEL (2026-08-11 client-designed 6-item navigation)
  *
- * Layout (2500 x 1686 px / 2 rows × 2 columns) — LINE-only concierge experience.
- * All four actions are postbacks that the bot handles INSIDE LINE; no LIFF
- * navigation, no web screens. This is the explicit design choice driven by the
- * client's vision: "the user wants to talk to a concierge, not navigate a system."
+ * Layout (2500 x 1686 px / 3 rows × 2 columns). Per the client's screen design,
+ * the menu is NOT for consultation — users just talk in the normal chat with
+ * text / image / voice. The menu is the entry to information, reservation, and
+ * account screens (LIFF pages).
  *
  *  ┌────────────────────────┬────────────────────────┐
- *  │                        │                        │
- *  │   ① 相談する          │   ② 今日の一言        │
- *  │   open_chat            │   daily_log_start      │
- *  │   (#1E3A5F navy)       │   (#2D5A8E mid blue)   │
- *  │                        │                        │
+ *  │  ① AXELレポート        │  ② パーソナルプラン    │  → /report      /personalplan
  *  ├────────────────────────┼────────────────────────┤
- *  │                        │                        │
- *  │   ③ 状態を見せて      │   ④ 設定              │
- *  │   show_status          │   open_settings        │
- *  │   (#3A7ABD light)      │   (#C9A86A brass)      │
- *  │                        │                        │
+ *  │  ③ 性格診断            │  ④ 検査結果            │  → /personality /karte
+ *  ├────────────────────────┼────────────────────────┤
+ *  │  ⑤ 面談予約            │  ⑥ マイページ          │  → /reservation /mypage
  *  └────────────────────────┴────────────────────────┘
+ *
+ * All six actions are `uri` actions opening a LIFF page. No consultation
+ * postbacks (removed per the client's 2026-08-11 direction).
  */
 
 import * as fs from 'fs';
@@ -63,7 +60,11 @@ const W = 2500;   // total width  (LINE recommended)
 const H = 1686;   // total height (LINE recommended)
 
 const COL = Math.floor(W / 2);  // 1250px – one column unit
-const ROW = Math.floor(H / 2);  // 843px  – one row unit
+const ROW = Math.floor(H / 3);  // 562px  – one row unit (3-row layout)
+
+// LIFF deep-link base. Rich-menu buttons open LIFF pages by route.
+const LIFF_ID = ENV.LIFF_ID_PAGES || '2009125242-ka7XZSEQ';
+const liff = (route: string) => `https://liff.line.me/${LIFF_ID}/${route}`;
 
 // ── Rich Menu definition ──────────────────────────────────────────────────────
 
@@ -89,51 +90,35 @@ const ROW = Math.floor(H / 2);  // 843px  – one row unit
 const RICH_MENU_BODY = {
   size: { width: W, height: H },
   selected: true,
-  name: 'AXEL コンシェルジュ v11 (クライアント2026-07-04設計)',
-  chatBarText: 'AXELに話しかける',
+  name: 'AXEL 6項目ナビ (クライアント2026-08-11設計)',
+  chatBarText: 'メニュー',
   areas: [
-    // ① 相談する — top-left (general consultation)
+    // Row 1
     {
       bounds: { x: 0, y: 0, width: COL, height: ROW },
-      action: {
-        type: 'postback' as const,
-        label: '相談する',
-        data: 'open_chat',
-        displayText: '相談したい',
-      },
+      action: { type: 'uri' as const, label: 'AXELレポート', uri: liff('report') },
     },
-
-    // ② 健康について相談する — top-right
     {
       bounds: { x: COL, y: 0, width: W - COL, height: ROW },
-      action: {
-        type: 'postback' as const,
-        label: '健康の相談',
-        data: 'open_chat_health',
-        displayText: '健康について相談したい',
-      },
+      action: { type: 'uri' as const, label: 'パーソナルプラン', uri: liff('personalplan') },
     },
-
-    // ③ 判断について相談する — bottom-left
+    // Row 2
     {
-      bounds: { x: 0, y: ROW, width: COL, height: H - ROW },
-      action: {
-        type: 'postback' as const,
-        label: '判断の相談',
-        data: 'open_chat_judgment',
-        displayText: '判断について相談したい',
-      },
+      bounds: { x: 0, y: ROW, width: COL, height: ROW },
+      action: { type: 'uri' as const, label: '性格診断', uri: liff('personality') },
     },
-
-    // ④ 今日の状態を確認する — bottom-right (state check-in with conversation bridge)
     {
-      bounds: { x: COL, y: ROW, width: W - COL, height: H - ROW },
-      action: {
-        type: 'postback' as const,
-        label: '今日の状態',
-        data: 'daily_log_start',
-        displayText: '今日の状態を確認したい',
-      },
+      bounds: { x: COL, y: ROW, width: W - COL, height: ROW },
+      action: { type: 'uri' as const, label: '検査結果', uri: liff('karte') },
+    },
+    // Row 3 (last row absorbs rounding: height to bottom edge)
+    {
+      bounds: { x: 0, y: ROW * 2, width: COL, height: H - ROW * 2 },
+      action: { type: 'uri' as const, label: '面談予約', uri: liff('reservation') },
+    },
+    {
+      bounds: { x: COL, y: ROW * 2, width: W - COL, height: H - ROW * 2 },
+      action: { type: 'uri' as const, label: 'マイページ', uri: liff('mypage') },
     },
   ],
 };

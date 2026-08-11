@@ -650,7 +650,23 @@ async function handleFollow(event: line.FollowEvent): Promise<void> {
     lineUserId,
     lineDisplayName: displayName,
   });
-  await replyText(event.replyToken, greeting);
+  // The client's guaranteed how-to-use line — sent as a fixed second message so
+  // it always appears (independent of the LLM greeting / any outage).
+  const usageGuide =
+    'このトーク画面から、いつでもそのまま話しかけてください。\n文字・画像・音声でご利用いただけます。';
+  try {
+    await lineClient.replyMessage({
+      replyToken: event.replyToken,
+      messages: [
+        { type: 'text', text: greeting.slice(0, 5000) },
+        { type: 'text', text: usageGuide },
+      ],
+    });
+  } catch (replyErr) {
+    // Fall back to push if the reply token was consumed/expired
+    await pushText(lineUserId, greeting).catch(() => {});
+    await pushText(lineUserId, usageGuide).catch(() => {});
+  }
   await persistLineExchange(lineUserId, null, greeting);
 }
 
