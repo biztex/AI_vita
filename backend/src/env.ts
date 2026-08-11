@@ -37,6 +37,8 @@ export const ENV = {
   AXEL_SEARCH_MODEL: process.env.AXEL_SEARCH_MODEL || 'gpt-5.6-sol',
   // Speech-to-text model for LINE voice messages (client spec 3).
   AXEL_TRANSCRIBE_MODEL: process.env.AXEL_TRANSCRIBE_MODEL || 'gpt-4o-transcribe',
+  // External booking URL for the 面談予約 LIFF page (initial/re/review counseling).
+  RESERVATION_URL: process.env.RESERVATION_URL || 'https://execuwell.jp/contact?type=reservation',
   // SMTP (optional - if absent, emails are skipped and output is logged)
   SMTP_HOST: process.env.SMTP_HOST,
   SMTP_PORT: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,

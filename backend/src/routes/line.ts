@@ -8,6 +8,8 @@ import { requireAuth } from '../middlewares/auth';
 import { prisma } from '../prisma';
 import { maybePushVitaThresholdAlert } from '../services/vitaAlertService';
 import { findActiveVitaNutritionPlan } from '../services/vitaNutritionData';
+import { getOnboardingAnswers, getConversationState } from '../services/lineConversationStore';
+import { recentMemories } from '../services/axelMemory';
 
 const r = Router();
 
@@ -1027,6 +1029,130 @@ r.get('/message/:id', async (req: Request, res: Response) => {
     console.error('[LINE] GET /message/:id failed:', err);
     res.status(500).json({ error: 'Failed to load message' });
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// LIFF pages for the 6-item rich menu (2026-08-11 client design)
+// ─────────────────────────────────────────────────────────────────────
+
+/** Resolve the linked AppUser id (ownerId) for a LINE user, or null. */
+async function ownerIdFor(lineUserId: string): Promise<string | null> {
+  const lu = await prisma.lineUser.findUnique({ where: { lineUserId }, select: { appUserId: true } });
+  return lu?.appUserId ?? null;
+}
+
+// GET /line/liff/report — AXELレポート: everything AXEL understands about you
+r.get('/liff/report', async (req: Request, res: Response) => {
+  try {
+    const lineUserId = req.query.lineUserId as string;
+    if (!lineUserId) return res.status(400).json({ error: 'lineUserId is required' });
+
+    const onboarding = getOnboardingAnswers(lineUserId) ?? {};
+    const state = getConversationState(lineUserId);
+    const ownerId = await ownerIdFor(lineUserId);
+    const [diagnostic, plan] = await Promise.all([
+      ownerId ? prisma.myAIDiagnostic.findUnique({ where: { ownerId } }) : Promise.resolve(null),
+      findActiveVitaNutritionPlan(lineUserId, ownerId),
+    ]);
+    const lineUser = await prisma.lineUser.findUnique({
+      where: { lineUserId },
+      include: { appUser: { include: { profile: { include: { vitaAI: true } } } } },
+    });
+    const vita = lineUser?.appUser?.profile?.vitaAI as any;
+    const memories = recentMemories(lineUserId, 6).map((m) => ({ topic: m.topic, gist: m.gist, at: m.at }));
+
+    res.json({
+      displayName: lineUser?.displayName ?? null,
+      profile: onboarding,
+      understandingNotes: state?.understandingNotes ?? null,
+      personaPrefs: state?.personaPrefs ?? null,
+      diagnostic: diagnostic
+        ? { mbtiLabel: diagnostic.mbtiLabel, discLabel: diagnostic.discLabel, cognitiveTrend: diagnostic.cognitiveTrend, summary: diagnostic.summary, completedAt: diagnostic.completedAt }
+        : null,
+      geneSummary: vita?.geneticSummary ?? null,
+      hasGeneData: !!vita?.geneData,
+      nutritionPlan: plan ? { version: plan.version, nextReviewAt: plan.nextReviewAt, hasPlan: true } : null,
+      recentConsultations: memories,
+    });
+  } catch (err) {
+    console.error('[LINE] GET /liff/report failed:', err);
+    res.status(500).json({ error: 'Failed to load report' });
+  }
+});
+
+// GET /line/liff/personalplan — パーソナルプラン: nutritionist plan + history
+r.get('/liff/personalplan', async (req: Request, res: Response) => {
+  try {
+    const lineUserId = req.query.lineUserId as string;
+    if (!lineUserId) return res.status(400).json({ error: 'lineUserId is required' });
+    const ownerId = await ownerIdFor(lineUserId);
+    const active = await findActiveVitaNutritionPlan(lineUserId, ownerId);
+    // History: all plan versions for this user (active + superseded)
+    const history = await prisma.vitaNutritionPlan.findMany({
+      where: ownerId ? { OR: [{ lineUserId }, { ownerId }] } : { lineUserId },
+      orderBy: { version: 'desc' },
+      select: { version: true, effectiveFrom: true, nextReviewAt: true, isActive: true },
+    });
+    res.json({
+      hasPlan: !!active,
+      plan: active ? { version: active.version, effectiveFrom: active.effectiveFrom, nextReviewAt: active.nextReviewAt, payload: active.payload } : null,
+      history,
+    });
+  } catch (err) {
+    console.error('[LINE] GET /liff/personalplan failed:', err);
+    res.status(500).json({ error: 'Failed to load plan' });
+  }
+});
+
+// GET /line/liff/personality — 性格診断: existing result (or null → take it)
+r.get('/liff/personality', async (req: Request, res: Response) => {
+  try {
+    const lineUserId = req.query.lineUserId as string;
+    if (!lineUserId) return res.status(400).json({ error: 'lineUserId is required' });
+    const ownerId = await ownerIdFor(lineUserId);
+    const d = ownerId ? await prisma.myAIDiagnostic.findUnique({ where: { ownerId } }) : null;
+    res.json({
+      linked: !!ownerId,
+      hasResult: !!d,
+      result: d ? { mbtiType: d.mbtiType, mbtiLabel: d.mbtiLabel, discType: d.discType, discLabel: d.discLabel, enneagramTop3: d.enneagramTop3, cognitiveTrend: d.cognitiveTrend, summary: d.summary, completedAt: d.completedAt } : null,
+    });
+  } catch (err) {
+    console.error('[LINE] GET /liff/personality failed:', err);
+    res.status(500).json({ error: 'Failed to load personality' });
+  }
+});
+
+// POST /line/liff/personality — save a completed diagnostic (scored client-side)
+r.post('/liff/personality', async (req: Request, res: Response) => {
+  try {
+    const { lineUserId, answers, result } = req.body ?? {};
+    if (!lineUserId || !answers || !result) return res.status(400).json({ error: 'lineUserId, answers, result required' });
+    const ownerId = await ownerIdFor(lineUserId);
+    if (!ownerId) return res.status(409).json({ error: 'not_linked', message: 'アカウント連携後に保存できます。' });
+    const data = {
+      answers, mbtiType: result.mbtiType ?? null, mbtiLabel: result.mbtiLabel ?? null,
+      discType: result.discType ?? null, discLabel: result.discLabel ?? null,
+      enneagramTop3: result.enneagramTop3 ?? null, cognitiveTrend: result.cognitiveTrend ?? null,
+      summary: result.summary ?? null, completedAt: new Date(),
+    };
+    await prisma.myAIDiagnostic.upsert({ where: { ownerId }, create: { ownerId, ...data }, update: data });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[LINE] POST /liff/personality failed:', err);
+    res.status(500).json({ error: 'Failed to save personality' });
+  }
+});
+
+// GET /line/liff/reservation — 面談予約: booking config (external tool)
+r.get('/liff/reservation', async (_req: Request, res: Response) => {
+  res.json({
+    bookingUrl: ENV.RESERVATION_URL,
+    types: [
+      { key: 'initial', label: '初回カウンセリング' },
+      { key: 'followup', label: '再カウンセリング' },
+      { key: 'review', label: '見直し面談（3か月後など）' },
+    ],
+  });
 });
 
 export default r;
