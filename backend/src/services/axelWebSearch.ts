@@ -50,18 +50,36 @@ const RESEARCH_INSTRUCTION = [
   'あなたはAXELというコンシェルジュのためのリサーチ補助です。',
   'ユーザーの相談に、最新の状況や外部の固有事実（開催・募集・価格・制度・営業状況・評判・仕様など、時間や調査で確定する情報）が必要な場合のみ、Web検索を行ってください。',
   '検索する場合は、公式サイト・公的機関・一次情報など信頼性の高い情報源を優先し、日本語で要点だけを簡潔にまとめてください。',
-  '確認できた事実と、推測・一般論は必ず区別し、確認できないことは「確認できない」と明示してください。',
-  '末尾に、参照した情報源を「・（名称） （URL）」形式で列挙してください。',
+  // Official-source discipline (added after an audit found the tool surfacing
+  // lookalike/impostor subsidy sites and the model labeling them 公式).
+  '補助金・給付金・行政手続き・公的制度・税・法令など公的な事柄では、政府・自治体の公式ドメイン（go.jp / lg.jp、例：中小企業庁 chusho.meti.go.jp、jGrants jgrants-portal.go.jp、国税庁 nta.go.jp）の情報のみを「公式」として扱ってください。',
+  '.info や .com などの非公式ドメインを「公式」「公式の申込先」と絶対に呼ばないでください。紛らわしい類似ドメイン（偽サイト）が上位に出ることがあるため、公式ドメインで裏が取れない場合は、URLを断定的に案内せず「◯◯（制度名）で検索し、政府・自治体の公式サイトで確認してください」と案内し、偽サイトに注意するよう一言添えてください。',
+  '公式ドメインで確認できた事実と、非公式情報・推測・一般論は必ず区別し、確認できないことは「確認できない」と明示してください。',
+  '末尾に、参照した情報源を「・（名称） （URL）」形式で列挙してください。公式ドメインを先に挙げてください。',
   'マークダウン記法（#、**、---、表）は使わないでください。',
   `外部の事実確認が不要な相談（雑談・気持ち・一般常識・計算・すでに分かっている前提の相談）の場合は、検索せず「${NO_SEARCH}」だけを返してください。`,
 ].join('\n');
+
+/** Strips tracking params (utm_*, fbclid, gclid) the search tool appends. */
+function cleanUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    for (const k of [...u.searchParams.keys()]) {
+      if (/^utm_/i.test(k) || k === 'fbclid' || k === 'gclid') u.searchParams.delete(k);
+    }
+    return u.toString();
+  } catch {
+    return url.replace(/[?&]utm_source=[^&]*/gi, '');
+  }
+}
 
 function extract(resp: any): { searched: boolean; text: string; citations: { title: string; url: string }[] } {
   let searched = false;
   let text = '';
   const citations: { title: string; url: string }[] = [];
   const seen = new Set<string>();
-  const add = (url: string, title: string) => {
+  const add = (rawUrl: string, title: string) => {
+    const url = cleanUrl(rawUrl);
     if (!url || seen.has(url)) return;
     seen.add(url);
     citations.push({ title: (title ?? '').slice(0, 80), url });
@@ -132,9 +150,13 @@ export async function researchIfNeeded(userText: string): Promise<WebSearchResul
  * doesn't already surface a URL — guarantees the client's citation requirement
  * regardless of how the model phrased its answer.
  */
+const isOfficial = (url: string) => /\.go\.jp(\/|$)|\.lg\.jp(\/|$)/.test(url);
+
 export function appendCitations(reply: string, citations: { title: string; url: string }[]): string {
   if (!citations.length) return reply;
   if (/https?:\/\//.test(reply)) return reply; // model already showed sources
-  const lines = citations.slice(0, 4).map((c) => (c.title ? `・${c.title} ${c.url}` : `・${c.url}`));
+  // Official government domains first (client requirement: 公式・公的を優先).
+  const ordered = [...citations].sort((a, b) => Number(isOfficial(b.url)) - Number(isOfficial(a.url)));
+  const lines = ordered.slice(0, 4).map((c) => (c.title ? `・${c.title} ${c.url}` : `・${c.url}`));
   return `${reply}\n\n参照元：\n${lines.join('\n')}`;
 }
