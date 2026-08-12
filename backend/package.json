@@ -13,6 +13,7 @@
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
+    "verify:quality": "tsx scripts/verify-axel-quality.ts",
     "format": "prettier -w ."
   },
   "dependencies": {
