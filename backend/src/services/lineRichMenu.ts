@@ -38,9 +38,10 @@ const blobClient = new line.messagingApi.MessagingApiBlobClient({
 // image is committed, or pre-generated to /tmp, or lives in the repo.
 const IMAGE_CANDIDATES = [
   process.env.AXEL_RICHMENU_IMAGE || '',
+  path.resolve(process.cwd(), 'assets/axel_richmenu_2500x1686.jpg'),
+  path.resolve(process.cwd(), 'assets/axel_richmenu_2500x1686.png'),
   '/tmp/axel_richmenu_2500x1686.png',
   path.resolve(process.cwd(), 'axel_richmenu_2500x1686.png'),
-  path.resolve(process.cwd(), 'assets/axel_richmenu_2500x1686.png'),
 ].filter(Boolean);
 
 function findRichMenuImage(): string | null {
@@ -173,9 +174,12 @@ export async function setupRichMenu(): Promise<void> {
     }
     try {
       const buffer = fs.readFileSync(imagePath);
-      const blob = new Blob([buffer], { type: 'image/png' });
+      // Detect the real format from magic bytes (JPEG starts FF D8) so the
+      // content-type matches — LINE rejects a mismatched type.
+      const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8;
+      const blob = new Blob([buffer], { type: isJpeg ? 'image/jpeg' : 'image/png' });
       await blobClient.setRichMenuImage(richMenuId, blob);
-      console.log('[LINE Rich Menu] Uploaded image from', imagePath);
+      console.log('[LINE Rich Menu] Uploaded image from', imagePath, isJpeg ? '(jpeg)' : '(png)');
     } catch (uploadErr: any) {
       console.error(
         '[LINE Rich Menu] Image upload failed — menu will not display:',
