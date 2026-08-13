@@ -5,6 +5,7 @@ import path from "path";
 import { prisma } from "../prisma.js";
 import { requireAuth } from "../middlewares/auth.js";
 import { processChat, validateChatInput, getOrCreateConversation, saveMessage, getConversationHistory, getMyAIWelcome } from "../services/chatService.js";
+import { transcribeAudio } from "../services/axelVoice.js";
 import OpenAI from "openai";
 import { ENV } from "../env.js";
 
@@ -353,16 +354,11 @@ r.post("/voice", requireAuth(), upload.single("audio"), async (req: any, res: an
     // Public path to serve this audio (served at /uploads mapping)
     const relativePath = `/uploads/audio/${path.basename(req.file.path)}`;
 
-    // Transcribe via Whisper using file stream
-    const transcriptResp = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(req.file.path) as any,
-      model: "whisper-1",
-      language: "ja",
-    } as any);
-    console.log('transcriptResp', transcriptResp);
-    const transcript: string = (transcriptResp as any).text || (transcriptResp as any).transcript || "";
+    // Transcribe (Japanese, gpt-4o-transcribe, confidence-gated) — same helper
+    // as the LINE voice path so both surfaces behave identically.
+    const transcript = await transcribeAudio(fs.readFileSync(req.file.path), path.basename(req.file.path));
     if (!transcript || transcript.trim().length === 0) {
-      return res.status(400).json({ error: "音声の文字起こしに失敗しました" });
+      return res.status(400).json({ error: "音声をうまく聞き取れませんでした。もう一度お試しください。" });
     }
     // console.log(transcript);
 
@@ -435,14 +431,11 @@ r.post("/voice/process", requireAuth(), async (req: any, res: any, next: any) =>
       return res.status(404).json({ error: "音声ファイルが見つかりません" });
     }
 
-    const transcriptResp = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(absolutePath) as any,
-      model: "whisper-1",
-      language: "en",
-    } as any);
-    const transcript: string = (transcriptResp as any).text || (transcriptResp as any).transcript || "";
+    // Transcribe (Japanese, gpt-4o-transcribe, confidence-gated). Was
+    // whisper-1 with language:"en" — a bug that mis-transcribed Japanese speech.
+    const transcript = await transcribeAudio(fs.readFileSync(absolutePath), fileName);
     if (!transcript || transcript.trim().length === 0) {
-      return res.status(400).json({ error: "音声の文字起こしに失敗しました" });
+      return res.status(400).json({ error: "音声をうまく聞き取れませんでした。もう一度お試しください。" });
     }
 
     // Update the voice message with transcribed text
