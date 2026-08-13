@@ -617,6 +617,10 @@ export async function handleLineEvent(event: line.WebhookEvent): Promise<void> {
     console.log('[LINE] Handling audio message');
     return handleAudioMessage(event as line.MessageEvent);
   }
+  if (event.type === 'message' && (event as line.MessageEvent).message.type === 'file') {
+    console.log('[LINE] Handling file message');
+    return handleFileMessage(event as line.MessageEvent);
+  }
   console.log(`[LINE] Ignoring event type: ${event.type} / message: ${(event as any)?.message?.type}`);
 }
 
@@ -1203,7 +1207,7 @@ async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
 // token cost / latency; gpt vision downsamples internally so this is ample.
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
-async function handleImageMessage(event: line.MessageEvent): Promise<void> {
+async function handleImageMessage(event: line.MessageEvent, mime = 'image/jpeg'): Promise<void> {
   const lineUserId = event.source.userId;
   if (!lineUserId || !event.replyToken) return;
   const messageId = (event.message as any).id as string;
@@ -1250,7 +1254,7 @@ async function handleImageMessage(event: line.MessageEvent): Promise<void> {
       await replyText(event.replyToken, reply).catch(() => pushText(lineUserId, reply));
       return;
     }
-    imageDataUri = `data:image/jpeg;base64,${buf.toString('base64')}`;
+    imageDataUri = `data:${mime};base64,${buf.toString('base64')}`;
   } catch (fetchErr: any) {
     console.error('[LINE] image fetch failed:', fetchErr?.message || fetchErr);
     const reply = 'ごめん、画像をうまく受け取れなかった。もう一度送ってもらえるかな。';
@@ -1283,6 +1287,39 @@ async function handleImageMessage(event: line.MessageEvent): Promise<void> {
       .replyMessage({ replyToken: event.replyToken, messages: [{ type: 'text', text: reply }] })
       .catch(async () => { await pushText(lineUserId, reply); });
   }
+}
+
+// ── File message handler ──
+// Users often send images as a FILE attachment (image.png) instead of via the
+// photo picker — LINE delivers those as message.type === 'file', not 'image'.
+// If the file is an image, analyze it through the same Vision path; otherwise
+// tell the user we can read images (not arbitrary documents yet).
+const IMAGE_EXT_MIME: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.heic': 'image/heic',
+};
+
+async function handleFileMessage(event: line.MessageEvent): Promise<void> {
+  const lineUserId = event.source.userId;
+  if (!lineUserId || !event.replyToken) return;
+  const fileName: string = ((event.message as any).fileName || '').toLowerCase();
+  const ext = fileName.slice(fileName.lastIndexOf('.'));
+  const mime = IMAGE_EXT_MIME[ext];
+
+  if (mime) {
+    // It's an image sent as a file — run it through the image/Vision path.
+    await handleImageMessage(event, mime);
+    return;
+  }
+  // Non-image file (PDF, etc.) — not supported yet.
+  await replyText(
+    event.replyToken,
+    '画像なら内容を読み取れます。写真アルバムから、または画像として送ってもらえるかな。（PDFなどの文書ファイルは今は対応していません）',
+  );
 }
 
 // ── Audio message handler (Voice, client spec 3) ──
