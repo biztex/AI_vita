@@ -10,6 +10,7 @@ import { maybePushVitaThresholdAlert } from '../services/vitaAlertService';
 import { findActiveVitaNutritionPlan } from '../services/vitaNutritionData';
 import { getOnboardingAnswers, getConversationState } from '../services/lineConversationStore';
 import { recentMemories } from '../services/axelMemory';
+import { createBillingPortalSession } from '../services/stripeService';
 
 const r = Router();
 
@@ -1140,6 +1141,27 @@ r.post('/liff/personality', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[LINE] POST /liff/personality failed:', err);
     res.status(500).json({ error: 'Failed to save personality' });
+  }
+});
+
+// GET /line/liff/billing-portal — マイページ: open Stripe billing portal
+// (change payment method / view invoices / cancel) for the linked account.
+r.get('/liff/billing-portal', async (req: Request, res: Response) => {
+  try {
+    const lineUserId = req.query.lineUserId as string;
+    if (!lineUserId) return res.status(400).json({ error: 'lineUserId is required' });
+    const ownerId = await ownerIdFor(lineUserId);
+    if (!ownerId) return res.json({ available: false, reason: 'not_linked' });
+    try {
+      const session = await createBillingPortalSession(ownerId);
+      res.json({ available: true, url: session.url });
+    } catch {
+      // No Stripe customer yet (never subscribed) → nothing to manage.
+      res.json({ available: false, reason: 'no_customer' });
+    }
+  } catch (err) {
+    console.error('[LINE] GET /liff/billing-portal failed:', err);
+    res.status(500).json({ error: 'Failed to open billing portal' });
   }
 });
 

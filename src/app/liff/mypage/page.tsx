@@ -149,6 +149,23 @@ export default function LiffMyPage() {
     }
   }
 
+  async function openBillingPortal() {
+    if (liff.status !== "ready") return
+    try {
+      const res = await fetch(
+        `${API_CONFIG.BASE_URL}/line/liff/billing-portal?lineUserId=${encodeURIComponent(liff.lineUserId)}`,
+      )
+      const json = await res.json()
+      if (json.available && json.url) {
+        window.location.href = json.url
+      } else {
+        showToast("お支払い情報が見つかりませんでした。")
+      }
+    } catch {
+      showToast("お支払い管理を開けませんでした。もう一度お試しください。")
+    }
+  }
+
   if (liff.status === "loading" || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#f0f4f8" }}>
@@ -415,6 +432,13 @@ export default function LiffMyPage() {
                   )}
                 </>
               )}
+              <button
+                type="button"
+                onClick={openBillingPortal}
+                className="mt-2 w-full rounded-lg border border-[#1E3A5F] px-4 py-2 text-xs font-semibold text-[#1E3A5F]"
+              >
+                お支払い・解約の管理
+              </button>
             </div>
           ) : (
             <div className="py-2 text-center">
@@ -486,6 +510,16 @@ export default function LiffMyPage() {
               />
             </button>
           </div>
+        </div>
+
+        {/* Legal */}
+        <div className="flex items-center justify-center gap-4 pt-1 text-[11px]">
+          <a href="https://execuwell.jp/terms" target="_blank" rel="noopener noreferrer" className="text-gray-500 underline">
+            利用規約
+          </a>
+          <a href="https://execuwell.jp/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-500 underline">
+            プライバシーポリシー
+          </a>
         </div>
 
         <p className="pt-2 text-center text-[11px] text-gray-400">エグゼ＆ビータ｜公式 @389rupfv</p>
