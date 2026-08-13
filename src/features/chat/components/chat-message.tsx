@@ -1,6 +1,19 @@
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Activity, Briefcase, Bot, User, Volume2 } from "lucide-react"
+import { API_CONFIG } from "@/lib/config/api"
+
+// Media (image/voice) files are served by the BACKEND at /uploads/*, which the
+// browser can only reach through the API proxy prefix (API_CONFIG.BASE_URL,
+// e.g. https://execuwell.jp/api). A bare "/uploads/..." — or the old,
+// nonexistent "/backend/..." prefix — resolves against the FRONTEND origin and
+// 404s, which is why sent images disappeared from chat history on reload.
+// Absolute / blob / data URLs (e.g. the live preview at send time) pass through.
+function resolveMediaUrl(u?: string): string | undefined {
+  if (!u) return u
+  if (/^(blob:|data:|https?:\/\/)/.test(u)) return u
+  return `${API_CONFIG.BASE_URL}${u.startsWith("/") ? "" : "/"}${u}`
+}
 
 type ChatMessageProps = {
   role: "user" | "assistant"
@@ -66,7 +79,7 @@ export function ChatMessage({ role, content, kind = "TEXT", voiceUrl, imageUrl, 
                     controls
                     className="h-10"
                   >
-                    <source src={`/backend${voiceUrl}`} type="audio/webm" />
+                    <source src={resolveMediaUrl(voiceUrl)} type="audio/webm" />
                     {/* お使いのブラウザは音声の再生をサポートしていません。 */}
                   </audio>
                 )
@@ -81,7 +94,7 @@ export function ChatMessage({ role, content, kind = "TEXT", voiceUrl, imageUrl, 
               {imageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={imageUrl.startsWith("blob:") || imageUrl.startsWith("http") ? imageUrl : `/backend${imageUrl}`}
+                  src={resolveMediaUrl(imageUrl)}
                   alt="送信画像"
                   className="max-h-64 max-w-full rounded-lg object-contain"
                 />
