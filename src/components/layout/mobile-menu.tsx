@@ -31,6 +31,7 @@ export function MobileMenu() {
 
   const navItems = [
     { href: "/", label: "ホーム" },
+    { href: "/subscription", label: "料金" },
     { href: "/dashboard", label: "ダッシュボード", protected: true },
     { href: "/vitaai/chat", label: "VitaAI", protected: true },
     { href: "/execuwell/chat", label: "ExecuWell", protected: true },

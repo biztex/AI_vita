@@ -4,7 +4,18 @@ import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2, AlertCircle } from "lucide-react"
 
-const ALLOWED_PATHS = ["/log", "/karte", "/plan", "/mypage", "/onboarding"]
+// Accept any clean relative LIFF sub-path (Next serves /liff/<page> directly),
+// so new rich-menu routes never need to be whitelisted here. Reject missing
+// values, protocol-relative (//host), or anything with a scheme — open-redirect
+// safe.
+function isSafeLiffState(state: string | null): state is string {
+  return (
+    !!state &&
+    state.startsWith("/") &&
+    !state.startsWith("//") &&
+    /^\/[a-zA-Z0-9._~\-\/]+(\?[^#]*)?$/.test(state)
+  )
+}
 
 function LiffRouter() {
   const params = useSearchParams()
@@ -14,7 +25,7 @@ function LiffRouter() {
   useEffect(() => {
     const state = params.get("liff.state")
 
-    if (!state || !ALLOWED_PATHS.includes(state)) {
+    if (!isSafeLiffState(state)) {
       setError("無効なアクセスです。LINEのメニューからお開きください。")
       return
     }

@@ -21,10 +21,27 @@ export function useLiff(): LiffState {
         await liff.init({ liffId: LIFF_ID })
 
         if (!liff.isLoggedIn()) {
-          liff.login({ redirectUri: window.location.href })
+          // Guard against an infinite login loop: only attempt login once.
+          // If we come back still not logged in, surface a clear message
+          // instead of redirecting forever.
+          if (sessionStorage.getItem("liff_login_attempted")) {
+            if (!cancelled) {
+              setState({
+                status: "error",
+                message: "ログインを完了できませんでした。LINEアプリのメニューから開き直してください。",
+              })
+            }
+            return
+          }
+          sessionStorage.setItem("liff_login_attempted", "1")
+          // Return to a CLEAN url (no transient ?code/?state/?liff.state), so
+          // the OAuth return target stays inside the LIFF endpoint scope.
+          liff.login({ redirectUri: window.location.origin + window.location.pathname })
           return
         }
 
+        // Logged in — clear the one-shot guard for future navigations.
+        sessionStorage.removeItem("liff_login_attempted")
         const profile = await liff.getProfile()
         if (!cancelled) {
           setState({
