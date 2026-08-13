@@ -14,6 +14,7 @@ type Plan = {
   version: number | null
   effectiveFrom: string | null
   nextReviewAt: string | null
+  updatedAt: string | null
   payload: PlanPayload
 }
 
@@ -220,12 +221,23 @@ export default function LiffPersonalPlanPage() {
               <p className="mt-2 text-lg font-bold" style={{ color: "#1E3A5F" }}>
                 {formatFullDate(plan.nextReviewAt)}
               </p>
-              <p className="mt-2 text-[11.5px] leading-relaxed text-gray-500">
-                見直し前でも最新のプランを継続して参照します
-              </p>
+              {plan.nextReviewAt && new Date(plan.nextReviewAt).getTime() < Date.now() ? (
+                <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-800">
+                  見直し時期の目安を過ぎています。カウンセリングのご予約をおすすめします（未受診の間は現在のプランを継続して参照します）。
+                </p>
+              ) : (
+                <p className="mt-2 text-[11.5px] leading-relaxed text-gray-500">
+                  見直し前でも最新のプランを継続して参照します
+                </p>
+              )}
               {plan.effectiveFrom && (
                 <p className="mt-1 text-[11px] text-gray-400">
                   適用開始：{formatShortDate(plan.effectiveFrom)}
+                </p>
+              )}
+              {plan.updatedAt && (
+                <p className="text-[11px] text-gray-400">
+                  最終更新日：{formatShortDate(plan.updatedAt)}
                 </p>
               )}
             </div>

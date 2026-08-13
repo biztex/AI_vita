@@ -301,6 +301,16 @@ export default function LiffKartePage() {
   const hasNutritionPlan = !!data.nutritionPlan
   const report = data.genetics?.report
   const hasGriiceReport = !!(report && (report.constitution.length > 0 || report.nutritionStrategy.length > 0))
+  // Extract a readable 要約 string from the (untyped) geneticSummary JSON.
+  function geneSummaryText(s: any): string {
+    if (!s) return ""
+    if (typeof s === "string") return s.trim().slice(0, 800)
+    if (typeof s === "object") {
+      const v = s.summary || s.text || s.overview || s.description || s.comment
+      if (typeof v === "string") return v.trim().slice(0, 800)
+    }
+    return ""
+  }
 
   return (
     <div className="min-h-screen pb-10" style={{ background: "#f0f4f8" }}>
@@ -408,6 +418,14 @@ export default function LiffKartePage() {
               )}
               {report?.provider && (
                 <p className="text-[10px] text-gray-400">提供：{report.provider}</p>
+              )}
+              {geneSummaryText(data.genetics?.summary) && (
+                <div className="mt-3 rounded-lg bg-[#F6F1E6] p-3">
+                  <p className="text-[11px] font-bold" style={{ color: "#2D5A8E" }}>結果の要約</p>
+                  <p className="mt-1 whitespace-pre-line text-[12px] leading-relaxed text-gray-700">
+                    {geneSummaryText(data.genetics?.summary)}
+                  </p>
+                </div>
               )}
             </div>
 

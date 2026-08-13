@@ -1095,7 +1095,7 @@ r.get('/liff/personalplan', async (req: Request, res: Response) => {
     });
     res.json({
       hasPlan: !!active,
-      plan: active ? { version: active.version, effectiveFrom: active.effectiveFrom, nextReviewAt: active.nextReviewAt, payload: active.payload } : null,
+      plan: active ? { version: active.version, effectiveFrom: active.effectiveFrom, nextReviewAt: active.nextReviewAt, updatedAt: active.updatedAt, payload: active.payload } : null,
       history,
     });
   } catch (err) {
