@@ -4,6 +4,7 @@ import { prisma } from '../prisma';
 import { findActiveVitaNutritionPlan } from './vitaNutritionData';
 import { getOnboardingAnswers } from './lineConversationStore';
 import { AXEL_OUTAGE_NOTICE } from './axelEngine';
+import { researchIfNeeded, appendCitations } from './axelWebSearch';
 import { tuningParams } from './openaiParams';
 
 // Initialize OpenAI client
@@ -693,6 +694,19 @@ export async function processChat(
       }));
     }
 
+    // ── Web search pre-step (same capability as the LINE engine) ──
+    // If the user's question/caption needs current or external facts, fetch an
+    // officially-sourced brief and inject it. Fail-safe: null → proceed without.
+    let research: Awaited<ReturnType<typeof researchIfNeeded>> = null;
+    try {
+      research = await researchIfNeeded(content || '');
+    } catch {
+      research = null;
+    }
+    if (research?.block) {
+      systemPrompt = systemPrompt + '\n\n---\n\n' + research.block;
+    }
+
     // Build messages array with system prompt, conversation history, and current message
     const messages = [
       {
@@ -752,11 +766,9 @@ export async function processChat(
     // ── Strip stray【AXEL】prefix if the model ignored the "no prefix" rule.
     // (The model occasionally insists on it from old chat history; remove it
     // so the voice stays human.)
-    if (isAxel) {
-      return aiResponse.replace(/^【AXEL】\s*/i, '').trim();
-    }
-
-    return aiResponse;
+    const cleaned = isAxel ? aiResponse.replace(/^【AXEL】\s*/i, '').trim() : aiResponse;
+    // Guarantee source display when web search was used.
+    return appendCitations(cleaned, research?.citations ?? []);
 
   } catch (error: any) {
     // AI failure (quota, network, auth, 5xx, empty response). Client

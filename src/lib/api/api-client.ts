@@ -656,13 +656,16 @@ class APIClient {
 
   // Stripe endpoints
   stripe = {
-    createCheckoutSession: (subscriptionType: "VITAAI" | "EXECUWELL" | "INTEGRATED") =>
+    createCheckoutSession: (
+      subscriptionType: "VITAAI" | "EXECUWELL" | "INTEGRATED",
+      lineUserId?: string,
+    ) =>
       this.request<{
         sessionId: string
         url: string
       }>("/stripe/create-checkout-session", {
         method: "POST",
-        body: { subscriptionType },
+        body: lineUserId ? { subscriptionType, lineUserId } : { subscriptionType },
       }),
 
     getSubscription: () =>

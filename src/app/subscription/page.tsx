@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -85,6 +86,10 @@ const plans: Plan[] = [
 
 function SubscriptionContent() {
   const { user } = useAuth()
+  const searchParams = useSearchParams()
+  // When opened from LINE (plan carousel), the recipient's LINE id is threaded
+  // through so the Stripe webhook can auto-link this payment to their account.
+  const lineUserId = searchParams.get("lineUserId") || undefined
   const [loading, setLoading] = useState<string | null>(null)
   const [subscriptionData, setSubscriptionData] = useState<any>(null)
   const [loadingSubscription, setLoadingSubscription] = useState(true)
@@ -145,7 +150,7 @@ function SubscriptionContent() {
 
     setLoading(planId)
     try {
-      const response = await apiClient.stripe.createCheckoutSession(planId)
+      const response = await apiClient.stripe.createCheckoutSession(planId, lineUserId)
       
       // Redirect to Stripe Checkout
       if (response.url) {
@@ -405,7 +410,9 @@ function SubscriptionContent() {
 export default function SubscriptionPage() {
   return (
     <ProtectedRoute>
-      <SubscriptionContent />
+      <Suspense>
+        <SubscriptionContent />
+      </Suspense>
     </ProtectedRoute>
   )
 }

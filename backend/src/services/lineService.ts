@@ -15,6 +15,7 @@ import {
 } from './lineConversationStore';
 import { respondAsAxel } from './axelEngine';
 import { transcribeAudio } from './axelVoice';
+import { buildPlanCarousel } from './axelPlans';
 
 // ── LINE SDK clients ──
 
@@ -987,6 +988,18 @@ async function handleTextMessage(event: line.MessageEvent): Promise<void> {
     );
     return;
   }
+  // Plan carousel — show the 3 subscription plans as a scrollable Flex list,
+  // each button opening checkout with this lineUserId baked in (auto-links on pay).
+  if (msg === '申込' || msg === 'プラン' || msg === 'プラン申込' || msg === 'プラン一覧' || msg === '料金' || msg === '申し込み') {
+    await lineClient.replyMessage({
+      replyToken: event.replyToken,
+      messages: [buildPlanCarousel(lineUserId, ENV.FRONTEND_URL)],
+    }).catch(async () => {
+      await pushText(lineUserId, `プランのご案内：${ENV.FRONTEND_URL}/subscription`);
+    });
+    return;
+  }
+
   // Settings — reachable via text since it's no longer in the rich menu.
   if (msg === '設定' || msg === '/settings' || msg === '/setting' || msg === '/config') {
     let lu = await prisma.lineUser.findUnique({ where: { lineUserId } });
