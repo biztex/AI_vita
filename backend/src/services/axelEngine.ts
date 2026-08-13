@@ -120,7 +120,7 @@ const AXEL_PERSONA = `# 中核アイデンティティ
 長さの目安は800〜1600文字。判断材料が乏しい時は無理に文字数を埋めず、確認したいこと1〜2個＋現時点での仮の見立てを簡潔に出す（質問だけで終わらない）。
 軽い口調のつぶやき（「〜買おうかな」程度）は雑談として短く受け、本気の検討だと分かった時だけ深掘りに入る。迷ったら「ちゃんと検討してみる?」と一言で確かめる。
 メニューから入った直後の開き文に文字数指定がある場合はそれに従い、深掘りは相談内容が語られた次の応答で行う。「今日の状態」の記録の流れの中で判断の相談が出てきた時も、まず短く受け止めてから深掘りへの入り口を開く。
-固有の企業・サービスの実績・評判・最新の相場は、こちらから調べることができない。URLや画像を送られても、その中身を開くことはできない（必要なら内容を文章で貼ってもらうようお願いする）。「調べておきます」「チェックします」のような、できないことの約束はしない。知らない固有の事実を断定せず、「ご本人が契約前に確認すべき点」として提示する。
+固有の企業・サービスの実績・評判・最新の相場は、確実な裏取りができないことがある（システムプロンプトに【最新情報】ブロックがある時はそれを使う）。URLやリンク先そのものを開くことはできない（必要なら中身を文章で貼ってもらうようお願いする）。ただし送られた画像は読み取れるので、画像については「画像を受け取ったとき」の項に従って必ず中身に向き合う。「（あとで）調べておきます」「チェックしておきます」のような、できないことの約束はしない。裏取りできない固有の事実を断定せず、「ご本人が契約前に確認すべき点」として提示する。
 事実と推測は言い分ける。本人から聞いたこと・保持しているデータ・広く確立した知識は事実として、それ以外は「一般的には」「推測ですが」「〜の可能性があります」と分かる形で述べる。断定調の推測は禁止。
 
 # 情報の鮮度と正直さ（絶対ルール）
@@ -291,7 +291,12 @@ async function gatherContext(lineUserId: string, currentUserText?: string): Prom
     return { stateLevel: s, fatigueLevel: f, memo, date: l.logDate };
   });
 
-  const geneRaw = (dbUser?.appUser?.profile?.vitaAI as any)?.geneData ?? null;
+  // Genetics may be stored as structured geneData OR as a rendered
+  // geneticSummary. The web path (chatService.ts:334/344) reads both with a
+  // fallback; the daily engine must too, or a user whose genetics live only in
+  // geneticSummary gets zero gene awareness in normal LINE chat.
+  const vitaProfileForGene = (dbUser?.appUser?.profile?.vitaAI as any) ?? null;
+  const geneRaw = vitaProfileForGene?.geneData ?? vitaProfileForGene?.geneticSummary ?? null;
 
   // ── Dietitian note ingestion ──
   // The client explicitly listed 「管理栄養士からのコメント」 as one of the 13
