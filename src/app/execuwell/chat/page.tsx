@@ -18,6 +18,7 @@ type Message = {
   content: string
   kind?: "TEXT" | "VOICE" | "IMAGE"
   voiceUrl?: string
+  imageUrl?: string
   timestamp: string
 }
 
@@ -39,6 +40,8 @@ function ExecuWellChatContent() {
         content: msg.content,
         kind: msg.kind,
         voiceUrl: msg.voiceUrl,
+        // Image path is stored in the voiceUrl column for IMAGE messages
+        imageUrl: msg.kind === "IMAGE" ? msg.voiceUrl : undefined,
         timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       }))
       setMessages(formattedMessages)
@@ -100,8 +103,9 @@ function ExecuWellChatContent() {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content,
-      kind: type === "voice" ? "VOICE" : undefined,
+      content: type === "image" ? (content || "[画像]") : content,
+      kind: type === "voice" ? "VOICE" : type === "image" ? "IMAGE" : undefined,
+      imageUrl: type === "image" && file ? URL.createObjectURL(file) : undefined,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     }
     setMessages((prev) => [...prev, userMessage])
@@ -120,6 +124,10 @@ function ExecuWellChatContent() {
         // Step 2: process (transcribe + AI)
         const processed = await apiClient.chats.processVoice("EXECUWELL", upload.conversationId, upload.audioPath)
         resp = { conversationId: processed.conversationId, message: processed.message, timestamp: processed.timestamp }
+      } else if (type === "image" && file) {
+        // Upload the image + caption; the model reads it and replies
+        const img = await apiClient.chats.sendImage("EXECUWELL", file, content, currentConversationId || undefined)
+        resp = { conversationId: img.conversationId, message: img.message, timestamp: img.timestamp }
       } else {
         // Call backend ExecuWell chat with conversation ID
         resp = await apiClient.chats.send("EXECUWELL", content, currentConversationId || undefined)
@@ -202,6 +210,7 @@ function ExecuWellChatContent() {
                   content={message.content}
                   kind={message.kind}
                   voiceUrl={message.voiceUrl}
+                  imageUrl={message.imageUrl}
                   timestamp={message.timestamp}
                   userName={user?.name}
                   service="execuwell"

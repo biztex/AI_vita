@@ -578,6 +578,7 @@ export async function processChat(
   conversationId?: string,
   lineConversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>,
   lineUserId?: string,
+  imageDataUri?: string,
 ): Promise<string> {
   try {
     // Rate limiting check
@@ -603,8 +604,9 @@ export async function processChat(
       throw new Error(`無効なサービスタイプ: ${service}。'VITAAI' / 'EXECUWELL' / 'AXEL' のいずれかである必要があります`);
     }
 
-    // Validate content
-    if (!content || content.trim().length === 0) {
+    // Validate content — an image with no caption is allowed (the picture is
+    // the message); we substitute a read-the-image instruction below.
+    if ((!content || content.trim().length === 0) && !imageDataUri) {
       throw new Error('コンテンツを空にすることはできません');
     }
 
@@ -700,7 +702,20 @@ export async function processChat(
       ...conversationHistory,
       {
         role: "user" as const,
-        content: content.trim()
+        // For image turns, send multimodal content (text + image) so the
+        // vision-capable model actually reads the picture — same shape the
+        // LINE engine uses. gpt-5.6-sol reads text and elements in the image.
+        content: imageDataUri
+          ? ([
+              {
+                type: 'text',
+                text:
+                  content.trim() ||
+                  '（画像が届きました。写っているものを、文字も含めて詳しく読み取り、意図を汲んで答えてください）',
+              },
+              { type: 'image_url', image_url: { url: imageDataUri } },
+            ] as any)
+          : content.trim(),
       }
     ];
 

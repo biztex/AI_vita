@@ -247,6 +247,32 @@ class APIClient {
       return data as VoiceProcessResponse & { audioPath: string };
     },
 
+    // Send an image (Vision): uploads the picture + optional caption; the
+    // model reads the image and replies.
+    sendImage: async (
+      service: "VITAAI" | "EXECUWELL" | "AXEL",
+      imageFile: File,
+      caption?: string,
+      conversationId?: string,
+      title?: string
+    ) => {
+      const url = `${this.baseURL}/chat/image`;
+      const formData = new FormData();
+      formData.append("service", service);
+      if (caption) formData.append("caption", caption);
+      if (conversationId) formData.append("conversationId", conversationId);
+      if (title) formData.append("title", title);
+      formData.append("image", imageFile);
+
+      const headers: Record<string, string> = {};
+      if (this.authToken) headers["Authorization"] = `Bearer ${this.authToken}`;
+
+      const resp = await fetch(url, { method: "POST", headers, body: formData });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.error || data?.message || `HTTP ${resp.status}`);
+      return data as { conversationId: string; message: string; imageUrl: string; timestamp: string };
+    },
+
     // Step 1: upload audio only
     uploadVoice: async (
       service: "VITAAI" | "EXECUWELL",

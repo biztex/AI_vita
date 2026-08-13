@@ -33,6 +33,21 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 } });
 
+// Image upload (persisted under upload/images, served at /uploads/images)
+const imageDir = path.join(uploadRoot, 'images');
+fs.mkdirSync(imageDir, { recursive: true });
+const imageStorage = multer.diskStorage({
+  destination: (_req: any, _file: any, cb: (e: Error | null, d: string) => void) => cb(null, imageDir),
+  filename: (_req: any, file: any, cb: (e: Error | null, f: string) => void) =>
+    cb(null, `${Date.now()}${path.extname(file.originalname || '') || '.jpg'}`),
+});
+const imageUpload = multer({
+  storage: imageStorage,
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (_req: any, file: any, cb: any) =>
+    cb(null, /^image\//.test(file.mimetype || '')),
+});
+
 // rateLimit((req) => `chat:${req.user.id}`, 30, 60),
 
 // GET MyAI welcome message (personalized greeting for empty chat)
@@ -95,6 +110,45 @@ r.post("/", requireAuth(), async (req: any, res: any, next: any) => {
     });
   } catch (e) {
     console.error('Chat route error:', e);
+    next(e);
+  }
+});
+
+// ── Image chat (Vision) ──
+// Accepts an uploaded image + optional caption; the model reads the image
+// (text and elements) and replies, with the same web-user context as text chat.
+r.post("/image", requireAuth(), imageUpload.single('image'), async (req: any, res: any, next: any) => {
+  try {
+    const { service, conversationId, title } = req.body;
+    const caption: string = (req.body.caption || '').toString();
+    if (!service || !['VITAAI', 'EXECUWELL', 'AXEL'].includes(service)) {
+      return res.status(400).json({ error: '無効なサービスタイプです。' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: '画像が必要です。' });
+    }
+
+    const buf = fs.readFileSync(req.file.path);
+    const mime = req.file.mimetype || 'image/jpeg';
+    const imageDataUri = `data:${mime};base64,${buf.toString('base64')}`;
+    const publicPath = `/uploads/images/${path.basename(req.file.path)}`;
+
+    const activeConversationId = await getOrCreateConversation(req.user.id, service, conversationId, title);
+    // Persist the user's image message (caption text + image URL for re-render)
+    await saveMessage(activeConversationId, 'USER', caption || '[画像]', 'IMAGE', publicPath);
+
+    const reply = await processChat(service, caption, req.user.id, activeConversationId, undefined, undefined, imageDataUri);
+    await saveMessage(activeConversationId, 'ASSISTANT', reply);
+
+    res.json({
+      conversationId: activeConversationId,
+      message: reply,
+      imageUrl: publicPath,
+      service,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error('Chat image route error:', e);
     next(e);
   }
 });

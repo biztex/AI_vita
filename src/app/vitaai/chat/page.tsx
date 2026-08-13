@@ -18,6 +18,7 @@ type Message = {
   content: string
   kind?: "TEXT" | "VOICE" | "IMAGE"
   voiceUrl?: string
+  imageUrl?: string
   timestamp: string
 }
 
@@ -39,6 +40,7 @@ function VitaAIChatContent() {
         content: msg.content,
         kind: msg.kind,
         voiceUrl: msg.voiceUrl,
+        imageUrl: msg.kind === "IMAGE" ? msg.voiceUrl : undefined,
         timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       }))
       setMessages(formattedMessages)
@@ -100,8 +102,9 @@ function VitaAIChatContent() {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content,
-      kind: type === "voice" ? "VOICE" : undefined,
+      content: type === "image" ? (content || "[画像]") : content,
+      kind: type === "voice" ? "VOICE" : type === "image" ? "IMAGE" : undefined,
+      imageUrl: type === "image" && file ? URL.createObjectURL(file) : undefined,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     }
     setMessages((prev) => [...prev, userMessage])
@@ -121,6 +124,9 @@ function VitaAIChatContent() {
         // Step 2: process (transcribe + AI)
         const processed = await apiClient.chats.processVoice("VITAAI", upload.conversationId, upload.audioPath)
         resp = { conversationId: processed.conversationId, message: processed.message, timestamp: processed.timestamp }
+      } else if (type === "image" && file) {
+        const img = await apiClient.chats.sendImage("VITAAI", file, content, currentConversationId || undefined)
+        resp = { conversationId: img.conversationId, message: img.message, timestamp: img.timestamp }
       } else {
         // Call backend VitaAI chat with conversation ID
         resp = await apiClient.chats.send("VITAAI", content, currentConversationId || undefined)
@@ -203,6 +209,7 @@ function VitaAIChatContent() {
                   content={message.content}
                   kind={message.kind}
                   voiceUrl={message.voiceUrl}
+                  imageUrl={message.imageUrl}
                   timestamp={message.timestamp}
                   userName={user?.name}
                   service="vitaai"

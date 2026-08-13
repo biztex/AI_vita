@@ -7,12 +7,13 @@ type ChatMessageProps = {
   content: string
   kind?: "TEXT" | "VOICE" | "IMAGE"
   voiceUrl?: string
+  imageUrl?: string
   timestamp?: string
   userName?: string
   service?: "vitaai" | "execuwell"
 }
 
-export function ChatMessage({ role, content, kind = "TEXT", voiceUrl, timestamp, userName, service = "vitaai" }: ChatMessageProps) {
+export function ChatMessage({ role, content, kind = "TEXT", voiceUrl, imageUrl, timestamp, userName, service = "vitaai" }: ChatMessageProps) {
   const isUser = role === "user"
   const Icon = service === "vitaai" ? Activity : Briefcase
 
@@ -74,6 +75,20 @@ export function ChatMessage({ role, content, kind = "TEXT", voiceUrl, timestamp,
               {/* <div className="prose prose-sm max-w-none">
                 <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground/90">{content}</p>
               </div> */}
+            </div>
+          ) : kind === "IMAGE" ? (
+            <div className="space-y-2">
+              {imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageUrl.startsWith("blob:") || imageUrl.startsWith("http") ? imageUrl : `/backend${imageUrl}`}
+                  alt="送信画像"
+                  className="max-h-64 max-w-full rounded-lg object-contain"
+                />
+              )}
+              {content && content !== "[画像]" && (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
+              )}
             </div>
           ) : (
             <div className="prose prose-sm max-w-none">

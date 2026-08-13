@@ -18,6 +18,8 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
+  const [stagedImage, setStagedImage] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<BlobPart[]>([])
@@ -41,8 +43,35 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
     }
   }, [])
 
+  // Stage an image for preview; it is only sent when the user presses Send.
+  const stageImage = (file: File) => {
+    if (!/^image\//.test(file.type)) {
+      // Non-image (e.g. PDF) — keep the old immediate behavior
+      onSendMessage(`Uploaded: ${file.name}`, "image", file)
+      return
+    }
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setStagedImage(file)
+    setPreviewUrl(URL.createObjectURL(file))
+  }
+
+  const clearStagedImage = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setStagedImage(null)
+    setPreviewUrl(null)
+  }
+
   const handleSendText = () => {
-    if (message.trim() && !disabled) {
+    if (disabled) return
+    if (stagedImage) {
+      // Send the image with the typed text as its caption
+      onSendMessage(message.trim(), "image", stagedImage)
+      clearStagedImage()
+      setMessage("")
+      setIsTyping(false)
+      return
+    }
+    if (message.trim()) {
       onSendMessage(message, "text")
       setMessage("")
       setIsTyping(false)
@@ -129,7 +158,7 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && !disabled) {
-      onSendMessage(`Uploaded: ${file.name}`, "image", file)
+      stageImage(file)
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
@@ -161,7 +190,7 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
     if (disabled) return
     const file = e.dataTransfer.files?.[0]
     if (file) {
-      onSendMessage(`Uploaded: ${file.name}`, "image", file)
+      stageImage(file)
     }
   }
 
@@ -177,6 +206,24 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {previewUrl && (
+        <div className="mb-3 flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-2 w-fit">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={previewUrl} alt="添付画像" className="h-16 w-16 rounded object-cover" />
+          <div className="text-xs text-muted-foreground">
+            画像を添付しました。<br />送信ボタンで解析します。
+          </div>
+          <button
+            type="button"
+            onClick={clearStagedImage}
+            className="ml-1 rounded-full px-2 py-0.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            aria-label="画像を取り消す"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="flex items-end gap-3">
         <div className="flex-1 relative">
           <Textarea
@@ -239,10 +286,10 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
             <span className="sr-only">{isRecording ? "録音停止" : "録音開始"}</span>
           </Button>
 
-          <Button 
-            onClick={handleSendText} 
-            disabled={!message.trim() || disabled} 
-            size="icon" 
+          <Button
+            onClick={handleSendText}
+            disabled={(!message.trim() && !stagedImage) || disabled}
+            size="icon"
             className="h-[60px] w-[60px] bg-gradient-to-r from-success to-success/90 hover:from-success/90 hover:to-success text-success-foreground shadow-lg shadow-success/25 hover:shadow-success/40 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             <Send className="h-5 w-5" />
