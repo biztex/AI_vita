@@ -120,10 +120,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         console.log("[Auth] Initializing auth state...")
         
-        // Small delay to ensure localStorage is accessible and Supabase can restore session
-        await new Promise(resolve => setTimeout(resolve, 100))
-        
         // Get session first to set auth token
+        // (supabase.auth.getSession() reads persisted session from storage itself;
+        // no artificial delay needed — the delay only lengthened the auth flicker.)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
         console.log("[Auth] Session retrieved:", session ? `Yes (user: ${session.user?.email})` : "No", sessionError ? `Error: ${sessionError.message}` : "")

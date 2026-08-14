@@ -21,7 +21,7 @@ import { apiClient } from "@/lib/api"
 
 export function Header() {
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { user, logout, loading } = useAuth()
   const [news, setNews] = useState<Array<{ id: string; title: string; url?: string; time?: string }>>([])
   const [loadingNews, setLoadingNews] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -67,7 +67,7 @@ export function Header() {
     { href: "http://execuwell.jp/information", label: "情報", protected: true },
     { href: "http://vitaai.jp/vitaai/chat", label: "VitaAI", protected: true },
     { href: "http://execuwell.jp/execuwell/chat", label: "ExecuWell", protected: true },
-    { href: "/subscription", label: "サブスクリプション" },
+    { href: "/subscription", label: "サブスクリプション", protected: true },
     { href: "http://execuwell.jp/profile", label: "プロフィール", protected: true },
   ]
 
@@ -123,7 +123,16 @@ export function Header() {
 
         {/* Auth Section */}
         <div className="flex items-center space-x-4">
-          {user ? (
+          {loading ? (
+            // While auth is still resolving, show a neutral placeholder — NOT the
+            // logged-out buttons. Rendering the logged-out UI here caused the
+            // header to flash its logged-out state on every navigation/reload
+            // before the session finished restoring.
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-full bg-muted/40 animate-pulse" aria-hidden />
+              <MobileMenu />
+            </div>
+          ) : user ? (
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
