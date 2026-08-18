@@ -15,26 +15,24 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // Auth helpers
 export const signUp = async (email: string, password: string, userData?: { name?: string; company?: string; industries?: NewsCategory[] }) => {
-  console.log('signUp', email, password, userData);
-  
-  let role = 'user'
-  if(email == 'admin@gmail.com'){
-    console.log('admin');
-    
-    role = 'admin'
-  }
+  // NOTE: never log credentials here. Admin is granted server-side via the
+  // ADMIN_EMAILS allowlist (backend/src/middlewares/auth.ts) — role must NOT
+  // be written into user_metadata (it is client-writable and was an
+  // admin-privilege-escalation vector).
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
         ...userData,
-        role,
         subscription: 'integrated'
-      }
+      },
+      // After the user clicks the verification link, land them on OUR
+      // Japanese login page with a success banner — not a bare/English page.
+      emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/auth/login?verified=1` : undefined,
     }
   })
-  
+
   return { data, error }
 }
 
@@ -43,8 +41,6 @@ export const signIn = async (email: string, password: string) => {
     email,
     password,
   })
-
-  console.log('signIn', data, error);
   return { data, error }
 }
 
