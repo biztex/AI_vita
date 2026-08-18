@@ -38,7 +38,7 @@ export const NEWS_CATEGORY_LABELS_JA: Record<NewsCategory, string> = {
 	technology: "テクノロジー",
 	top: "主要ニュース",
 	tourism: "観光",
-	world: "ワールド",
+	world: "国際・海外",
 	other: "その他",
 } as const;
 

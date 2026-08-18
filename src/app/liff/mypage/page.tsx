@@ -232,6 +232,10 @@ export default function LiffMyPage() {
               </span>
             </div>
 
+            <p className="mb-3 text-[11px] leading-snug text-gray-400">
+              今のあなたの状態のまとめです。体調の記録・直近の判断・前回AXELからの返信を、ひと目で振り返れます。
+            </p>
+
             {/* Today's body + decision side-by-side */}
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-rose-50/40 to-white p-3">

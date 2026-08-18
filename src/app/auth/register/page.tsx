@@ -154,12 +154,18 @@ export default function RegisterPage() {
                 </div>
                 
                 <div className="rounded-lg bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
-                  <p className="font-medium">次の手順：</p>
+                  <p className="font-medium">次の手順</p>
                   <ol className="mt-2 list-decimal list-inside space-y-1">
-                    <li>メールボックスを確認してください</li>
-                    <li>確認メール内のリンクをクリックしてください</li>
-                    <li>アカウントが有効化されたらログインできます</li>
+                    <li>メール内のリンクをクリックして有効化してください</li>
+                    <li>有効化後、ログインできます</li>
                   </ol>
+                  <p className="mt-3 font-medium">メールが見当たらない場合</p>
+                  <ul className="mt-2 list-disc list-inside space-y-1">
+                    <li>届くまで数分かかることがあります</li>
+                    <li>「迷惑メール」「プロモーション」フォルダも必ずご確認ください</li>
+                    <li>件名・送信元が英語表記の場合があります</li>
+                    <li>送信元を連絡先に追加すると、次回から届きやすくなります</li>
+                  </ul>
                 </div>
                 
                 <div className="flex flex-col space-y-2">
@@ -325,15 +331,19 @@ export default function RegisterPage() {
 
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password">パスワード</Label>
+              <Label htmlFor="password">
+                パスワード <span className="text-xs font-normal text-muted-foreground">（6文字以上）</span>
+              </Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="6文字以上で入力"
                 {...register("password")}
                 aria-invalid={errors.password ? "true" : "false"}
               />
-              {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+              {errors.password
+                ? <p className="text-sm text-destructive">{errors.password.message}</p>
+                : <p className="text-xs text-muted-foreground">半角英数字6文字以上で設定してください。</p>}
             </div>
 
             {/* Confirm Password */}
