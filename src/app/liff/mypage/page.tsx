@@ -66,6 +66,9 @@ function formatDate(iso: string | null): string {
   } catch { return iso }
 }
 
+const STATE_WORDS: Record<number, string> = { 1: "良い", 2: "普通", 3: "悪い" }
+const FATIGUE_WORDS: Record<number, string> = { 1: "軽い", 2: "普通", 3: "重い" }
+
 const SUBSCRIPTION_LABEL: Record<string, string> = {
   VITAAI: "VitaAI",
   EXECUWELL: "ExecuWell",
@@ -246,11 +249,10 @@ export default function LiffMyPage() {
                 {data.home.today ? (
                   <>
                     <div className="mt-2 flex items-baseline gap-1.5">
-                      <span className="text-2xl font-bold tabular-nums" style={{ color: data.home.today.stateLevel != null && data.home.today.stateLevel >= 3 ? "#EF4444" : data.home.today.stateLevel === 2 ? "#F59E0B" : "#10B981" }}>
-                        {data.home.today.stateLevel ?? "—"}
+                      <span className="text-2xl font-bold" style={{ color: data.home.today.stateLevel != null && data.home.today.stateLevel >= 3 ? "#EF4444" : data.home.today.stateLevel === 2 ? "#F59E0B" : "#10B981" }}>
+                        {data.home.today.stateLevel != null ? STATE_WORDS[data.home.today.stateLevel] ?? "—" : "—"}
                       </span>
-                      <span className="text-[9px] text-gray-400">/5</span>
-                      <span className="ml-1 text-[10px] text-gray-500">疲労 {data.home.today.fatigueLevel ?? "—"}</span>
+                      <span className="ml-1 text-[10px] text-gray-500">疲労 {data.home.today.fatigueLevel != null ? FATIGUE_WORDS[data.home.today.fatigueLevel] ?? "—" : "—"}</span>
                     </div>
                     {data.home.today.comment && (
                       <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-gray-500">{data.home.today.comment}</p>
@@ -401,8 +403,8 @@ export default function LiffMyPage() {
           </div>
           <p className="mt-2.5 text-[11px] leading-relaxed text-gray-400">
             {data.activeStripeSubscription?.subscriptionType === "INTEGRATED"
-              ? "統合プラン契約中 — AXELが自動有効。ここでは単独モードに切り替えも可能です。"
-              : "タップで即時切り替え。LINEでも「/switch」で切り替えできます。"}
+              ? "統合プランをご契約中のため、AXELが有効になっています。単独モードへの切り替えも可能です。"
+              : "タップですぐに切り替えられます。LINEで「/switch」と送信しても切り替えられます。"}
           </p>
         </div>
 

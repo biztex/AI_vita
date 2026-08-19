@@ -10,11 +10,17 @@ export function errorHandler(err:any, _req:any, res:any, _next:any) {
       error: err
     });
     
-    // Return error in consistent format
-    res.status(status).json({ 
+    // Return error in consistent format.
+    // Only expose err.message for expected client errors (status < 500);
+    // never leak internal error details (Prisma, stack info, etc.) to the client.
+    const isClientError = typeof err.status === "number" && err.status < 500;
+    const clientMessage = isClientError && err.message
+      ? err.message
+      : "サーバーでエラーが発生しました。時間をおいて再度お試しください。";
+    res.status(isClientError ? status : 500).json({
       success: false,
-      error: err.message || "サーバー内部でエラーが発生しました",
-      message: err.message || "サーバー内部でエラーが発生しました"
+      error: clientMessage,
+      message: clientMessage
     });
   }
   

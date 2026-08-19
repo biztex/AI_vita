@@ -167,8 +167,12 @@ function ReportsContent() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <h1 className="mb-8 text-4xl font-bold">レポート</h1>
-      
+      <h1 className="mb-4 text-4xl font-bold">レポート</h1>
+
+      <div className="mb-8 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-600 dark:text-amber-400">
+        サンプル表示（実データ連携は準備中）
+      </div>
+
       <Tabs defaultValue="vitaai" className="space-y-6">
         <TabsList>
           <TabsTrigger value="vitaai">VitaAI</TabsTrigger>

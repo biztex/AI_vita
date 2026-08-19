@@ -46,7 +46,12 @@ function VitaAIChatContent() {
       setMessages(formattedMessages)
     } catch (error) {
       console.error("Failed to load conversation:", error)
-      setMessages([])
+      setMessages([{
+        id: "load-error",
+        role: "assistant",
+        content: "会話を読み込めませんでした。もう一度お試しください。",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      }])
     } finally {
       setIsLoadingConversation(false)
     }
@@ -89,7 +94,7 @@ function VitaAIChatContent() {
           setMessages([{
             id: "welcome",
             role: "assistant",
-            content: "こんにちは！私はVitaAI、あなた専用の健康インテリジェンスアシスタントです。今日はどんなことを話そうか？",
+            content: "こんにちは！私はVitaAI、あなた専用の健康インテリジェンスアシスタントです。今日はどんなことをお話ししましょうか？",
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           }])
         }
@@ -145,10 +150,20 @@ function VitaAIChatContent() {
       }
       setMessages((prev) => [...prev, aiMessage])
     } catch (e: any) {
+      // If a voice bubble is stuck in processing, mark it as failed
+      setMessages((prev) => prev.map((m) => m.id === userMessage.id && m.content === "音声メッセージを処理中..." ? { ...m, content: "音声メッセージ（処理できませんでした）" } : m))
+      // Prefer a meaningful Japanese backend message (4xx) over the generic fallback
+      const status = e?.response?.status
+      const backendMessage =
+        typeof e?.message === "string" &&
+        /[\u3040-\u30ff\u4e00-\u9fff]/.test(e.message) &&
+        (!status || (status >= 400 && status < 500))
+          ? e.message
+          : null
       const errMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "エラーが発生しました。しばらくしてから再度お試しください。",
+        content: backendMessage || "エラーが発生しました。しばらくしてから再度お試しください。",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       }
       setMessages((prev) => [...prev, errMessage])

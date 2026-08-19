@@ -180,7 +180,7 @@ export default function LiffPersonalPlanPage() {
         <div className="flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
             <ClipboardCheck className="h-5 w-5" />
-            <span className="text-xs font-medium opacity-80">VitaAI / パーソナルプラン</span>
+            <span className="text-xs font-medium opacity-80">AXEL / パーソナルプラン</span>
           </div>
           <button
             type="button"
@@ -223,11 +223,11 @@ export default function LiffPersonalPlanPage() {
               </p>
               {plan.nextReviewAt && new Date(plan.nextReviewAt).getTime() < Date.now() ? (
                 <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-800">
-                  見直し時期の目安を過ぎています。カウンセリングのご予約をおすすめします（未受診の間は現在のプランを継続して参照します）。
+                  見直し時期の目安を過ぎています。カウンセリングのご予約をおすすめします。次回のカウンセリングまでは、現在のプランをもとにAXELがサポートを続けます。
                 </p>
               ) : (
                 <p className="mt-2 text-[11.5px] leading-relaxed text-gray-500">
-                  見直し前でも最新のプランを継続して参照します
+                  次回のカウンセリングまでは、現在のプランをもとにAXELがサポートを続けます。
                 </p>
               )}
               {plan.effectiveFrom && (

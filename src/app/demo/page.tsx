@@ -249,7 +249,7 @@ export default function DemoPreviewPage() {
       const j = (await r.json()) as AxelResponse
       setAxel(j)
     } catch (e: any) {
-      setError(e?.message || "AXEL response failed")
+      setError(e?.message || "応答の生成に失敗しました。もう一度お試しください。")
     } finally {
       setAxelLoading(false)
     }
@@ -262,7 +262,7 @@ export default function DemoPreviewPage() {
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
       setSystemPrompt(await r.text())
     } catch (e: any) {
-      setError(e?.message || "Failed to load system prompt")
+      setError(e?.message || "システムプロンプトの読み込みに失敗しました")
     }
   }
 

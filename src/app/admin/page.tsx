@@ -32,7 +32,10 @@ export default function AdminOverviewPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold">管理者概要</h1>
+        <div className="mb-2 flex items-center gap-3">
+          <h1 className="text-3xl font-bold">管理者概要</h1>
+          <span className="text-sm font-medium text-amber-600 dark:text-amber-400">※ サンプル値</span>
+        </div>
         <p className="text-muted-foreground">プラットフォームのアクティビティと主要指標を監視</p>
       </div>
 

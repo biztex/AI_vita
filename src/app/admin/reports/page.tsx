@@ -18,6 +18,9 @@ export default function AdminReportsPage() {
 
   return (
     <div className="p-8">
+      <div className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-600 dark:text-amber-400">
+        このページはサンプルです（実データ未接続）
+      </div>
       <div className="mb-8">
         <h1 className="mb-2 text-3xl font-bold">レポート管理</h1>
         <p className="text-muted-foreground">自動化されたレポートと通知を設定</p>

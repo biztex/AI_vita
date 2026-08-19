@@ -58,7 +58,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">ログイン</CardTitle>
-          <CardDescription>アカウントにアクセスするには認証情報を入力してください</CardDescription>
+          <CardDescription>メールアドレスとパスワードを入力してください</CardDescription>
         </CardHeader>
         <CardContent>
           {justVerified && (
@@ -125,9 +125,9 @@ export default function LoginPage() {
 
           {/* Register link */}
           <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">アカウントをお持ちでないですか？ </span>
+            <span className="text-muted-foreground">アカウントをお持ちでない方は </span>
             <Link href="/auth/register" className="font-medium text-primary hover:underline">
-              登録
+              新規登録
             </Link>
           </div>
         </CardContent>

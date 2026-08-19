@@ -23,13 +23,13 @@ router.post("/create-checkout-session", requireAuth(), async (req: any, res: any
 
     if (!subscriptionType || !["VITAAI", "EXECUWELL", "INTEGRATED"].includes(subscriptionType)) {
       return res.status(400).json({
-        error: "Invalid subscription type. Must be VITAAI, EXECUWELL, or INTEGRATED",
+        error: "無効なプランが指定されました",
       });
     }
 
     if (!email) {
       return res.status(400).json({
-        error: "User email is required",
+        error: "メールアドレスが取得できませんでした",
       });
     }
 
@@ -105,7 +105,7 @@ router.post("/create-portal-session", requireAuth(), async (req: any, res: any, 
     console.error("[Stripe] Error creating portal session:", error);
     if (error.message.includes("does not have a Stripe customer ID")) {
       return res.status(400).json({
-        error: "No active subscription found",
+        error: "有効なサブスクリプションが見つかりません",
       });
     }
     next(error);

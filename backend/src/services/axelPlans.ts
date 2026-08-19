@@ -24,7 +24,7 @@ interface PlanDisplay {
 export const PLAN_DISPLAY: PlanDisplay[] = [
   {
     key: 'INTEGRATED',
-    name: '統合プラン',
+    name: 'AXEL（統合プラン）',
     subtitle: '完全版インフラ',
     monthly: 18000,
     enrollment: 30000,
@@ -80,10 +80,10 @@ function bubble(p: PlanDisplay, frontendUrl: string, lineUserId: string): any {
           layout: 'baseline',
           contents: [
             { type: 'text', text: yen(p.monthly), size: 'xl', weight: 'bold', color: '#1E3A5F', flex: 0 },
-            { type: 'text', text: '/月', size: 'sm', color: '#888888', margin: 'sm' },
+            { type: 'text', text: '/月（税別）', size: 'sm', color: '#888888', margin: 'sm' },
           ],
         },
-        { type: 'text', text: `入会金 ${yen(p.enrollment)}`, size: 'xxs', color: '#888888' },
+        { type: 'text', text: `入会金 ${yen(p.enrollment)}（税別）`, size: 'xxs', color: '#888888' },
         { type: 'separator', margin: 'md' },
         ...p.features.map((f) => ({
           type: 'box',

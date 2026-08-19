@@ -26,7 +26,7 @@ function LiffRouter() {
     const state = params.get("liff.state")
 
     if (!isSafeLiffState(state)) {
-      setError("無効なアクセスです。LINEのメニューからお開きください。")
+      setError("無効なアクセスです。LINEアプリのメニューから開き直してください。")
       return
     }
 

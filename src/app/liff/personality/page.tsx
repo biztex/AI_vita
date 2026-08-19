@@ -54,7 +54,7 @@ function Header({ subtitle }: { subtitle: string }) {
     <div className="px-4 pt-8 pb-5" style={{ background: "#1E3A5F" }}>
       <div className="flex items-center gap-2 text-white">
         <ScanFace className="h-5 w-5" />
-        <span className="text-xs font-medium opacity-80">VitaAI / 性格診断</span>
+        <span className="text-xs font-medium opacity-80">AXEL / 性格診断</span>
       </div>
       <h1 className="mt-1 text-xl font-bold text-white">性格診断</h1>
       {subtitle && <p className="mt-1 text-sm text-white/70">{subtitle}</p>}

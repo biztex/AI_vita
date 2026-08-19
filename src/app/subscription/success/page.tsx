@@ -10,6 +10,12 @@ import { toast } from "react-toastify"
 import Link from "next/link"
 import { apiClient } from "@/lib/api"
 
+const PLAN_NAME: Record<string, string> = {
+  INTEGRATED: "AXEL（統合プラン）",
+  VITAAI: "VitaAI",
+  EXECUWELL: "ExecuWell",
+}
+
 function SuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -40,7 +46,7 @@ function SuccessContent() {
         
         if (data.active && data.subscription) {
           setSubscription(data.subscription)
-          toast.success("サブスクリプションが正常にアクティベートされました", {
+          toast.success("サブスクリプションが有効になりました", {
             position: "top-right",
             autoClose: 3000,
           })
@@ -53,7 +59,7 @@ function SuccessContent() {
           
           if (retryData.active && retryData.subscription) {
             setSubscription(retryData.subscription)
-            toast.success("サブスクリプションが正常にアクティベートされました", {
+            toast.success("サブスクリプションが有効になりました", {
               position: "top-right",
               autoClose: 3000,
             })
@@ -96,7 +102,7 @@ function SuccessContent() {
                 <CheckCircle2 className="h-16 w-16 mx-auto mb-4 text-green-500" />
                 <CardTitle className="text-2xl">ご登録ありがとうございます！</CardTitle>
                 <CardDescription>
-                  サブスクリプションが正常にアクティベートされました
+                  サブスクリプションが有効になりました
                 </CardDescription>
               </>
             ) : (
@@ -116,7 +122,7 @@ function SuccessContent() {
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">プラン:</span>
-                    <span className="font-medium">{subscription.type}</span>
+                    <span className="font-medium">{PLAN_NAME[subscription.type] ?? subscription.type}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">ステータス:</span>

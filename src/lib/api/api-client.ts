@@ -191,6 +191,13 @@ class APIClient {
         body: { service, content, conversationId, title },
       }),
 
+    // Create an empty conversation (no fabricated first message).
+    createConversation: (service: "VITAAI" | "EXECUWELL", title?: string) =>
+      this.request<{ conversationId: string }>("/chat/conversation", {
+        method: "POST",
+        body: { service, title },
+      }),
+
     getConversations: (service?: "VITAAI" | "EXECUWELL") =>
       this.request<{ conversations: ConversationSummary[]; timestamp: string }>("/chat/conversations", {
         query: service ? { service } : {},

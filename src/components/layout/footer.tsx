@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Brain, Shield, Zap, Mail, FileText, HelpCircle } from "lucide-react"
+import { Brain, Shield, Zap, Mail, FileText } from "lucide-react"
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
@@ -19,7 +19,7 @@ export function Footer() {
               </h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              AIを活用したエグゼクティブの健康インサイトとビジネスインテリジェンス
+              判断と健康をひとつに支える、経営層のための AI コンシェルジュ
             </p>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
@@ -52,11 +52,11 @@ export function Footer() {
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-foreground">法的情報</h4>
             <div className="flex flex-col space-y-3 text-sm">
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
+              <Link href="/privacy" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
                 <FileText className="h-3 w-3" />
                 <span>プライバシーポリシー</span>
               </Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
+              <Link href="/terms" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
                 <FileText className="h-3 w-3" />
                 <span>利用規約</span>
               </Link>
@@ -67,13 +67,9 @@ export function Footer() {
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-foreground">サポート</h4>
             <div className="flex flex-col space-y-3 text-sm">
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
+              <Link href="/contact" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
                 <Mail className="h-3 w-3" />
                 <span>お問い合わせ</span>
-              </Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
-                <HelpCircle className="h-3 w-3" />
-                <span>ヘルプセンター</span>
               </Link>
             </div>
           </div>
@@ -86,8 +82,6 @@ export function Footer() {
             </p>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span>Powered by AI</span>
-              <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
-              <span>Made with ❤️ for executives</span>
             </div>
           </div>
         </div>

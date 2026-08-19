@@ -18,11 +18,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { contactSchema, type ContactFormData } from "@/lib/validations/validation"
+import { z } from "zod"
+import { contactSchema } from "@/lib/validations/validation"
 import { Loader2, CheckCircle2, ChevronLeft, Mail, Clock, ShieldCheck } from "lucide-react"
 import { toast } from "react-toastify"
 
-const VALID_PLANS = ["small", "corporate", "undecided"] as const
+// Plan keys aligned with the LP pricing links (/contact?plan=integrated|executive|vita).
+const VALID_PLANS = ["integrated", "executive", "vita", "undecided"] as const
+
+// The shared contactSchema still enumerates the legacy plan values, so override
+// the field locally until the shared enum is updated.
+const inquirySchema = contactSchema.extend({
+  plan: z.enum(VALID_PLANS).optional(),
+})
+type InquiryFormData = z.infer<typeof inquirySchema>
+
+// ?category= is appended by the LIFF 面談予約 page (backend keys: initial/followup/review).
+const CATEGORY_PREFIXES: Record<string, string> = {
+  initial: "【初回カウンセリング希望】",
+  followup: "【再カウンセリング希望】",
+  review: "【見直し面談希望】",
+}
 
 export default function InquiryForm() {
   const searchParams = useSearchParams()
@@ -33,10 +49,20 @@ export default function InquiryForm() {
   // ?type=reservation switches the form into "予約のご相談" mode (used by the LINE rich-menu
   // "予約する" button until a proper external booking system is integrated).
   const isReservation = searchParams.get("type") === "reservation"
+  // ?category=initial|followup|review (from the LIFF 面談予約 page) prefixes the message.
+  const categoryParam = searchParams.get("category")
+  const categoryPrefix = categoryParam ? CATEGORY_PREFIXES[categoryParam] : undefined
 
   const [isLoading, setIsLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+
+  const baseMessage = isReservation
+    ? "ご希望の日程・時間帯（候補を複数いただけると調整しやすいです）と、ご相談内容をご記入ください。"
+    : undefined
+  const defaultMessage = categoryPrefix
+    ? [categoryPrefix, baseMessage].filter(Boolean).join("\n")
+    : baseMessage
 
   const {
     register,
@@ -44,20 +70,18 @@ export default function InquiryForm() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<ContactFormData>({
-    resolver: zodResolver(contactSchema),
+  } = useForm<InquiryFormData>({
+    resolver: zodResolver(inquirySchema),
     defaultValues: {
       // Reservations land on "consultation" since the schema doesn't have a dedicated reservation type.
       inquiryType: isReservation ? "consultation" : "document",
       plan: defaultPlan,
-      message: isReservation
-        ? "ご希望の日程・時間帯（候補を複数いただけると調整しやすいです）と、ご相談内容をご記入ください。"
-        : undefined,
+      message: defaultMessage,
       agreement: false as unknown as true,
     },
   })
 
-  const onSubmit = async (data: ContactFormData) => {
+  const onSubmit = async (data: InquiryFormData) => {
     setIsLoading(true)
     setServerError(null)
     try {
@@ -272,8 +296,9 @@ export default function InquiryForm() {
                               <SelectValue placeholder="未定" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="small">スモールプラン（1〜3名）</SelectItem>
-                              <SelectItem value="corporate">コーポレートプラン（4名以上）</SelectItem>
+                              <SelectItem value="integrated">AXEL（統合プラン）</SelectItem>
+                              <SelectItem value="executive">ExecuWell 単独</SelectItem>
+                              <SelectItem value="vita">VitaAI 単独</SelectItem>
                               <SelectItem value="undecided">未定・相談したい</SelectItem>
                             </SelectContent>
                           </Select>

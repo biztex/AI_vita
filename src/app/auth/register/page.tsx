@@ -131,9 +131,9 @@ export default function RegisterPage() {
             </div>
             <CardTitle className="text-2xl font-bold">アカウント作成完了</CardTitle>
             <CardDescription>
-              {requiresEmailConfirmation 
-                ? "アカウントが正常に作成されました。メールアドレスを確認してください。"
-                : "アカウントが正常に作成されました。ダッシュボードに移動します..."}
+              {requiresEmailConfirmation
+                ? "アカウントを作成しました。メールアドレスを確認してください。"
+                : "アカウントを作成しました。ダッシュボードに移動します..."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

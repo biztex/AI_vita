@@ -33,9 +33,6 @@ export default function TermsPage() {
           <h2 className="mb-1 font-bold">第6条（規約の変更）</h2>
           <p>本サービスは、必要に応じて本規約を変更することがあります。変更後の規約は本ページに掲示した時点から効力を生じます。</p>
         </div>
-        <p className="pt-4 text-xs text-gray-400">
-          ※ 本文は雛形です。正式な条項は運営者の定める内容に置き換えてください。
-        </p>
       </section>
     </main>
   )

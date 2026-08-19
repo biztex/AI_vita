@@ -677,7 +677,7 @@ function ProfileContent() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ClipboardCheck className="w-5 h-5 text-primary" />
-                MyAI パーソナル診断結果
+                AXEL パーソナル診断結果
               </CardTitle>
               <CardDescription>
                 MBTI・DISC・エニアグラムを統合したあなたのプロファイル
@@ -717,7 +717,7 @@ function ProfileContent() {
                 LINE連携
               </CardTitle>
               <CardDescription>
-                LINEアカウントを連携して、MyAIとLINE上で会話したり朝のニュース配信を受け取れます
+                LINEアカウントを連携して、AXELとLINE上で会話したり朝のニュース配信を受け取れます
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -736,7 +736,7 @@ function ProfileContent() {
                       <div>
                         <p className="font-semibold text-green-700 dark:text-green-400">LINE連携済み</p>
                         <p className="text-sm text-muted-foreground">
-                          モード: {lineStatus.userMode === "VITAAI" ? "VitaAI" : "ExecuWell"}
+                          モード: {lineStatus.userMode === "AXEL" ? "AXEL" : lineStatus.userMode === "VITAAI" ? "VitaAI" : "ExecuWell"}
                         </p>
                       </div>
                     </div>
@@ -753,7 +753,7 @@ function ProfileContent() {
                       <div>
                         <p className="font-medium">朝の一言メッセージ</p>
                         <p className="text-sm text-muted-foreground">
-                          毎朝MyAIからニュース要約をLINEで受信
+                          毎朝、AXELからひとことメッセージが届きます
                         </p>
                       </div>
                     </div>
@@ -834,9 +834,9 @@ function ProfileContent() {
                   <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground mt-4 max-w-md mx-auto">
                     <p className="font-medium mb-2">連携の流れ：</p>
                     <ol className="list-decimal list-inside space-y-1">
-                      <li>① 上の「友だち追加」で公式LINEを追加</li>
-                      <li>② 「LINEで連携する」ボタンでアカウント連携</li>
-                      <li>完了後、LINEでMyAIとチャットできます</li>
+                      <li>上の「友だち追加」で公式LINEを追加</li>
+                      <li>「LINEで連携する」ボタンでアカウント連携</li>
+                      <li>完了後、LINEでAXELとチャットできます</li>
                     </ol>
                   </div>
                 </>

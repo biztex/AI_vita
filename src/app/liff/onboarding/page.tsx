@@ -67,7 +67,7 @@ const STEPS: Step[] = [
     label: "STEP 5",
     title: "AXEL 体験スタート",
     desc:
-      "判断と健康を統合的に支える AXEL の日常運用が開始されます。3ヶ月ごとに見直しを実施いたします。",
+      "判断と健康を統合的に支える AXEL の日々のサポートが始まります。3ヶ月ごとに見直しを実施いたします。",
     icon: <Activity className="h-5 w-5" />,
   },
 ]
@@ -135,7 +135,7 @@ export default function LiffOnboardingPage() {
           <span className="text-[#C9A86A]">AXEL</span> の始め方。
         </h1>
         <p className="mt-3 text-[13px] leading-relaxed text-white/65">
-          5ステップで、AXEL の日常運用が始まります。各段階の進捗をご確認いただけます。
+          5ステップで、AXEL の日々のサポートが始まります。各段階の進捗をご確認いただけます。
         </p>
       </div>
 
@@ -206,9 +206,9 @@ export default function LiffOnboardingPage() {
         {onb.step === "ACTIVE" && (
           <div className="mt-6 rounded-2xl border border-[#C9A86A]/40 bg-gradient-to-br from-[#C9A86A]/15 to-transparent p-5 text-center">
             <Sparkles className="mx-auto h-5 w-5 text-[#C9A86A]" />
-            <p className="mt-2 font-serif text-base text-white">AXEL 体験スタート済み</p>
+            <p className="mt-2 font-serif text-base text-white">AXELはすでにご利用いただけます</p>
             <p className="mt-1 text-[12px] leading-relaxed text-white/65">
-              リッチメニューから日々の運用にお進みください。
+              リッチメニューから日々の記録・相談にお進みください。
             </p>
           </div>
         )}

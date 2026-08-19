@@ -154,6 +154,21 @@ r.post("/image", requireAuth(), imageUpload.single('image'), async (req: any, re
   }
 });
 
+// Create an empty conversation (used by the web sidebar's 新しいチャット —
+// previously it fabricated a user message 「こんにちは？」 just to force creation).
+r.post("/conversation", requireAuth(), async (req: any, res: any, next: any) => {
+  try {
+    const { service, title } = req.body;
+    if (!service || !['VITAAI', 'EXECUWELL', 'AXEL'].includes(service)) {
+      return res.status(400).json({ error: '無効なサービスタイプです。' });
+    }
+    const conversationId = await getOrCreateConversation(req.user.id, service, undefined, title);
+    res.json({ conversationId });
+  } catch (e) {
+    next(e);
+  }
+});
+
 // Get conversation history
 r.get("/conversation/:conversationId", requireAuth(), async (req: any, res: any, next: any) => {
   try {

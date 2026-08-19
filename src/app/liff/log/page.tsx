@@ -5,8 +5,14 @@ import { API_CONFIG } from "@/lib/config/api"
 import { Loader2, CheckCircle2, AlertCircle, PenLine } from "lucide-react"
 import { useLiff } from "../_hooks/useLiff"
 
-const LEVELS = [
+const STATE_LEVELS = [
   { v: 1 as const, label: "良い" },
+  { v: 2 as const, label: "普通" },
+  { v: 3 as const, label: "悪い" },
+]
+
+const FATIGUE_LEVELS = [
+  { v: 1 as const, label: "軽い" },
   { v: 2 as const, label: "普通" },
   { v: 3 as const, label: "重い" },
 ]
@@ -130,9 +136,9 @@ export default function LiffLogPage() {
       <div className="px-4 pt-8 pb-4" style={{ background: "#1E3A5F" }}>
         <div className="flex items-center gap-2 text-white">
           <PenLine className="h-5 w-5" />
-          <span className="text-xs font-medium opacity-80">VitaAI / 今日の記録</span>
+          <span className="text-xs font-medium opacity-80">AXEL / 今日の記録</span>
         </div>
-        <h1 className="mt-1 text-xl font-bold text-white">5秒コンディション</h1>
+        <h1 className="mt-1 text-xl font-bold text-white">3秒コンディション</h1>
         <p className="mt-1 text-xs text-white/60">{liff.displayName} さん — 状態と疲労をタップ</p>
       </div>
 
@@ -140,7 +146,7 @@ export default function LiffLogPage() {
         <div className="rounded-xl bg-white p-4 shadow-sm">
           <p className="mb-3 text-xs font-semibold" style={{ color: "#2D5A8E" }}>今日の状態（3段階）</p>
           <div className="grid grid-cols-3 gap-2">
-            {LEVELS.map(({ v, label }) => (
+            {STATE_LEVELS.map(({ v, label }) => (
               <button
                 key={`s-${v}`}
                 type="button"
@@ -159,7 +165,7 @@ export default function LiffLogPage() {
         <div className="rounded-xl bg-white p-4 shadow-sm">
           <p className="mb-3 text-xs font-semibold" style={{ color: "#2D5A8E" }}>疲労（3段階）</p>
           <div className="grid grid-cols-3 gap-2">
-            {LEVELS.map(({ v, label }) => (
+            {FATIGUE_LEVELS.map(({ v, label }) => (
               <button
                 key={`f-${v}`}
                 type="button"
@@ -204,7 +210,7 @@ export default function LiffLogPage() {
           {submitting ? (
             <span className="flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              保存とフィードバック取得中...
+              記録を保存しています…
             </span>
           ) : (
             "記録してフィードバックを見る"

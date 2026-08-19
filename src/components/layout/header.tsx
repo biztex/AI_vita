@@ -63,12 +63,12 @@ export function Header() {
   }, [user])
 
   const navItems = [
-    { href: "http://execuwell.jp/dashboard", label: "ダッシュボード", protected: true },
-    { href: "http://execuwell.jp/information", label: "情報", protected: true },
-    { href: "http://vitaai.jp/vitaai/chat", label: "VitaAI", protected: true },
-    { href: "http://execuwell.jp/execuwell/chat", label: "ExecuWell", protected: true },
+    { href: "/dashboard", label: "ダッシュボード", protected: true },
+    { href: "/information", label: "情報", protected: true },
+    { href: "/vitaai/chat", label: "VitaAI", protected: true },
+    { href: "/execuwell/chat", label: "ExecuWell", protected: true },
     { href: "/subscription", label: "サブスクリプション", protected: true },
-    { href: "http://execuwell.jp/profile", label: "プロフィール", protected: true },
+    { href: "/profile", label: "プロフィール", protected: true },
   ]
 
   // Add admin link if user is admin
@@ -153,7 +153,7 @@ export function Header() {
                     {loadingNews ? (
                       <div className="p-3 text-sm text-muted-foreground">読み込み中...</div>
                     ) : news.length === 0 ? (
-                      <div className="p-3 text-sm text-muted-foreground">ニュースがない</div>
+                      <div className="p-3 text-sm text-muted-foreground">新しいニュースはありません</div>
                     ) : (
                       news.map((item) => (
                         <DropdownMenuItem key={item.id} asChild>

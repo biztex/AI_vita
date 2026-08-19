@@ -9,7 +9,7 @@ export function translateSupabaseError(error: Error | string): string {
     // Invalid login credentials
     'Invalid login credentials': 'メールアドレスまたはパスワードが正しくありません',
     'Invalid email or password': 'メールアドレスまたはパスワードが正しくありません',
-    'Email not confirmed': 'メールアドレスが確認されていません。確認メールを確認してください',
+    'Email not confirmed': 'メールアドレスの確認が完了していません。確認メールに記載されたリンクをクリックしてください。',
     
     // Email errors
     'Email already registered': 'このメールアドレスは既に登録されています',
@@ -48,10 +48,8 @@ export function translateSupabaseError(error: Error | string): string {
   }
 
   // Check for exact match
-  if (errorMessage.length>0) {
-    console.log("errorMessage",errorMessage);
-    return errorMap[errorMessage]
-  }
+  const exact = errorMap[errorMessage]
+  if (exact) return exact
 
   // Check for partial matches (case-insensitive)
   const lowerErrorMessage = errorMessage.toLowerCase()

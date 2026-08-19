@@ -105,8 +105,8 @@ export function ChatSidebar({
 
   const handleCreateNewChat = async (title: string) => {
     try {
-      // Create a new conversation with the provided title
-      const response = await apiClient.chats.send(service, "こんにちは？", undefined, title)
+      // Create a new, empty conversation (no fabricated first message)
+      const response = await apiClient.chats.createConversation(service, title)
       
       // Reload conversations to show the new one
       await loadConversations()
@@ -132,7 +132,7 @@ export function ChatSidebar({
   const handleDeleteClick = (conversationId: string) => {
     // Find the conversation to get its title
     const conversation = conversations.find(conv => conv.id === conversationId)
-    const conversationTitle = conversation?.title || `Chat ${conversationId.slice(-8)}`
+    const conversationTitle = conversation?.title || "無題のチャット"
     
     // Set up the conversation to delete and show dialog
     setConversationToDelete({ id: conversationId, title: conversationTitle })

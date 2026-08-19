@@ -606,7 +606,7 @@ export async function handleLineEvent(event: line.WebhookEvent): Promise<void> {
   }
   if (event.type === 'message' && (event as line.MessageEvent).message.type === 'text') {
     const msg = ((event as line.MessageEvent).message as any).text;
-    console.log(`[LINE] Handling text message: "${msg?.substring(0, 50)}..."`);
+    console.log(`[LINE] text message (${msg?.length ?? 0} chars)`);
     return handleTextMessage(event as line.MessageEvent);
   }
   if (event.type === 'message' && (event as line.MessageEvent).message.type === 'image') {

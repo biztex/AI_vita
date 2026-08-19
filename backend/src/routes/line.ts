@@ -204,7 +204,7 @@ r.get('/login-url', requireAuth(), async (req: any, res: any) => {
     res.json({ url });
   } catch (err: any) {
     console.error('[LINE Login] URL generation failed:', err);
-    res.status(500).json({ error: 'Failed to generate LINE Login URL' });
+    res.status(500).json({ error: 'LINEログインURLの生成に失敗しました。時間をおいて再度お試しください。' });
   }
 });
 
@@ -227,7 +227,7 @@ r.post('/link-oauth', requireAuth(), async (req: any, res: any, next: any) => {
       return res.status(400).json({ error: err.message });
     }
     if (err.response?.status === 400) {
-      return res.status(400).json({ error: 'LINE Login failed. Code may be expired or invalid.' });
+      return res.status(400).json({ error: 'LINEログインに失敗しました。時間をおいて再度お試しください。' });
     }
     next(err);
   }
@@ -248,7 +248,7 @@ r.post('/link', requireAuth(), async (req: any, res: any, next: any) => {
     // Check if this LINE user exists
     const lineUser = await prisma.lineUser.findUnique({ where: { lineUserId } });
     if (!lineUser) {
-      return res.status(404).json({ error: 'LINE user not found. Please add the bot as a friend first.' });
+      return res.status(404).json({ error: 'LINEユーザーが見つかりません。先にLINEでボットを友だち追加してください。' });
     }
 
     // Link the accounts
@@ -260,7 +260,7 @@ r.post('/link', requireAuth(), async (req: any, res: any, next: any) => {
     res.json({ ok: true, message: 'LINEアカウントを連携しました' });
   } catch (err: any) {
     if (err.code === 'P2002') {
-      return res.status(409).json({ error: 'This web account is already linked to a LINE account.' });
+      return res.status(409).json({ error: 'このアカウントには既に別のLINEアカウントが連携されています。' });
     }
     next(err);
   }
@@ -272,7 +272,7 @@ r.post('/unlink', requireAuth(), async (req: any, res: any, next: any) => {
     const appUserId = req.user.id;
     const lineUser = await prisma.lineUser.findUnique({ where: { appUserId } });
     if (!lineUser) {
-      return res.status(404).json({ error: 'No LINE account linked.' });
+      return res.status(404).json({ error: '連携されているLINEアカウントがありません。' });
     }
     await prisma.lineUser.update({
       where: { id: lineUser.id },
@@ -307,7 +307,7 @@ r.post('/morning-push', requireAuth(), async (req: any, res: any, next: any) => 
     const { enabled } = req.body;
     const lineUser = await prisma.lineUser.findUnique({ where: { appUserId } });
     if (!lineUser) {
-      return res.status(404).json({ error: 'No LINE account linked.' });
+      return res.status(404).json({ error: '連携されているLINEアカウントがありません。' });
     }
     await prisma.lineUser.update({
       where: { id: lineUser.id },

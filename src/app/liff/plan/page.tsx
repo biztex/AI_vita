@@ -110,9 +110,19 @@ export default function LiffPlanPage() {
             <MessageSquare className="mx-auto h-10 w-10 text-gray-300" />
             <p className="mt-3 text-sm text-gray-500">AIからの提案がまだありません。</p>
             <p className="mt-1 text-xs text-gray-400">LINEでAIに相談すると、ここに自動で蓄積されます。</p>
-            <p className="mt-4 inline-block rounded-lg bg-[#1E3A5F] px-4 py-2 text-xs font-semibold text-white">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  // Same (already initialized) SDK instance loaded by useLiff.
+                  const liffSdk = (await import("@line/liff")).default
+                  liffSdk.closeWindow()
+                } catch { /* noop — outside LIFF there is nothing to close */ }
+              }}
+              className="mt-4 inline-block rounded-lg bg-[#1E3A5F] px-4 py-2 text-xs font-semibold text-white"
+            >
               LINEでAIに相談する
-            </p>
+            </button>
           </div>
         ) : (
           <>

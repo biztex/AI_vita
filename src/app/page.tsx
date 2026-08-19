@@ -187,7 +187,7 @@ export default function LandingPage() {
                   誰にも言えない本音。
                 </>
               }
-              lead="最終判断を担う立場であるほど、口にしづらい感覚があります。判断と身体は、本来切り離せないものです。にもかかわらず、"
+              lead="最終判断を担う立場であるほど、口にしづらい感覚があります。判断と身体は、本来切り離せないものです。それでも、こんな瞬間はないでしょうか。"
             />
           </Reveal>
 
@@ -469,7 +469,7 @@ export default function LandingPage() {
                   <span className="text-primary">ExecuWell</span>
                 </>
               }
-              lead="思考特性・実績・意思決定傾向を蓄積し、判断を共に導く、24時間の相談機能。AXEL の「判断」側の脳として動作します。"
+              lead="思考特性・実績・意思決定傾向を蓄積し、判断を共に導く、24時間の相談機能。AXEL の「判断」側の脳を担います。"
             />
           </Reveal>
 
@@ -478,7 +478,7 @@ export default function LandingPage() {
               {
                 kicker: "24/7",
                 title: "孤独な夜の相談相手",
-                desc: "重要な判断の前夜、誰にも話せない時間に、AXEL がいつでも応える存在として動作します。",
+                desc: "重要な判断の前夜、誰にも話せない時間に、AXEL がいつでも応える存在として寄り添います。",
               },
               {
                 kicker: "Structure",
@@ -529,7 +529,7 @@ export default function LandingPage() {
               {
                 kicker: "Cognition",
                 title: "判断力を維持する",
-                desc: "集中力・疲労・ストレスへの耐性を整え、AXEL の判断機能の質を支えます。",
+                desc: "集中力を高め、疲労やストレスへの耐性を整え、AXEL の判断機能の質を支えます。",
               },
               {
                 kicker: "Longevity",
@@ -565,7 +565,7 @@ export default function LandingPage() {
               label="A Day with AXEL"
               align="center"
               accent="gold"
-              title="AXEL のある、ある一日。"
+              title="AXELと過ごす、ある一日。"
               lead="AXEL は1日を通じて、判断と身体を統合的に支援します。"
             />
           </Reveal>
@@ -593,7 +593,7 @@ export default function LandingPage() {
               {
                 time: "22:00",
                 title: "閾値検知時のアラート",
-                desc: "個別設計シートの閾値を超えた場合、AXEL が自動でアラート push を送信します。",
+                desc: "個別設計シートの閾値を超えた場合、AXEL が自動でアラートを通知します。",
                 tag: "Alert",
               },
             ].map((m, i) => (

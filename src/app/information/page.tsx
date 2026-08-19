@@ -80,8 +80,8 @@ const execuSample: ExecuWellPayload = {
   },
   background: {
     industries_experienced: ["航空情報サービス", "学習塾運営", "不動産業", "旅行業", "広告業", "太陽光発電事業"],
-    current_roles: ["株式会社サンプルA代表", "株式会社サンプルB代表", "AI アドバイザ"],
-    licenses: ["宅地ビル取引士", "一般旅行業務取扱主任者", "AI アドバイザーの資格"],
+    current_roles: ["株式会社サンプルA代表", "株式会社サンプルB代表", "AIアドバイザー"],
+    licenses: ["宅地建物取引士", "一般旅行業務取扱主任者", "AIアドバイザーの資格"],
     business_goal: "年商5億円を達成する",
   },
   preferences: {
@@ -367,13 +367,13 @@ export default function InformationPage() {
           <Card>
             <CardHeader>
               <CardTitle>遺伝子データをアップロード</CardTitle>
-              <CardDescription>JSONを貼り付けるか、サンプルデータを読み込んでテストできます。</CardDescription>
+              <CardDescription>診断データを貼り付けるか、サンプルデータで表示を確認できます。</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Database className="h-4 w-4" />
-                  <span>フォーマット: VitaAI β版 JSON</span>
+                  <span>対応フォーマット: VitaAI 診断データ（JSON）</span>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleLoadVitaSample}>
                   <DownloadCloud className="mr-2 h-4 w-4" />
@@ -586,7 +586,6 @@ export default function InformationPage() {
                       />
                       <div>
                         <p className="font-medium">{item}</p>
-                        <p className="text-xs text-muted-foreground">戦略 / リーダーシップ / 個人</p>
                       </div>
                     </label>
                   ))}
@@ -611,11 +610,11 @@ export default function InformationPage() {
                   step={5}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>低い</span>
-                  <span>やや低い</span>
+                  <span>悪い</span>
+                  <span>やや悪い</span>
                   <span>普通</span>
                   <span>良い</span>
-                  <span>優秀</span>
+                  <span>非常に良い</span>
                 </div>
               </div>
 
@@ -635,7 +634,7 @@ export default function InformationPage() {
                   <span>やや悪い</span>
                   <span>普通</span>
                   <span>良い</span>
-                  <span>優秀</span>
+                  <span>非常に良い</span>
                 </div>
               </div>
             </CardContent>

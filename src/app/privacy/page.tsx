@@ -34,9 +34,6 @@ export default function PrivacyPage() {
           <h2 className="mb-1 font-bold">6. 開示・訂正・削除</h2>
           <p>利用者は、自己の情報の開示・訂正・削除を求めることができます。お問い合わせ窓口までご連絡ください。</p>
         </div>
-        <p className="pt-4 text-xs text-gray-400">
-          ※ 本文は雛形です。正式な内容は運営者・法務にて確定してください。
-        </p>
       </section>
     </main>
   )

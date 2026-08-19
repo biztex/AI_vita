@@ -74,8 +74,9 @@ type KarteData = {
   } | null
 }
 
-const LEVEL_WORDS: Record<number, string> = { 1: "良い", 2: "普通", 3: "重い" }
-const LEVEL_COLORS: Record<string, string> = { 良い: "#10B981", 普通: "#F59E0B", 重い: "#EF4444" }
+const STATE_WORDS: Record<number, string> = { 1: "良い", 2: "普通", 3: "悪い" }
+const FATIGUE_WORDS: Record<number, string> = { 1: "軽い", 2: "普通", 3: "重い" }
+const LEVEL_COLORS: Record<string, string> = { 良い: "#10B981", 軽い: "#10B981", 普通: "#F59E0B", 悪い: "#EF4444", 重い: "#EF4444" }
 
 const SCORE_COLOR = (score: number | null) => {
   if (score == null) return "#D1D5DB"
@@ -101,8 +102,8 @@ function renderCondition(raw: string | null): { state?: string; fatigue?: string
     try {
       const parsed = JSON.parse(raw.slice(5)) as { stateLevel?: number; fatigueLevel?: number; comment?: string }
       return {
-        state: parsed.stateLevel ? LEVEL_WORDS[parsed.stateLevel] : undefined,
-        fatigue: parsed.fatigueLevel ? LEVEL_WORDS[parsed.fatigueLevel] : undefined,
+        state: parsed.stateLevel ? STATE_WORDS[parsed.stateLevel] : undefined,
+        fatigue: parsed.fatigueLevel ? FATIGUE_WORDS[parsed.fatigueLevel] : undefined,
         comment: parsed.comment?.trim() || undefined,
       }
     } catch { /* fall through */ }
@@ -359,7 +360,7 @@ export default function LiffKartePage() {
           <div className="rounded-2xl bg-white p-4 shadow-sm">
             <div className="mb-2 flex items-center gap-2">
               <Pill className="h-4 w-4" style={{ color: "#3A7ABD" }} />
-              <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>個別設計シート</p>
+              <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>パーソナルプラン</p>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-500">バージョン</span>
@@ -367,7 +368,7 @@ export default function LiffKartePage() {
             </div>
             {data.nutritionPlan!.nextReviewAt && (
               <div className="mt-1 flex items-center justify-between text-sm">
-                <span className="text-gray-500">次回レビュー</span>
+                <span className="text-gray-500">次回見直し目安</span>
                 <span className="text-gray-700">{formatDay(data.nutritionPlan!.nextReviewAt)}</span>
               </div>
             )}
@@ -474,9 +475,10 @@ export default function LiffKartePage() {
               <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>遺伝子分析（簡易表示）</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {(data.genetics.areas ?? []).map((a) => (
+              {(data.genetics.areas ?? []).filter((a) => a.value).map((a) => (
                 <div key={a.key} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5">
                   <p className="text-[10.5px] leading-snug text-gray-500">{a.label}</p>
+                  <p className="mt-0.5 text-[12px] font-semibold text-gray-700">{a.value}</p>
                 </div>
               ))}
             </div>

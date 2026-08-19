@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, HeartPulse, Brain, Crown, ArrowRight, Info, Loader2, CreditCard } from "lucide-react"
+import { Check, HeartPulse, Brain, Crown, ArrowRight, Loader2, CreditCard } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { ProtectedRoute } from "@/features/auth/components/protected-route"
 import { toast } from "react-toastify"
@@ -68,12 +68,12 @@ const plans: Plan[] = [
     id: "INTEGRATED",
     name: "統合プラン",
     nameEn: "統合プラン",
-    subtitle: "完全版インフラ",
+    subtitle: "判断 × 健康の統合プラン",
     monthlyPrice: 18000,
     enrollmentFee: 30000,
     icon: <Crown className="h-8 w-8 text-[#0F2342]" />,
     features: [
-      "ExecuWell & VitaAI の完全アクセス",
+      "ExecuWell・VitaAI 両方の全機能",
       "プレミアムサポートとカスタマイズ戦略",
       "統合ダッシュボード",
       "優先サポート",
@@ -90,9 +90,31 @@ function SubscriptionContent() {
   // When opened from LINE (plan carousel), the recipient's LINE id is threaded
   // through so the Stripe webhook can auto-link this payment to their account.
   const lineUserId = searchParams.get("lineUserId") || undefined
+  // ?plan= (e.g. from the LINE carousel) pre-highlights the matching plan card.
+  const planParam = searchParams.get("plan")
+  const highlightedPlan = plans.some((p) => p.id === planParam) ? (planParam as PlanType) : null
+  // ?canceled=true means the user backed out of Stripe Checkout.
+  const canceled = searchParams.get("canceled") === "true"
   const [loading, setLoading] = useState<string | null>(null)
   const [subscriptionData, setSubscriptionData] = useState<any>(null)
   const [loadingSubscription, setLoadingSubscription] = useState(true)
+
+  // Scroll the pre-selected plan card into view
+  useEffect(() => {
+    if (!highlightedPlan) return
+    document
+      .getElementById(`plan-${highlightedPlan}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [highlightedPlan])
+
+  // One-time notice after a canceled checkout
+  useEffect(() => {
+    if (!canceled) return
+    toast.info("お手続きはキャンセルされました。プランはいつでもお申し込みいただけます。", {
+      position: "top-right",
+      autoClose: 5000,
+    })
+  }, [canceled])
 
   // Fetch current subscription status
   useEffect(() => {
@@ -264,11 +286,18 @@ function SubscriptionContent() {
           return (
             <Card
               key={plan.id}
+              id={`plan-${plan.id}`}
               className={`group relative overflow-hidden border-2 transition-all duration-500 hover:shadow-2xl hover:scale-105 hover:-translate-y-2 flex flex-col h-full ${
                 isRecommended
                   ? "border-[#FFD700] shadow-lg shadow-[#FFD700]/20"
                   : "border-border/50"
-              } ${isCurrent ? "ring-2 ring-primary" : ""}`}
+              } ${
+                isCurrent
+                  ? "ring-2 ring-primary"
+                  : plan.id === highlightedPlan
+                    ? "ring-2 ring-[#FFD700] ring-offset-2 ring-offset-background"
+                    : ""
+              }`}
             >
               {/* RECOMMENDED Badge */}
               {isRecommended && (
@@ -284,10 +313,10 @@ function SubscriptionContent() {
                 </div>
               )}
 
-              {/* Discount Badge for Integrated Plan */}
+              {/* Set Discount Badge for Integrated Plan */}
               {plan.id === "INTEGRATED" && discount > 0 && (
                 <div className="absolute top-12 right-0 bg-red-500 text-white px-3 py-1 text-xs font-bold rounded-l-lg shadow-lg z-10">
-                  {discount}% OFF
+                  セット割
                 </div>
               )}
 
@@ -310,12 +339,13 @@ function SubscriptionContent() {
               <CardContent className="relative flex flex-col flex-1">
                 {/* Pricing */}
                 <div className="text-center mb-6">
+                  {plan.id === "INTEGRATED" && discount > 0 && (
+                    <p className="text-sm text-muted-foreground mb-1">
+                      単独プラン合計 ¥{originalPrice.toLocaleString()} → セットで ¥
+                      {plan.monthlyPrice.toLocaleString()}
+                    </p>
+                  )}
                   <div className="flex items-baseline justify-center gap-2 mb-2">
-                    {plan.id === "INTEGRATED" && discount > 0 && (
-                      <span className="text-lg text-muted-foreground line-through">
-                        ¥{originalPrice.toLocaleString()}
-                      </span>
-                    )}
                     <span
                       className={`text-4xl font-bold ${
                         isRecommended ? "text-[#FFD700]" : "text-foreground"
@@ -323,10 +353,10 @@ function SubscriptionContent() {
                     >
                       ¥{plan.monthlyPrice.toLocaleString()}
                     </span>
-                    <span className="text-muted-foreground">/月</span>
+                    <span className="text-muted-foreground">/月（税別）</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    入会金 ¥{plan.enrollmentFee.toLocaleString()}
+                    入会金 ¥{plan.enrollmentFee.toLocaleString()}（税別）
                     {plan.id === "INTEGRATED" && (
                       <Badge variant="secondary" className="ml-2 text-xs">
                         セット割
@@ -382,16 +412,6 @@ function SubscriptionContent() {
             </Card>
           )
         })}
-      </div>
-
-      {/* Additional Info */}
-      <div className="mt-12 text-center">
-        <div className="inline-flex items-center gap-2 rounded-lg border border-border/50 bg-card/50 px-4 py-3">
-          <Info className="h-5 w-5 text-primary" />
-          <p className="text-sm text-muted-foreground">
-            すべてのプランには30日間の返金保証が付いています
-          </p>
-        </div>
       </div>
 
       {/* Back to Dashboard */}

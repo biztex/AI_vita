@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // no artificial delay needed — the delay only lengthened the auth flicker.)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
-        console.log("[Auth] Session retrieved:", session ? `Yes (user: ${session.user?.email})` : "No", sessionError ? `Error: ${sessionError.message}` : "")
+        console.log("[Auth] Session retrieved:", session ? "Yes" : "No", sessionError ? `Error: ${sessionError.message}` : "")
         
         if (session?.access_token) {
           // Set auth token before any API calls
@@ -330,7 +330,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const errorMessage = backendError.message || 
                                 backendError.response?.data?.error || 
                                 backendError.response?.data?.message ||
-                                "Backend registration failed. Please try again."
+                                "アカウント登録処理に失敗しました。もう一度お試しください。"
             toast.error(errorMessage, {
               position: "top-right",
               autoClose: 5000,

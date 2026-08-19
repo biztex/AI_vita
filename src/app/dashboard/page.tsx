@@ -59,7 +59,7 @@ ChartJS.register(
 const vitaAIDailyData = {
   service: "VitaAI",
   type: "daily",
-  date: "2025-12-10",
+  date: "本日（サンプル）",
   summary: {
     title: "今日のコンディションサマリー",
     overall_comment: "本日はコンディションは安定していますが、疲労管理を優先したい1日です。"
@@ -75,7 +75,7 @@ const vitaAIDailyData = {
     data: [2, 3, 2, 2, 3, 2, 2]
   },
   daily_trend: {
-    labels: ["12/06", "12/07", "12/08", "12/09", "12/10"],
+    labels: ["4日前", "3日前", "2日前", "前日", "当日"],
     datasets: [
       { label: "ストレス", data: [3, 3, 2, 2, 2] },
       { label: "睡眠", data: [3, 3, 3, 3, 3] }
@@ -94,7 +94,7 @@ const vitaAIDailyData = {
 const vitaAIMonthlyData = {
   service: "VitaAI",
   type: "monthly",
-  month: "2025-12",
+  month: "直近1ヶ月（サンプル）",
   summary: {
     title: "今月のコンディション総括",
     overall_comment: "睡眠と基礎体力は安定。ストレスと疲労管理が今月のテーマでした。"
@@ -106,7 +106,7 @@ const vitaAIMonthlyData = {
     { label: "疲労リスク", average: 3.8 }
   ],
   trend_graph: {
-    labels: ["週1", "週2", "週3", "週4"],
+    labels: ["第1週", "第2週", "第3週", "第4週"],
     data: [3.2, 3.0, 2.6, 2.4]
   },
   next_focus: [
@@ -119,7 +119,7 @@ const vitaAIMonthlyData = {
 const execuWellDailyData = {
   service: "ExecuWell",
   type: "daily",
-  date: "2025-12-10",
+  date: "本日（サンプル）",
   summary: {
     title: "本日の意思決定コンディション",
     overall_comment: "分析力が高く、慎重な判断がしやすい一方、決断の遅れに注意が必要です。"
@@ -148,13 +148,13 @@ const execuWellDailyData = {
 const execuWellMonthlyData = {
   service: "ExecuWell",
   type: "monthly",
-  month: "2025-12",
+  month: "直近1ヶ月（サンプル）",
   summary: {
     title: "今月の意思決定レビュー",
     overall_comment: "意思決定の質は安定していましたが、判断回数の多さによる疲労が見られました。"
   },
   decision_trend: {
-    labels: ["週1", "週2", "週3", "週4"],
+    labels: ["第1週", "第2週", "第3週", "第4週"],
     data: [4.0, 4.1, 3.8, 3.6]
   },
   behavior_analysis: {
@@ -377,11 +377,11 @@ function DashboardContent() {
               </div>
               <div className="flex-1 text-center md:text-left">
                 <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-400 via-purple-400 to-amber-400 bg-clip-text text-transparent">
-                  MyAI パーソナル診断
+                  AXEL パーソナル診断
                 </h2>
                 <p className="text-muted-foreground text-base leading-relaxed max-w-xl">
                   21問の診断に答えるだけで、MBTI・DISC・エニアグラムを統合したあなた専用のプロファイルが完成。
-                  MyAIがあなたの"人生の副操縦士"になります。
+                  AXELがあなたの「人生の副操縦士」になります。
                 </p>
               </div>
               <div className="flex-shrink-0">
@@ -406,7 +406,7 @@ function DashboardContent() {
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <ClipboardCheck className="w-5 h-5 text-primary" />
-              MyAI パーソナル診断結果
+              AXEL パーソナル診断結果
             </h2>
             <Button
               variant="outline"
@@ -437,9 +437,9 @@ function DashboardContent() {
                 <MessageSquare className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg">LINE連携で、MyAIをもっと活用しよう</h3>
+                <h3 className="font-semibold text-lg">LINE連携で、AXELをもっと活用しよう</h3>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  LINEと連携すると、毎朝のニュース配信やMyAIとのチャットがLINE上で使えます
+                  LINEと連携すると、毎朝のニュース配信やAXELとのチャットがLINE上で使えます
                 </p>
               </div>
             </div>
@@ -455,6 +455,9 @@ function DashboardContent() {
 
       {/* Service & Period Tabs */}
       <div className="space-y-4">
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-600 dark:text-amber-400">
+          サンプル表示（実データ連携は準備中）
+        </div>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex gap-2">
             <button

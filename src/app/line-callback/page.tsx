@@ -20,24 +20,23 @@ function LineCallbackContent() {
     const code = searchParams.get("code")
     const state = searchParams.get("state")
     const error = searchParams.get("error")
-    const errorDescription = searchParams.get("error_description")
 
     if (error) {
       setStatus("error")
-      setMessage(errorDescription || "LINE Login was canceled or failed.")
+      setMessage("LINEログインがキャンセルされたか、失敗しました。")
       return
     }
 
     if (!code || !state) {
       setStatus("error")
-      setMessage("Invalid callback: missing code or state.")
+      setMessage("不正なアクセスです。もう一度お試しください。")
       return
     }
 
     const expectedState = sessionStorage.getItem("line_login_state")
     if (!expectedState || state !== expectedState) {
       setStatus("error")
-      setMessage("Security error: state mismatch. Please try again.")
+      setMessage("セキュリティ確認に失敗しました。もう一度お試しください。")
       sessionStorage.removeItem("line_login_state")
       return
     }
@@ -50,12 +49,12 @@ function LineCallbackContent() {
       const result = await apiClient.line.linkOAuth(code, state, expectedState)
       sessionStorage.removeItem("line_login_state")
       setStatus("success")
-      setMessage(`LINE account linked successfully! (${result.displayName || result.lineUserId})`)
+      setMessage(`LINEアカウントを連携しました（${result.displayName || result.lineUserId}さん）`)
       setTimeout(() => router.push("/profile?tab=line"), 2000)
     } catch (err: any) {
       console.error("[LINE Callback] Error:", err)
       setStatus("error")
-      setMessage(err.message || "Failed to link LINE account. Please try again.")
+      setMessage("連携処理に失敗しました。時間をおいて再度お試しください。")
       sessionStorage.removeItem("line_login_state")
     }
   }

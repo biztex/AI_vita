@@ -4,7 +4,7 @@ import { NEWS_CATEGORIES, type NewsCategory } from "../../../shared/news-categor
 // Login schema
 export const loginSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください"),
-  password: z.string().min(6, "パスワードは6文字以上である必要があります"),
+  password: z.string().min(6, "パスワードは6文字以上で入力してください"),
 })
 
 export type LoginFormData = z.infer<typeof loginSchema>
@@ -15,11 +15,11 @@ export const NewsCategoryEnum = z.enum(NEWS_CATEGORY_VALUES);
 // Register schema
 export const registerSchema = z
   .object({
-    name: z.string().min(2, "名前は2文字以上である必要があります"),
+    name: z.string().min(2, "氏名は2文字以上で入力してください"),
     email: z.string().email("有効なメールアドレスを入力してください"),
     company: z.string().optional(),
     industries: z.array(NewsCategoryEnum).optional(),
-    password: z.string().min(6, "パスワードは6文字以上である必要があります"),
+    password: z.string().min(6, "パスワードは6文字以上で入力してください"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
