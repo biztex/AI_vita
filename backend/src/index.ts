@@ -75,12 +75,17 @@ app.listen(ENV.PORT, async () => {
   // } catch (e) {
   //   console.error('Failed to run startup news preview:', e);
   // }
-  // Start daily scheduler at 07:00 JST
-  try {
-    startDailyNewsJob();
-    console.log('📅 Daily news job scheduled at 07:00 Asia/Tokyo');
-  } catch (e) {
-    console.error('Failed to start scheduler:', e);
+  // Start daily scheduler at 07:00 JST — gated: the job spends OpenAI credits
+  // (AI analysis per user) every morning, so it must be explicitly enabled.
+  if (ENV.NEWS_DIGEST === 'on') {
+    try {
+      startDailyNewsJob();
+      console.log('📅 Daily news job scheduled at 07:00 Asia/Tokyo');
+    } catch (e) {
+      console.error('Failed to start scheduler:', e);
+    }
+  } else {
+    console.log('📅 Daily news job DISABLED (NEWS_DIGEST=off)');
   }
 
   // Setup LINE Rich Menu (non-blocking)

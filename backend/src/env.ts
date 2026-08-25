@@ -37,6 +37,12 @@ export const ENV = {
   AXEL_SEARCH_MODEL: process.env.AXEL_SEARCH_MODEL || 'gpt-5.6-sol',
   // Speech-to-text model for LINE voice messages (client spec 3).
   AXEL_TRANSCRIBE_MODEL: process.env.AXEL_TRANSCRIBE_MODEL || 'gpt-4o-transcribe',
+  // Daily 07:00 news digest job (fetch + AI analysis + email). 'off' blocks it
+  // entirely — requested 2026-08-25 after the credit exhaustion: the job was
+  // burning 1 + N(users) OpenAI analysis calls every morning while the email
+  // delivery itself cannot succeed (no SMTP configured). Re-enable with
+  // NEWS_DIGEST=on once billing auto-recharge + SMTP are in place.
+  NEWS_DIGEST: (process.env.NEWS_DIGEST || 'off') as 'on' | 'off',
   // External booking URL for the 面談予約 LIFF page (initial/re/review counseling).
   RESERVATION_URL: process.env.RESERVATION_URL || 'https://execuwell.jp/contact?type=reservation',
   // SMTP (optional - if absent, emails are skipped and output is logged)
