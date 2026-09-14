@@ -502,7 +502,7 @@ async function applyGeneticsResult(opts: {
       await pushText(
         lu.lineUserId,
         '【AXEL】遺伝子分析結果が届きました。\n' +
-          'マイページの「私のカルテ」から、12の体質領域に基づく分析をご確認いただけます。\n' +
+          'メニューの「検査結果」（健康記録）から、12の体質領域に基づく分析をご確認いただけます。\n' +
           'https://liff.line.me/2009125242-ka7XZSEQ/karte',
       );
     }
@@ -1172,7 +1172,7 @@ r.get('/liff/reservation', async (_req: Request, res: Response) => {
     types: [
       { key: 'initial', label: '初回カウンセリング' },
       { key: 'followup', label: '再カウンセリング' },
-      { key: 'review', label: '見直し面談（3か月後など）' },
+      { key: 'review', label: '定期カウンセリング（約3か月ごと）' },
     ],
   });
 });

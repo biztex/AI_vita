@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { API_CONFIG } from "@/lib/config/api"
-import { Loader2, AlertCircle, User, Bell, CreditCard, Brain, HeartPulse, Check, Sparkles, ArrowRight } from "lucide-react"
+import { Loader2, AlertCircle, User, Settings, CreditCard, Brain, HeartPulse, Check, Sparkles, ArrowRight } from "lucide-react"
 import { useLiff } from "../_hooks/useLiff"
 
 type AxelHomeSnapshot = {
@@ -273,9 +273,13 @@ export default function LiffMyPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-500">LINE連携</span>
-              <span className="inline-flex items-center gap-1 font-medium text-green-600">
-                <Check className="h-3.5 w-3.5" /> 連携済み
-              </span>
+              {data.email || data.name ? (
+                <span className="inline-flex items-center gap-1 font-medium text-green-600">
+                  <Check className="h-3.5 w-3.5" /> 連携済み
+                </span>
+              ) : (
+                <span className="text-[12px] text-amber-600">未連携（アカウント連携がお済みでない可能性があります）</span>
+              )}
             </div>
           </div>
         </div>
@@ -330,7 +334,7 @@ export default function LiffMyPage() {
         {/* サポート・各種設定 */}
         <div className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
-            <Bell className="h-4 w-4" style={{ color: "#2D5A8E" }} />
+            <Settings className="h-4 w-4" style={{ color: "#2D5A8E" }} />
             <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>サポート・各種設定</p>
           </div>
           <div className="space-y-1 text-sm">

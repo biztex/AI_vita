@@ -37,18 +37,10 @@ const STEPS: Step[] = [
     icon: <Link2 className="h-5 w-5" />,
     cta: { href: "https://execuwell.jp/auth/register", label: "アカウント作成" },
   },
-  {
-    key: "LINKED",
-    label: "STEP 2",
-    title: "プランを選ぶ",
-    desc:
-      "ExecuWell（判断支援）／ VitaAI（健康支援）／ AXEL（統合）から、ご契約プランをご選択いただきます。",
-    icon: <CreditCard className="h-5 w-5" />,
-    cta: { href: "https://execuwell.jp/subscription", label: "プランを見る" },
-  },
+  // プラン選択はご契約時に完了しているため、流れには含めない（client item 10）
   {
     key: "PLAN_ACTIVE",
-    label: "STEP 3",
+    label: "STEP 2",
     title: "遺伝子検査キットお届け",
     desc:
       "ご自宅に検査キットをお届けし、ご返送いただきます。結果到着時に LINE で自動通知いたします。",
@@ -56,18 +48,18 @@ const STEPS: Step[] = [
   },
   {
     key: "REPORT_READY",
-    label: "STEP 4",
+    label: "STEP 3",
     title: "管理栄養士による初回面談",
     desc:
-      "遺伝子分析結果をもとに、管理栄養士が個別設計シートを作成。AI がその内容を即時参照します。",
+      "遺伝子分析結果をもとに、管理栄養士がパーソナルプランを作成。AXEL がその内容を即時参照します。",
     icon: <Users className="h-5 w-5" />,
   },
   {
     key: "ACTIVE",
-    label: "STEP 5",
-    title: "AXEL 体験スタート",
+    label: "STEP 4",
+    title: "AXEL 利用開始",
     desc:
-      "判断と健康を統合的に支える AXEL の日々のサポートが始まります。3ヶ月ごとに見直しを実施いたします。",
+      "判断と健康を統合的に支える AXEL の日々のサポートが始まります。約3か月ごとの定期カウンセリングでプランを見直します。",
     icon: <Activity className="h-5 w-5" />,
   },
 ]
