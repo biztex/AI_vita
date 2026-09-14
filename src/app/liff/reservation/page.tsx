@@ -20,6 +20,24 @@ type ReservationData = {
 // Cycle through calendar icons so each type card gets a distinct visual cue.
 const TYPE_ICONS = [CalendarPlus, CalendarCheck, CalendarClock] as const
 
+// Client-side copy per backend category key (keys themselves stay initial/followup/review).
+// `label` overrides the backend label so renames show without waiting for the API copy;
+// unknown keys fall back to whatever the backend sends.
+const TYPE_DETAILS: Record<string, { label: string; description: string }> = {
+  initial: {
+    label: "初回カウンセリング",
+    description: "遺伝子検査の結果をもとに、管理栄養士があなた専用のプランを設計する最初の面談です。",
+  },
+  followup: {
+    label: "再カウンセリング",
+    description: "体調や食事で気になることが出てきた時に、随時ご相談いただける面談です。",
+  },
+  review: {
+    label: "定期カウンセリング",
+    description: "約3か月ごとに、プランの効果を確認し内容を見直す定期面談です。",
+  },
+}
+
 function withCategory(url: string, key: string): string {
   const sep = url.includes("?") ? "&" : "?"
   return `${url}${sep}category=${encodeURIComponent(key)}`
@@ -116,6 +134,7 @@ export default function LiffReservationPage() {
             <p className="px-1 text-[11px] font-bold uppercase tracking-widest" style={{ color: "#2D5A8E" }}>面談種別</p>
             {types.map((t, i) => {
               const Icon = TYPE_ICONS[i % TYPE_ICONS.length]
+              const details = TYPE_DETAILS[t.key]
               return (
                 <a
                   key={t.key}
@@ -131,8 +150,11 @@ export default function LiffReservationPage() {
                     <Icon className="h-5 w-5 text-white" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-gray-800">{t.label}</p>
-                    <p className="mt-0.5 flex items-center gap-1 text-[11px] text-gray-400">
+                    <p className="text-sm font-bold text-gray-800">{details?.label ?? t.label}</p>
+                    {details && (
+                      <p className="mt-1 text-xs leading-relaxed text-gray-500">{details.description}</p>
+                    )}
+                    <p className="mt-1 flex items-center gap-1 text-[11px] text-gray-400">
                       <ExternalLink className="h-3 w-3" />
                       予約フォームを開く
                     </p>

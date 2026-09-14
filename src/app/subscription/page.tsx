@@ -98,6 +98,9 @@ function SubscriptionContent() {
   const [loading, setLoading] = useState<string | null>(null)
   const [subscriptionData, setSubscriptionData] = useState<any>(null)
   const [loadingSubscription, setLoadingSubscription] = useState(true)
+  // Explicit consent to terms/privacy policy is required before checkout.
+  const [termsAgreed, setTermsAgreed] = useState(false)
+  const [showConsentNote, setShowConsentNote] = useState(false)
 
   // Scroll the pre-selected plan card into view
   useEffect(() => {
@@ -154,6 +157,14 @@ function SubscriptionContent() {
   const hasExecuWell = currentPlan === "EXECUWELL" || isIntegrated
 
   const handleSubscribe = async (planId: PlanType) => {
+    if (!termsAgreed) {
+      setShowConsentNote(true)
+      document
+        .getElementById("terms-consent")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" })
+      return
+    }
+
     if (currentPlan === planId) {
       toast.info("このプランは既にご利用中です", {
         position: "top-right",
@@ -274,6 +285,46 @@ function SubscriptionContent() {
         )}
       </div>
 
+      {/* Terms Consent */}
+      <div id="terms-consent" className="max-w-7xl mx-auto mb-8 text-center">
+        <label className="inline-flex items-start gap-2 cursor-pointer text-sm text-foreground">
+          <input
+            type="checkbox"
+            checked={termsAgreed}
+            onChange={(e) => {
+              setTermsAgreed(e.target.checked)
+              if (e.target.checked) setShowConsentNote(false)
+            }}
+            className="mt-0.5 h-4 w-4 accent-primary"
+          />
+          <span>
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-primary"
+            >
+              利用規約
+            </a>
+            {" "}および{" "}
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-primary"
+            >
+              プライバシーポリシー
+            </a>
+            {" "}に同意します
+          </span>
+        </label>
+        {showConsentNote && !termsAgreed && (
+          <p className="mt-2 text-sm text-red-500" role="alert">
+            お申し込みには利用規約への同意が必要です
+          </p>
+        )}
+      </div>
+
       {/* Plans Grid */}
       <div className="grid gap-8 md:grid-cols-3 items-stretch max-w-7xl mx-auto">
         {plans.map((plan) => {
@@ -384,9 +435,21 @@ function SubscriptionContent() {
                 </div>
 
                 {/* Button */}
+                {/* The wrapper catches clicks while the button is disabled for
+                    missing consent (disabled buttons swallow their own clicks). */}
+                <div
+                  onClick={() => {
+                    if (!termsAgreed && !isCurrent && loading === null) {
+                      setShowConsentNote(true)
+                      document
+                        .getElementById("terms-consent")
+                        ?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }
+                  }}
+                >
                 <Button
                   onClick={() => handleSubscribe(plan.id)}
-                  disabled={isCurrent || loading !== null || loadingSubscription}
+                  disabled={isCurrent || loading !== null || loadingSubscription || !termsAgreed}
                   className={`w-full ${
                     isCurrent
                       ? "bg-muted text-muted-foreground cursor-not-allowed"
@@ -408,6 +471,7 @@ function SubscriptionContent() {
                     </>
                   )}
                 </Button>
+                </div>
               </CardContent>
             </Card>
           )

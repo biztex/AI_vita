@@ -962,7 +962,7 @@ async function handlePostback(event: line.PostbackEvent): Promise<void> {
 // ── Text message handler ──
 //
 // Routing order:
-//   1) Slash commands (/switch, /help, 設定, /reonboard)
+//   1) Slash commands (/help, 設定, /reonboard)
 //   2) Active state-machine phase (daily-log capture → check_in_reply)
 //   3) AI chat (the normal case). The v2 engine sends the raw message with
 //      the full understanding document — the model itself judges casual vs
@@ -1026,21 +1026,10 @@ async function handleTextMessage(event: line.MessageEvent): Promise<void> {
     await replyText(event.replyToken, reply);
     return;
   }
-  if (msg === '/switch' || msg === 'サービス切替') {
-    // AXEL (integrated) users never see the branded mode picker —
-    // ExecuWell/VitaAI are backstage (client 2026-07-07).
-    const luSwitch = await prisma.lineUser.findUnique({ where: { lineUserId } });
-    const effMode = luSwitch ? await resolveEffectiveMode(luSwitch) : 'EXECUWELL';
-    if (effMode === 'AXEL') {
-      await replyText(
-        event.replyToken,
-        '切り替えは必要ないよ。判断のことも健康のことも、私がまとめて受け持ってる。\nそのまま話しかけて。',
-      );
-      return;
-    }
-    await replyWithQuickReply(event.replyToken, 'モードを切り替えます。', MODE_QUICK_ITEMS);
-    return;
-  }
+  // NOTE: the '/switch' / 'サービス切替' text commands were removed (client
+  // item 9, 2026-08): mode switching is no longer a user-facing concept —
+  // AXEL routes internally. Such messages now fall through to the normal
+  // conversation engine below. (Postback-based mode handling is unchanged.)
 
   // ── Rate limit ──
   if (!checkLineRateLimit(lineUserId)) {

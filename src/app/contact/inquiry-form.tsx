@@ -26,9 +26,22 @@ import { toast } from "react-toastify"
 // Plan keys aligned with the LP pricing links (/contact?plan=integrated|executive|vita).
 const VALID_PLANS = ["integrated", "executive", "vita", "undecided"] as const
 
+// Inquiry categories for contracted users. The shared contactSchema still enumerates
+// the legacy LP values (document/consultation/other), so override the field locally
+// until the shared enum is updated — same pattern as `plan` below.
+const INQUIRY_TYPE_OPTIONS = [
+  { value: "usage", label: "AXELの利用方法" },
+  { value: "billing", label: "契約・お支払いについて" },
+  { value: "genetics", label: "遺伝子検査について" },
+  { value: "counseling", label: "管理栄養士面談について" },
+  { value: "trouble", label: "不具合・トラブル" },
+  { value: "other", label: "その他" },
+] as const
+
 // The shared contactSchema still enumerates the legacy plan values, so override
 // the field locally until the shared enum is updated.
 const inquirySchema = contactSchema.extend({
+  inquiryType: z.enum(["usage", "billing", "genetics", "counseling", "trouble", "other"]),
   plan: z.enum(VALID_PLANS).optional(),
 })
 type InquiryFormData = z.infer<typeof inquirySchema>
@@ -37,7 +50,7 @@ type InquiryFormData = z.infer<typeof inquirySchema>
 const CATEGORY_PREFIXES: Record<string, string> = {
   initial: "【初回カウンセリング希望】",
   followup: "【再カウンセリング希望】",
-  review: "【見直し面談希望】",
+  review: "【定期カウンセリング希望】",
 }
 
 export default function InquiryForm() {
@@ -73,8 +86,9 @@ export default function InquiryForm() {
   } = useForm<InquiryFormData>({
     resolver: zodResolver(inquirySchema),
     defaultValues: {
-      // Reservations land on "consultation" since the schema doesn't have a dedicated reservation type.
-      inquiryType: isReservation ? "consultation" : "document",
+      // Reservations land on "counseling" (管理栄養士面談について) — the closest category
+      // to a booking request until a dedicated reservation type exists.
+      inquiryType: isReservation ? "counseling" : "usage",
       plan: defaultPlan,
       message: defaultMessage,
       agreement: false as unknown as true,
@@ -191,11 +205,7 @@ export default function InquiryForm() {
                       name="inquiryType"
                       render={({ field }) => (
                         <div className="grid gap-2 sm:grid-cols-3">
-                          {[
-                            { value: "document", label: "資料請求" },
-                            { value: "consultation", label: "無料相談" },
-                            { value: "other", label: "その他" },
-                          ].map((opt) => {
+                          {INQUIRY_TYPE_OPTIONS.map((opt) => {
                             const active = field.value === opt.value
                             return (
                               <button

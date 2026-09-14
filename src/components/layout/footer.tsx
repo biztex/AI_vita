@@ -19,7 +19,7 @@ export function Footer() {
               </h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              判断と健康をひとつに支える、経営層のための AI コンシェルジュ
+              判断と健康をひとつに支える、AIコンシェルジュ
             </p>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
@@ -35,16 +35,16 @@ export function Footer() {
 
           {/* Products */}
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-foreground">AIアシスタント</h4>
+            <h4 className="text-sm font-semibold text-foreground">サービス</h4>
             <div className="flex flex-col space-y-3 text-sm">
-              <Link href="/vitaai/chat" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
+              <div className="text-muted-foreground flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-vitaai"></div>
-                <span>VitaAI - 健康インテリジェンス</span>
-              </Link>
-              <Link href="/execuwell/chat" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
+                <span>VitaAI - 健康コンシェルジュ</span>
+              </div>
+              <div className="text-muted-foreground flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-execuwell"></div>
-                <span>ExecuWell - ビジネスインテリジェンス</span>
-              </Link>
+                <span>ExecuWell - 相談コンシェルジュ</span>
+              </div>
             </div>
           </div>
 

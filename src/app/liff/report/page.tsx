@@ -239,8 +239,10 @@ export default function LiffReportPage() {
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
           </button>
         </div>
-        <h1 className="mt-1 text-xl font-bold text-white">AXELがあなたについて理解していること</h1>
-        <p className="mt-1 text-sm text-white/70">{displayName} さんへ</p>
+        <h1 className="mt-1 text-xl font-bold text-white">AXEL レポート</h1>
+        <p className="mt-1 text-sm leading-relaxed text-white/70">
+          AXELが把握している、あなたのプロフィール・性格傾向・価値観・目標・お仕事・健康面のまとめです。
+        </p>
       </div>
 
       <div className="mx-auto mt-4 w-full max-w-md space-y-4 px-4">
@@ -248,7 +250,7 @@ export default function LiffReportPage() {
         {/* Warm intro */}
         <div className="rounded-2xl border border-[#C9A86A]/30 bg-white p-4 shadow-sm">
           <p className="text-[13px] leading-relaxed text-gray-600">
-            これまでの会話や記録から、AXELが理解している{displayName}さんの姿をまとめました。
+            このレポートは、これまでの会話や記録をもとに、AXELが理解している{displayName}さんの姿をまとめたものです。
             もし「少し違うな」と感じたところがあれば、いつでもトークで教えてください。少しずつ、より深く理解していきます。
           </p>
         </div>

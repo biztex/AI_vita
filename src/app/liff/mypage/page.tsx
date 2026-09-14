@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { API_CONFIG } from "@/lib/config/api"
-import { Loader2, AlertCircle, User, Bell, CreditCard, Repeat2, Brain, HeartPulse, Check, Sparkles, ArrowRight, Activity, MessageSquare } from "lucide-react"
+import { Loader2, AlertCircle, User, Bell, CreditCard, Brain, HeartPulse, Check, Sparkles, ArrowRight } from "lucide-react"
 import { useLiff } from "../_hooks/useLiff"
 
 type AxelHomeSnapshot = {
@@ -51,13 +51,16 @@ type OnboardingState = {
   }
 }
 
-const ONBOARDING_STEPS: { key: OnboardingState["step"]; label: string }[] = [
-  { key: "PENDING",      label: "アカウント連携" },
-  { key: "LINKED",       label: "プラン選択" },
-  { key: "PLAN_ACTIVE",  label: "遺伝子検査" },
-  { key: "REPORT_READY", label: "管理栄養士面談" },
-  { key: "ACTIVE",       label: "AXEL 体験開始" },
-]
+// 利用開始までの流れ（client item 10: プラン選択は契約時に完了しているため
+// 表示から除外。「体験開始」→「利用開始」。ACTIVE 到達後はカードごと非表示）
+const FLOW_STEPS = ["アカウント連携", "遺伝子検査", "管理栄養士面談", "AXEL 利用開始"]
+const FLOW_INDEX: Record<OnboardingState["step"], number> = {
+  PENDING: 0,
+  LINKED: 1,
+  PLAN_ACTIVE: 1,
+  REPORT_READY: 2,
+  ACTIVE: 4,
+}
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—"
@@ -66,13 +69,10 @@ function formatDate(iso: string | null): string {
   } catch { return iso }
 }
 
-const STATE_WORDS: Record<number, string> = { 1: "良い", 2: "普通", 3: "悪い" }
-const FATIGUE_WORDS: Record<number, string> = { 1: "軽い", 2: "普通", 3: "重い" }
-
 const SUBSCRIPTION_LABEL: Record<string, string> = {
   VITAAI: "VitaAI",
   EXECUWELL: "ExecuWell",
-  INTEGRATED: "統合プラン（ExecuWell + VitaAI）",
+  INTEGRATED: "AXEL（統合プラン）",
 }
 
 export default function LiffMyPage() {
@@ -82,10 +82,9 @@ export default function LiffMyPage() {
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
-  // Local state for interactive controls (so UI updates immediately)
-  const [updatingMode, setUpdatingMode] = useState(false)
-  const [updatingPush, setUpdatingPush] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  // item 10: after onboarding completes the flow card hides; this reopens it on demand
+  const [showFlow, setShowFlow] = useState(false)
 
   useEffect(() => {
     if (liff.status !== "ready") return
@@ -110,47 +109,9 @@ export default function LiffMyPage() {
     setTimeout(() => setToast((curr) => (curr === msg ? null : curr)), 2200)
   }
 
-  async function setMode(mode: "EXECUWELL" | "VITAAI") {
-    if (liff.status !== "ready" || !data || data.userMode === mode || updatingMode) return
-    setUpdatingMode(true)
-    const prev = data.userMode
-    setData({ ...data, userMode: mode }) // optimistic
-    try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/mode`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lineUserId: liff.lineUserId, mode }),
-      })
-      if (!res.ok) throw new Error("変更に失敗しました")
-      showToast(`${mode === "VITAAI" ? "VitaAI" : "ExecuWell"} に切り替えました`)
-    } catch (err) {
-      setData({ ...data, userMode: prev }) // revert
-      showToast("変更に失敗しました。もう一度お試しください。")
-    } finally {
-      setUpdatingMode(false)
-    }
-  }
-
-  async function setMorningPush(enabled: boolean) {
-    if (liff.status !== "ready" || !data || data.morningPushEnabled === enabled || updatingPush) return
-    setUpdatingPush(true)
-    const prev = data.morningPushEnabled
-    setData({ ...data, morningPushEnabled: enabled }) // optimistic
-    try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/morning-push`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lineUserId: liff.lineUserId, enabled }),
-      })
-      if (!res.ok) throw new Error("変更に失敗しました")
-      showToast(enabled ? "朝のプッシュ通知を ON にしました" : "朝のプッシュ通知を OFF にしました")
-    } catch (err) {
-      setData({ ...data, morningPushEnabled: prev }) // revert
-      showToast("変更に失敗しました。もう一度お試しください。")
-    } finally {
-      setUpdatingPush(false)
-    }
-  }
+  // Mode switching (item 9) and the morning-push toggle (item 11) were removed
+  // per client direction: AXEL routes ExecuWell/VitaAI knowledge internally and
+  // no scheduled morning notification is in use.
 
   async function openBillingPortal() {
     if (liff.status !== "ready") return
@@ -206,131 +167,22 @@ export default function LiffMyPage() {
 
       <div className="mx-auto mt-4 w-full max-w-md space-y-4 px-4">
 
-        {/* AXEL banner — shown when active INTEGRATED subscription exists */}
-        {data.activeStripeSubscription?.subscriptionType === "INTEGRATED" && (
-          <div className="rounded-2xl border border-[#C9A86A]/40 bg-gradient-to-br from-[#1E3A5F] to-[#0F2342] p-4 shadow-sm">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[#C9A86A]" />
-              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#C9A86A]">AXEL ACTIVE</p>
-            </div>
-            <p className="mt-2 font-serif text-base text-white">
-              判断力と健康を統合的に支援する <span className="font-bold text-[#C9A86A]">AXEL モード</span>で稼働中です。
-            </p>
-            <p className="mt-2 text-[11px] leading-relaxed text-white/65">
-              LINE チャットでは、思考特性 ／ 遺伝子傾向 ／ 直近ログを横断した1つの応答をお返しします。
-            </p>
-          </div>
-        )}
-
-        {/* AXEL HOME — unified 判断+体調+next-action snapshot.
-            Single board so the user sees their current state and the one explicit
-            "next thing to do", rather than being lost in feature menus. */}
-        {data.home && (
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[#C9A86A]" />
-              <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#2D5A8E]">AXEL HOME</p>
-              <span className="ml-auto text-[10px] text-gray-400">
-                {new Date().toLocaleDateString("ja-JP", { month: "long", day: "numeric", weekday: "short" })}
-              </span>
-            </div>
-
-            <p className="mb-3 text-[11px] leading-snug text-gray-400">
-              今のあなたの状態のまとめです。体調の記録・直近の判断・前回AXELからの返信を、ひと目で振り返れます。
-            </p>
-
-            {/* Today's body + decision side-by-side */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-rose-50/40 to-white p-3">
-                <div className="flex items-center gap-1.5">
-                  <HeartPulse className="h-3.5 w-3.5 text-rose-400" />
-                  <p className="text-[10px] font-bold tracking-wider text-gray-500">体調</p>
-                </div>
-                {data.home.today ? (
-                  <>
-                    <div className="mt-2 flex items-baseline gap-1.5">
-                      <span className="text-2xl font-bold" style={{ color: data.home.today.stateLevel != null && data.home.today.stateLevel >= 3 ? "#EF4444" : data.home.today.stateLevel === 2 ? "#F59E0B" : "#10B981" }}>
-                        {data.home.today.stateLevel != null ? STATE_WORDS[data.home.today.stateLevel] ?? "—" : "—"}
-                      </span>
-                      <span className="ml-1 text-[10px] text-gray-500">疲労 {data.home.today.fatigueLevel != null ? FATIGUE_WORDS[data.home.today.fatigueLevel] ?? "—" : "—"}</span>
-                    </div>
-                    {data.home.today.comment && (
-                      <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-gray-500">{data.home.today.comment}</p>
-                    )}
-                  </>
-                ) : (
-                  <p className="mt-2 text-[10.5px] text-gray-400">本日未記録</p>
-                )}
-              </div>
-              <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-blue-50/40 to-white p-3">
-                <div className="flex items-center gap-1.5">
-                  <Brain className="h-3.5 w-3.5 text-blue-400" />
-                  <p className="text-[10px] font-bold tracking-wider text-gray-500">判断</p>
-                </div>
-                {data.home.lastDecision ? (
-                  <>
-                    <div className="mt-2 flex items-baseline gap-1.5">
-                      <span className="text-[11px] font-semibold" style={{ color: data.home.lastDecision.hasImportantDecision ? "#1E3A5F" : "#9CA3AF" }}>
-                        {data.home.lastDecision.hasImportantDecision ? "重要" : "通常"}
-                      </span>
-                      {data.home.lastDecision.hesitationLevel != null && (
-                        <span className="text-[10px] text-gray-500">迷い度 {data.home.lastDecision.hesitationLevel}</span>
-                      )}
-                    </div>
-                    {data.home.lastDecision.content && (
-                      <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-gray-500">{data.home.lastDecision.content}</p>
-                    )}
-                  </>
-                ) : (
-                  <p className="mt-2 text-[10.5px] text-gray-400">判断ログなし</p>
-                )}
-              </div>
-            </div>
-
-            {/* Last AXEL reply preview */}
-            {data.home.lastAxelReply && (
-              <div className="mt-2.5 rounded-xl border border-[#C9A86A]/30 bg-gradient-to-br from-[#FAF7F0] to-white p-3">
-                <div className="flex items-center gap-1.5">
-                  <MessageSquare className="h-3 w-3 text-[#C9A86A]" />
-                  <p className="text-[10px] font-bold tracking-wider text-[#9B7C3F]">前回の AXEL からの応答</p>
-                </div>
-                <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-gray-700">{data.home.lastAxelReply.snippet}…</p>
-              </div>
-            )}
-
-            {/* Next action — single explicit CTA */}
-            <div className="mt-3 rounded-xl bg-[#1E3A5F] p-3">
-              <p className="text-[9.5px] font-bold tracking-[0.3em] text-[#C9A86A]">NEXT ACTION</p>
-              <p className="mt-1 text-[13px] font-semibold text-white">{data.home.nextAction.label}</p>
-              <p className="mt-1 text-[10.5px] leading-relaxed text-white/70">{data.home.nextAction.detail}</p>
-              {data.home.nextAction.url && (
-                <a
-                  href={data.home.nextAction.url}
-                  className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#C9A86A] px-3 py-1.5 text-[10.5px] font-bold text-[#1E3A5F]"
-                >
-                  進む <ArrowRight className="h-3 w-3" />
-                </a>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Onboarding progress — shown until ACTIVE */}
-        {onb && onb.step !== "ACTIVE" && (
+        {/* ご利用の流れ — 完了後は非表示（設定カードのリンクから再表示可能） */}
+        {onb && (onb.step !== "ACTIVE" || showFlow) && (
           <div className="rounded-2xl bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <ArrowRight className="h-4 w-4" style={{ color: "#2D5A8E" }} />
               <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>AXEL ご利用の流れ</p>
               <span className="ml-auto rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
-                {ONBOARDING_STEPS.findIndex((s) => s.key === onb.step) + 1} / {ONBOARDING_STEPS.length}
+                {Math.min(FLOW_INDEX[onb.step], FLOW_STEPS.length)} / {FLOW_STEPS.length}
               </span>
             </div>
             <ol className="space-y-2">
-              {ONBOARDING_STEPS.map((s, i) => {
-                const currentIdx = ONBOARDING_STEPS.findIndex((x) => x.key === onb.step)
+              {FLOW_STEPS.map((label, i) => {
+                const currentIdx = FLOW_INDEX[onb.step]
                 const status: "done" | "current" | "todo" = i < currentIdx ? "done" : i === currentIdx ? "current" : "todo"
                 return (
-                  <li key={s.key} className="flex items-center gap-3 text-[13px]">
+                  <li key={label} className="flex items-center gap-3 text-[13px]">
                     <span
                       className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                         status === "done"
@@ -351,7 +203,7 @@ export default function LiffMyPage() {
                           : "text-gray-400"
                       }`}
                     >
-                      {s.label}
+                      {label}
                     </span>
                   </li>
                 )
@@ -365,48 +217,6 @@ export default function LiffMyPage() {
             </a>
           </div>
         )}
-
-        {/* Mode — interactive segmented control */}
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center gap-2">
-            <Repeat2 className="h-4 w-4" style={{ color: "#2D5A8E" }} />
-            <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>サービスモード</p>
-            {updatingMode && <Loader2 className="ml-auto h-3.5 w-3.5 animate-spin text-gray-400" />}
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={updatingMode}
-              onClick={() => setMode("EXECUWELL")}
-              className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
-                data.userMode === "EXECUWELL"
-                  ? "border-[#1E3A5F] bg-[#1E3A5F] text-white shadow-md"
-                  : "border-gray-200 bg-gray-50 text-gray-500"
-              }`}
-            >
-              <Brain className="h-4 w-4" />
-              ExecuWell
-            </button>
-            <button
-              type="button"
-              disabled={updatingMode}
-              onClick={() => setMode("VITAAI")}
-              className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
-                data.userMode === "VITAAI"
-                  ? "border-[#1E3A5F] bg-[#1E3A5F] text-white shadow-md"
-                  : "border-gray-200 bg-gray-50 text-gray-500"
-              }`}
-            >
-              <HeartPulse className="h-4 w-4" />
-              VitaAI
-            </button>
-          </div>
-          <p className="mt-2.5 text-[11px] leading-relaxed text-gray-400">
-            {data.activeStripeSubscription?.subscriptionType === "INTEGRATED"
-              ? "統合プランをご契約中のため、AXELが有効になっています。単独モードへの切り替えも可能です。"
-              : "タップですぐに切り替えられます。LINEで「/switch」と送信しても切り替えられます。"}
-          </p>
-        </div>
 
         {/* Subscription */}
         <div className="rounded-2xl bg-white p-4 shadow-sm">
@@ -438,83 +248,104 @@ export default function LiffMyPage() {
                   )}
                 </>
               )}
-              <button
-                type="button"
-                onClick={openBillingPortal}
-                className="mt-2 w-full rounded-lg border border-[#1E3A5F] px-4 py-2 text-xs font-semibold text-[#1E3A5F]"
-              >
-                お支払い・解約の管理
-              </button>
             </div>
           ) : (
-            <div className="py-2 text-center">
-              <p className="text-sm text-gray-400">有効なプランがありません</p>
-              <a
-                href="https://execuwell.jp/subscription"
-                className="mt-2 inline-block rounded-lg bg-[#1E3A5F] px-4 py-2 text-xs font-semibold text-white"
-              >
-                プランを見る
-              </a>
-            </div>
+            <p className="py-2 text-sm leading-relaxed text-gray-500">
+              ご契約情報を確認できませんでした。LINEアカウントの連携がお済みでない可能性があります。お手数ですが、お問い合わせよりご連絡ください。
+            </p>
           )}
         </div>
 
-        {/* Notifications — interactive toggle */}
+        {/* 登録情報 */}
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <User className="h-4 w-4" style={{ color: "#2D5A8E" }} />
+            <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>登録情報</p>
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">お名前</span>
+              <span className="text-gray-700">{data.name ?? data.displayName ?? "—"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">メールアドレス</span>
+              <span className="max-w-[60%] truncate text-gray-700">{data.email ?? "—"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">LINE連携</span>
+              <span className="inline-flex items-center gap-1 font-medium text-green-600">
+                <Check className="h-3.5 w-3.5" /> 連携済み
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* お支払い */}
+        {data.activeStripeSubscription && (
+          <div className="rounded-2xl bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <CreditCard className="h-4 w-4" style={{ color: "#2D5A8E" }} />
+              <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>お支払い</p>
+            </div>
+            <p className="mb-2 text-[11px] leading-relaxed text-gray-400">
+              お支払い方法の変更・ご請求履歴の確認・解約のお手続きができます。
+            </p>
+            <button
+              type="button"
+              onClick={openBillingPortal}
+              className="w-full rounded-lg border border-[#1E3A5F] px-4 py-2 text-xs font-semibold text-[#1E3A5F]"
+            >
+              お支払い・解約の管理
+            </button>
+          </div>
+        )}
+
+        {/* AXELの2つの知見（旧サービスモードの置き換え） */}
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <Sparkles className="h-4 w-4" style={{ color: "#C9A86A" }} />
+            <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>AXELの2つの知見</p>
+          </div>
+          <div className="space-y-2.5">
+            <div className="flex items-start gap-2.5">
+              <Brain className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-400" />
+              <div>
+                <p className="text-[13px] font-semibold text-gray-700">ExecuWell — 相談コンシェルジュ</p>
+                <p className="text-[11px] leading-relaxed text-gray-400">経営・仕事・大切な判断のご相談を受け持ちます。</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <HeartPulse className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-400" />
+              <div>
+                <p className="text-[13px] font-semibold text-gray-700">VitaAI — 健康コンシェルジュ</p>
+                <p className="text-[11px] leading-relaxed text-gray-400">健康・食事・運動・睡眠のご相談を受け持ちます。</p>
+              </div>
+            </div>
+          </div>
+          <p className="mt-3 border-t border-gray-100 pt-2.5 text-[11px] leading-relaxed text-gray-400">
+            ご相談の内容に応じて、AXELが必要な知見を自動で使い分けます。切り替えの操作は不要です。
+          </p>
+        </div>
+
+        {/* サポート・各種設定 */}
         <div className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
             <Bell className="h-4 w-4" style={{ color: "#2D5A8E" }} />
-            <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>通知設定</p>
-            {updatingPush && <Loader2 className="ml-auto h-3.5 w-3.5 animate-spin text-gray-400" />}
+            <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>サポート・各種設定</p>
           </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-700">朝のプッシュ通知</p>
-              <p className="mt-0.5 text-[11px] text-gray-400">毎朝の状態確認を促す通知</p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={data.morningPushEnabled}
-              disabled={updatingPush}
-              onClick={() => setMorningPush(!data.morningPushEnabled)}
-              className="flex-shrink-0"
-              style={{
-                position: "relative",
-                display: "inline-block",
-                width: "52px",
-                height: "32px",
-                borderRadius: "999px",
-                border: "none",
-                padding: 0,
-                margin: 0,
-                cursor: updatingPush ? "default" : "pointer",
-                background: data.morningPushEnabled ? "#1E3A5F" : "#cbd5e1",
-                transition: "background-color 200ms ease",
-                opacity: updatingPush ? 0.6 : 1,
-                WebkitAppearance: "none",
-                appearance: "none",
-                outline: "none",
-                boxSizing: "border-box",
-                flexShrink: 0,
-              }}
-            >
-              <span
-                style={{
-                  position: "absolute",
-                  top: "3px",
-                  left: "3px",
-                  width: "26px",
-                  height: "26px",
-                  borderRadius: "50%",
-                  background: "#ffffff",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.12)",
-                  transition: "transform 200ms ease",
-                  transform: data.morningPushEnabled ? "translateX(20px)" : "translateX(0)",
-                  boxSizing: "border-box",
-                  pointerEvents: "none",
-                }}
-              />
-            </button>
+          <div className="space-y-1 text-sm">
+            <a href="https://execuwell.jp/contact" className="flex items-center justify-between rounded-lg px-2 py-2 text-gray-700 active:bg-gray-50">
+              お問い合わせ <ArrowRight className="h-3.5 w-3.5 text-gray-300" />
+            </a>
+            {onb?.step === "ACTIVE" && !showFlow && (
+              <button
+                type="button"
+                onClick={() => setShowFlow(true)}
+                className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-gray-700 active:bg-gray-50"
+              >
+                ご利用の流れを確認する <ArrowRight className="h-3.5 w-3.5 text-gray-300" />
+              </button>
+            )}
           </div>
         </div>
 

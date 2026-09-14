@@ -6,10 +6,23 @@ import { contactSchema } from "@/lib/validations/validation"
 
 export const runtime = "nodejs"
 
-// The LP / contact form now sends plan=integrated|executive|vita. The shared schema
-// still enumerates the legacy values, so override the field here — and keep accepting
+// The LP / contact form now sends plan=integrated|executive|vita and the contracted-user
+// inquiry types (usage|billing|genetics|counseling|trouble|other). The shared schema
+// still enumerates the legacy values, so override the fields here — and keep accepting
 // the legacy keys so older cached pages don't start failing validation.
 const inquirySchema = contactSchema.extend({
+  inquiryType: z.enum([
+    // Contracted-user categories sent by the current form.
+    "usage",
+    "billing",
+    "genetics",
+    "counseling",
+    "trouble",
+    "other",
+    // Legacy LP values from cached pages.
+    "document",
+    "consultation",
+  ]),
   plan: z
     .enum(["integrated", "executive", "vita", "undecided", "small", "corporate"])
     .optional(),

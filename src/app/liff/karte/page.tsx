@@ -320,7 +320,7 @@ export default function LiffKartePage() {
           <div className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5" />
             <span className="text-xs font-medium opacity-80">
-              {data.effectiveMode === "AXEL" ? "AXEL / カルテ" : "VitaAI / カルテ"}
+              {data.effectiveMode === "AXEL" ? "AXEL / 健康記録" : "VitaAI / 健康記録"}
             </span>
           </div>
           <button
@@ -333,73 +333,13 @@ export default function LiffKartePage() {
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
           </button>
         </div>
-        <h1 className="mt-1 text-xl font-bold text-white">私のカルテ</h1>
-        <p className="mt-1 text-sm text-white/70">
-          {liff.status === "ready" ? liff.displayName : data.displayName} さんの記録
+        <h1 className="mt-1 text-xl font-bold text-white">健康記録</h1>
+        <p className="mt-1 text-sm leading-relaxed text-white/70">
+          {liff.status === "ready" ? liff.displayName : data.displayName} さんの遺伝子検査の結果と、日々の体調の記録をまとめて確認できます。
         </p>
       </div>
 
       <div className="mx-auto mt-4 w-full max-w-md space-y-4 px-4">
-
-        {/* Summary strip */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl bg-white p-3 shadow-sm">
-            <p className="text-[11px] font-semibold text-gray-400">記録</p>
-            <p className="mt-1 text-2xl font-bold tabular-nums" style={{ color: "#1E3A5F" }}>{data.logs.length}</p>
-            <p className="text-[10px] text-gray-400">件（直近30日）</p>
-          </div>
-          <div className="rounded-xl bg-white p-3 shadow-sm">
-            <p className="text-[11px] font-semibold text-gray-400">判断ログ</p>
-            <p className="mt-1 text-2xl font-bold tabular-nums" style={{ color: "#1E3A5F" }}>{(data.eventLogs ?? []).length}</p>
-            <p className="text-[10px] text-gray-400">件</p>
-          </div>
-        </div>
-
-        {/* Nutrition Plan summary */}
-        {hasNutritionPlan && (
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <div className="mb-2 flex items-center gap-2">
-              <Pill className="h-4 w-4" style={{ color: "#3A7ABD" }} />
-              <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>パーソナルプラン</p>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">バージョン</span>
-              <span className="font-semibold text-gray-800">v{data.nutritionPlan!.version ?? "—"}</span>
-            </div>
-            {data.nutritionPlan!.nextReviewAt && (
-              <div className="mt-1 flex items-center justify-between text-sm">
-                <span className="text-gray-500">次回見直し目安</span>
-                <span className="text-gray-700">{formatDay(data.nutritionPlan!.nextReviewAt)}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Recent decision events */}
-        {recentEvents.length > 0 && (
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center gap-2">
-              <Brain className="h-4 w-4" style={{ color: "#3A7ABD" }} />
-              <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>最近の判断ログ</p>
-            </div>
-            <div className="space-y-2">
-              {recentEvents.map((e) => {
-                const ev = parseEvent(e.decisions)
-                if (!ev) return null
-                return (
-                  <div key={e.id} className="border-l-2 border-[#3A7ABD]/30 pl-3">
-                    <div className="flex items-center gap-2 text-[11px] text-gray-400">
-                      <span>{formatDay(e.logDate)}</span>
-                      {ev.important && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">重要</span>}
-                      <span className="ml-auto">迷い {ev.hesitation}</span>
-                    </div>
-                    {ev.content && <p className="mt-1 text-sm leading-relaxed text-gray-700">{ev.content}</p>}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
 
         {/* ─────── GRIICE GENE REPORT (rich format) ─────── */}
         {hasGriiceReport ? (
@@ -495,6 +435,40 @@ export default function LiffKartePage() {
           </div>
         )}
 
+        {/* Nutrition Plan summary */}
+        {hasNutritionPlan && (
+          <div className="rounded-2xl bg-white p-4 shadow-sm">
+            <div className="mb-2 flex items-center gap-2">
+              <Pill className="h-4 w-4" style={{ color: "#3A7ABD" }} />
+              <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>パーソナルプラン</p>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-500">バージョン</span>
+              <span className="font-semibold text-gray-800">v{data.nutritionPlan!.version ?? "—"}</span>
+            </div>
+            {data.nutritionPlan!.nextReviewAt && (
+              <div className="mt-1 flex items-center justify-between text-sm">
+                <span className="text-gray-500">次回見直し目安</span>
+                <span className="text-gray-700">{formatDay(data.nutritionPlan!.nextReviewAt)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Summary strip */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl bg-white p-3 shadow-sm">
+            <p className="text-[11px] font-semibold text-gray-400">記録</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums" style={{ color: "#1E3A5F" }}>{data.logs.length}</p>
+            <p className="text-[10px] text-gray-400">件（直近30日）</p>
+          </div>
+          <div className="rounded-xl bg-white p-3 shadow-sm">
+            <p className="text-[11px] font-semibold text-gray-400">判断ログ</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums" style={{ color: "#1E3A5F" }}>{(data.eventLogs ?? []).length}</p>
+            <p className="text-[10px] text-gray-400">件</p>
+          </div>
+        </div>
+
         {/* Daily logs */}
         {data.logs.length === 0 ? (
           <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
@@ -568,6 +542,32 @@ export default function LiffKartePage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Recent decision events */}
+        {recentEvents.length > 0 && (
+          <div className="rounded-2xl bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <Brain className="h-4 w-4" style={{ color: "#3A7ABD" }} />
+              <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>最近の判断ログ</p>
+            </div>
+            <div className="space-y-2">
+              {recentEvents.map((e) => {
+                const ev = parseEvent(e.decisions)
+                if (!ev) return null
+                return (
+                  <div key={e.id} className="border-l-2 border-[#3A7ABD]/30 pl-3">
+                    <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                      <span>{formatDay(e.logDate)}</span>
+                      {ev.important && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">重要</span>}
+                      <span className="ml-auto">迷い {ev.hesitation}</span>
+                    </div>
+                    {ev.content && <p className="mt-1 text-sm leading-relaxed text-gray-700">{ev.content}</p>}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
       </div>
