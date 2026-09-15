@@ -6,11 +6,12 @@ import {
   Loader2, AlertCircle, RefreshCw, Sparkles, User, Heart, Brain, Dna,
   FileText, MessagesSquare, Lightbulb, NotebookPen, CalendarClock,
 } from "lucide-react"
-import { useLiff } from "../_hooks/useLiff"
+import { useLiff, liffApiHeaders } from "../_hooks/useLiff"
 
 // ── Types ──────────────────────────────────────────────
 
 type ReportProfile = {
+  decisionTheme?: string | null
   name?: string | null
   stage?: string | null
   values?: string | null
@@ -143,8 +144,8 @@ export default function LiffReportPage() {
     if (isRefresh) setRefreshing(true); else setLoading(true)
     setFetchError(null)
     try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/report?lineUserId=${encodeURIComponent(liff.lineUserId)}`)
-      if (!res.ok) throw new Error(res.status === 404 ? "ユーザーが見つかりません。" : "読み込みに失敗しました。")
+      const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/report?lineUserId=${encodeURIComponent(liff.lineUserId)}`, { headers: liffApiHeaders(liff) })
+      if (!res.ok) throw new Error("読み込みに失敗しました。")
       setData(await res.json())
     } catch (err: any) {
       setFetchError(err.message || "読み込みに失敗しました。")
@@ -163,13 +164,24 @@ export default function LiffReportPage() {
     )
   }
 
+  // Full-page error only when there is nothing to show; a failed pull-refresh
+  // keeps the already-loaded report on screen (m0).
   const errorMsg = liff.status === "error" ? liff.message : fetchError
-  if (errorMsg) {
+  if (errorMsg && !data) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "#f0f4f8" }}>
         <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-6">
           <AlertCircle className="h-10 w-10 text-amber-500" />
           <p className="text-center text-sm text-amber-900">{errorMsg}</p>
+          {liff.status !== "error" && (
+            <button
+              type="button"
+              onClick={() => load()}
+              className="mt-1 rounded-lg bg-[#1E3A5F] px-5 py-2 text-xs font-semibold text-white"
+            >
+              再試行
+            </button>
+          )}
         </div>
       </div>
     )
@@ -178,7 +190,7 @@ export default function LiffReportPage() {
   if (!data) return null
 
   const p = data.profile ?? {}
-  const displayName = clean(p.name) ?? (liff.status === "ready" ? liff.displayName : data.displayName) ?? "あなた"
+  const displayName = clean(p.name) ?? (liff.status === "ready" && liff.displayName ? liff.displayName : data.displayName) ?? "あなた"
 
   // Profile text fields (ordered, only those with content)
   const profileFields: { label: string; value: string }[] = []
@@ -190,6 +202,7 @@ export default function LiffReportPage() {
   pushField("人柄", p.personality)
   pushField("これまでの歩み", p.background)
   pushField("これから目指すこと", p.futureGoals)
+  if (clean(p.decisionTheme) && p.decisionTheme !== "未選択") pushField("今の相談テーマ", p.decisionTheme)
   pushField("趣味・ライフスタイル", p.hobbiesLifestyle)
   pushField("ご家族のこと", p.familyContext)
 
@@ -239,7 +252,7 @@ export default function LiffReportPage() {
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
           </button>
         </div>
-        <h1 className="mt-1 text-xl font-bold text-white">AXEL レポート</h1>
+        <h1 className="mt-1 text-xl font-bold text-white">AXELレポート</h1>
         <p className="mt-1 text-sm leading-relaxed text-white/70">
           AXELが把握している、あなたのプロフィール・性格傾向・価値観・目標・お仕事・健康面のまとめです。
         </p>

@@ -7,7 +7,7 @@ import {
   Loader2, AlertCircle, ScanFace, Brain, Target, Compass, Sparkles,
   FileText, ChevronLeft, RefreshCw, CheckCircle2,
 } from "lucide-react"
-import { useLiff } from "../_hooks/useLiff"
+import { useLiff, liffApiHeaders } from "../_hooks/useLiff"
 import { DIAGNOSTIC_QUESTIONS, CATEGORY_INFO, type QuestionCategory } from "@/lib/diagnostic/questions"
 import {
   computeDiagnosticResult, ENNEAGRAM_TYPES,
@@ -35,6 +35,13 @@ const CATEGORY_ACCENT: Record<QuestionCategory, { text: string; bg: string; ring
   MBTI: { text: "#2D5A8E", bg: "#EFF4FB", ring: "#2D5A8E" },
   DISC: { text: "#6D28D9", bg: "#F3EEFC", ring: "#7C3AED" },
   Enneagram: { text: "#B45309", bg: "#FBF3E6", ring: "#C9A86A" },
+}
+
+// Lucide equivalents of the emoji category icons (design-language consistency)
+function CategoryIcon({ cat, className }: { cat: QuestionCategory; className?: string }) {
+  const accent = CATEGORY_ACCENT[cat]
+  const Icon = cat === "MBTI" ? Brain : cat === "DISC" ? Target : Sparkles
+  return <Icon className={className} style={{ color: accent.text }} />
 }
 
 const DISC_COLOR: Record<string, string> = { D: "#EF4444", I: "#F59E0B", S: "#10B981", C: "#2D5A8E" }
@@ -202,8 +209,9 @@ export default function LiffPersonalityPage() {
     try {
       const res = await fetch(
         `${API_CONFIG.BASE_URL}/line/liff/personality?lineUserId=${encodeURIComponent(liff.lineUserId)}`,
+        { headers: liffApiHeaders(liff) },
       )
-      if (!res.ok) throw new Error(res.status === 404 ? "ユーザーが見つかりません。" : "読み込みに失敗しました。")
+      if (!res.ok) throw new Error("読み込みに失敗しました。")
       setData((await res.json()) as PersonalityResponse)
     } catch (err: unknown) {
       setFetchError(err instanceof Error ? err.message : "読み込みに失敗しました。")
@@ -220,35 +228,38 @@ export default function LiffPersonalityPage() {
     try {
       const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/personality`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...liffApiHeaders(liff) },
         body: JSON.stringify({ lineUserId: liff.lineUserId, answers: finalAnswers, result }),
       })
       if (res.status === 409) { setSaveState("not_linked"); return }
       if (!res.ok) throw new Error("save failed")
       setSaveState("saved")
+      // Sync local state so 再診断/前回の結果 immediately reflect the saved result
+      setData((prev) => prev
+        ? { ...prev, linked: true, hasResult: true, result: { ...result, completedAt: new Date().toISOString() } as any }
+        : prev)
     } catch {
       setSaveState("error")
     }
   }, [liff])
 
   const handleSelect = useCallback((questionId: number, optionId: string) => {
-    setAnswers((prev) => {
-      const next: DiagnosticAnswers = { ...prev, [String(questionId)]: optionId }
-      if (currentIndex < TOTAL - 1) {
-        setCurrentIndex((i) => i + 1)
-      } else {
-        const result = computeDiagnosticResult(next)
-        setLocalResult(result)
-        void submitResult(next, result)
-      }
-      return next
-    })
-  }, [currentIndex, submitResult])
+    // Side effects must stay OUT of the setState updater (React StrictMode
+    // double-invokes updaters — the POST would fire twice on the last answer).
+    const next: DiagnosticAnswers = { ...answers, [String(questionId)]: optionId }
+    setAnswers(next)
+    if (currentIndex < TOTAL - 1) {
+      setCurrentIndex((i) => i + 1)
+    } else {
+      const result = computeDiagnosticResult(next)
+      setLocalResult(result)
+      void submitResult(next, result)
+    }
+  }, [answers, currentIndex, submitResult])
 
   const startQuiz = useCallback(() => {
+    // Resume where the user left off; a fresh start happens via beginRetake.
     setPhase("quiz")
-    setCurrentIndex(0)
-    setAnswers({})
   }, [])
 
   const beginRetake = useCallback(() => {
@@ -293,7 +304,7 @@ export default function LiffPersonalityPage() {
 
   if (!data) return null
 
-  const displayName = liff.status === "ready" ? liff.displayName : ""
+  const displayName = liff.status === "ready" && liff.displayName ? liff.displayName : ""
 
   // Save-status banner shown above a freshly computed result.
   const saveBanner: ReactNode = (() => {
@@ -318,7 +329,7 @@ export default function LiffPersonalityPage() {
         <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
           <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
           <p className="text-xs leading-relaxed text-amber-800">
-            アカウント連携後に保存できます。今回の結果は下に表示しています。
+            結果を保存できませんでした。アカウント連携がお済みでないようです。マイページから連携状況をご確認ください（今回の結果は下に表示しています）。
           </p>
         </div>
       )
@@ -347,7 +358,7 @@ export default function LiffPersonalityPage() {
   if (localResult) {
     return (
       <div className="min-h-screen pb-10" style={{ background: "#f0f4f8" }}>
-        <Header subtitle={displayName ? `${displayName} さんの診断結果` : "診断結果"} />
+        <Header subtitle={displayName ? `${displayName}さんの診断結果` : "診断結果"} />
         <ResultView result={localResult} onRetake={beginRetake} banner={saveBanner} />
       </div>
     )
@@ -358,7 +369,7 @@ export default function LiffPersonalityPage() {
     const r = data.result
     return (
       <div className="min-h-screen pb-10" style={{ background: "#f0f4f8" }}>
-        <Header subtitle={displayName ? `${displayName} さんの診断結果` : "診断結果"} />
+        <Header subtitle={displayName ? `${displayName}さんの診断結果` : "診断結果"} />
         <ResultView result={r} completedAt={r.completedAt} onRetake={beginRetake} />
       </div>
     )
@@ -368,7 +379,7 @@ export default function LiffPersonalityPage() {
   if (phase === "intro") {
     return (
       <div className="min-h-screen pb-10" style={{ background: "#f0f4f8" }}>
-        <Header subtitle={displayName ? `${displayName} さん` : ""} />
+        <Header subtitle={displayName ? `${displayName}さん` : ""} />
         <div className="mx-auto mt-4 w-full max-w-md space-y-4 px-4">
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <p className="text-sm leading-relaxed text-gray-700">
@@ -389,7 +400,7 @@ export default function LiffPersonalityPage() {
               return (
                 <div key={cat} className="rounded-2xl bg-white p-4 shadow-sm">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{info.icon}</span>
+                    <CategoryIcon cat={cat} className="h-4 w-4" />
                     <p className="text-sm font-bold" style={{ color: accent.text }}>{info.title}</p>
                     <span
                       className="ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold"
@@ -403,6 +414,15 @@ export default function LiffPersonalityPage() {
               )
             })}
           </div>
+
+          {!data.linked && (
+            <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
+              <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
+              <p className="text-xs leading-relaxed text-amber-800">
+                結果の保存にはアカウント連携が必要です。連携がお済みでない場合、診断結果は保存されません。マイページから連携状況をご確認ください。
+              </p>
+            </div>
+          )}
 
           <button
             type="button"
@@ -436,7 +456,7 @@ export default function LiffPersonalityPage() {
 
   return (
     <div className="min-h-screen pb-10" style={{ background: "#f0f4f8" }}>
-      <Header subtitle={displayName ? `${displayName} さん` : ""} />
+      <Header subtitle={displayName ? `${displayName}さん` : ""} />
       <div className="mx-auto mt-4 w-full max-w-md space-y-4 px-4">
 
         {/* Progress */}
@@ -446,7 +466,7 @@ export default function LiffPersonalityPage() {
               className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
               style={{ background: accent.bg, color: accent.text }}
             >
-              <span>{info.icon}</span>{info.title}
+              <CategoryIcon cat={q.category} className="h-3.5 w-3.5" />{info.title}
             </span>
             <span className="text-[11px] font-bold tabular-nums text-gray-400">{currentIndex + 1} / {TOTAL}</span>
           </div>

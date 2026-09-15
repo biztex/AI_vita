@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useState } from "react"
 import { API_CONFIG } from "@/lib/config/api"
 import {
-  Loader2, AlertCircle, CalendarCheck, CalendarPlus, CalendarClock, RefreshCw, ExternalLink, ChevronRight, Stethoscope,
+  Loader2, AlertCircle, CalendarCheck, CalendarPlus, CalendarClock, ExternalLink, ChevronRight, Stethoscope,
 } from "lucide-react"
-import { useLiff } from "../_hooks/useLiff"
+import { useLiff, liffApiHeaders } from "../_hooks/useLiff"
 
 type ReservationType = {
   key: string
@@ -38,30 +38,33 @@ const TYPE_DETAILS: Record<string, { label: string; description: string }> = {
   },
 }
 
-function withCategory(url: string, key: string): string {
+function withCategory(url: string, key: string, name?: string): string {
   const sep = url.includes("?") ? "&" : "?"
-  return `${url}${sep}category=${encodeURIComponent(key)}`
+  let out = `${url}${sep}category=${encodeURIComponent(key)}`
+  // Prefill the contact form with the known LINE display name (m10):
+  // the user shouldn't retype who they are when we already know.
+  if (name) out += `&name=${encodeURIComponent(name)}`
+  return out
 }
 
 export default function LiffReservationPage() {
   const liff = useLiff()
   const [data, setData] = useState<ReservationData | null>(null)
   const [loading, setLoading] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
-  const load = useCallback(async (isRefresh = false) => {
+  const load = useCallback(async () => {
     if (liff.status !== "ready") return
-    if (isRefresh) setRefreshing(true); else setLoading(true)
+    setLoading(true)
     setFetchError(null)
     try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/reservation?lineUserId=${encodeURIComponent(liff.lineUserId)}`)
-      if (!res.ok) throw new Error(res.status === 404 ? "ユーザーが見つかりません。" : "読み込みに失敗しました。")
+      const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/reservation?lineUserId=${encodeURIComponent(liff.lineUserId)}`, { headers: liffApiHeaders(liff) })
+      if (!res.ok) throw new Error("読み込みに失敗しました。")
       setData(await res.json() as ReservationData)
     } catch (err: unknown) {
       setFetchError(err instanceof Error ? err.message : "読み込みに失敗しました。")
     } finally {
-      setLoading(false); setRefreshing(false)
+      setLoading(false)
     }
   }, [liff])
 
@@ -97,21 +100,13 @@ export default function LiffReservationPage() {
         <div className="flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
             <CalendarCheck className="h-5 w-5" />
-            <span className="text-xs font-medium opacity-80">VitaAI / 面談予約</span>
+            <span className="text-xs font-medium opacity-80">AXEL / 面談予約</span>
           </div>
-          <button
-            type="button"
-            onClick={() => load(true)}
-            disabled={refreshing}
-            className="rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20 disabled:opacity-60"
-            aria-label="再読み込み"
-          >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          </button>
+
         </div>
         <h1 className="mt-1 text-xl font-bold text-white">面談予約</h1>
         <p className="mt-1 text-sm text-white/70">
-          {liff.status === "ready" ? liff.displayName : "ゲスト"} さん
+          {liff.status === "ready" && liff.displayName ? liff.displayName : "ゲスト"}さん
         </p>
       </div>
 
@@ -121,24 +116,24 @@ export default function LiffReservationPage() {
         <div className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="mb-2 flex items-center gap-2">
             <Stethoscope className="h-4 w-4" style={{ color: "#C9A86A" }} />
-            <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>カウンセリング予約</p>
+            <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>カウンセリングのご予約</p>
           </div>
           <p className="text-[13px] leading-relaxed text-gray-600">
-            管理栄養士とのカウンセリングを予約できます。ご希望の面談種別をお選びください。
+            管理栄養士とのカウンセリングを予約できます。ご希望の種類をお選びください。
           </p>
         </div>
 
         {/* Reservation types */}
         {types.length > 0 ? (
           <div className="space-y-3">
-            <p className="px-1 text-[11px] font-bold uppercase tracking-widest" style={{ color: "#2D5A8E" }}>面談種別</p>
+            <p className="px-1 text-[11px] font-bold uppercase tracking-widest" style={{ color: "#2D5A8E" }}>カウンセリングの種類</p>
             {types.map((t, i) => {
               const Icon = TYPE_ICONS[i % TYPE_ICONS.length]
               const details = TYPE_DETAILS[t.key]
               return (
                 <a
                   key={t.key}
-                  href={withCategory(data.bookingUrl, t.key)}
+                  href={withCategory(data.bookingUrl, t.key, liff.status === "ready" && liff.displayName ? liff.displayName : undefined)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-colors hover:border-[#C9A86A]/40 hover:bg-[#C9A86A]/5 active:bg-gray-50"

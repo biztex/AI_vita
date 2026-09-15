@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { API_CONFIG } from "@/lib/config/api"
 import { Loader2, AlertCircle, BookOpen, RefreshCw, MessageSquare } from "lucide-react"
-import { useLiff } from "../_hooks/useLiff"
+import { useLiff, liffApiHeaders } from "../_hooks/useLiff"
 
 type AiMessage = { id: string; content: string; createdAt: string }
 type PlanData = { displayName: string | null; messages: AiMessage[] }
@@ -37,7 +37,7 @@ export default function LiffPlanPage() {
     if (isRefresh) setRefreshing(true); else setLoading(true)
     setFetchError(null)
     try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/plan?lineUserId=${encodeURIComponent(liff.lineUserId)}`)
+      const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/plan?lineUserId=${encodeURIComponent(liff.lineUserId)}`, { headers: liffApiHeaders(liff) })
       if (!res.ok) throw new Error(res.status === 404 ? "ユーザーが見つかりません。" : "読み込みに失敗しました。")
       setData(await res.json())
     } catch (err: any) {
@@ -100,7 +100,7 @@ export default function LiffPlanPage() {
         </div>
         <h1 className="mt-1 text-xl font-bold text-white">戦略書を見る</h1>
         <p className="mt-1 text-sm text-white/70">
-          {liff.status === "ready" ? liff.displayName : data.displayName} さんへのAI提案
+          {liff.status === "ready" && liff.displayName ? liff.displayName : data.displayName}さんへのAI提案
         </p>
       </div>
 

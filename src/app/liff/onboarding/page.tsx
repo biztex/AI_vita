@@ -5,7 +5,7 @@ import { API_CONFIG } from "@/lib/config/api"
 import {
   Loader2, AlertCircle, Sparkles, Link2, CreditCard, Dna, Users, Activity, ArrowRight,
 } from "lucide-react"
-import { useLiff } from "../_hooks/useLiff"
+import { useLiff, liffApiHeaders } from "../_hooks/useLiff"
 
 type OnboardingState = {
   step: "PENDING" | "LINKED" | "PLAN_ACTIVE" | "REPORT_READY" | "ACTIVE"
@@ -82,7 +82,7 @@ export default function LiffOnboardingPage() {
   useEffect(() => {
     if (liff.status !== "ready") return
     setLoading(true)
-    fetch(`${API_CONFIG.BASE_URL}/line/liff/onboarding-state?lineUserId=${encodeURIComponent(liff.lineUserId)}`)
+    fetch(`${API_CONFIG.BASE_URL}/line/liff/onboarding-state?lineUserId=${encodeURIComponent(liff.lineUserId)}`, { headers: liffApiHeaders(liff) })
       .then((res) => {
         if (!res.ok) throw new Error(res.status === 404 ? "ユーザーが見つかりません。" : "読み込みに失敗しました。")
         return res.json() as Promise<OnboardingState>
@@ -127,7 +127,7 @@ export default function LiffOnboardingPage() {
           <span className="text-[#C9A86A]">AXEL</span> の始め方。
         </h1>
         <p className="mt-3 text-[13px] leading-relaxed text-white/65">
-          5ステップで、AXEL の日々のサポートが始まります。各段階の進捗をご確認いただけます。
+          4つのステップで、AXEL の日々のサポートが始まります。各段階の進捗をご確認いただけます。
         </p>
       </div>
 

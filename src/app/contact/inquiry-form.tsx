@@ -65,17 +65,16 @@ export default function InquiryForm() {
   // ?category=initial|followup|review (from the LIFF 面談予約 page) prefixes the message.
   const categoryParam = searchParams.get("category")
   const categoryPrefix = categoryParam ? CATEGORY_PREFIXES[categoryParam] : undefined
+  // ?name= (from the LIFF 面談予約 page) prefills the name — the user is already known.
+  const nameFromQuery = searchParams.get("name") ?? undefined
 
   const [isLoading, setIsLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
-  const baseMessage = isReservation
-    ? "ご希望の日程・時間帯（候補を複数いただけると調整しやすいです）と、ご相談内容をご記入ください。"
-    : undefined
-  const defaultMessage = categoryPrefix
-    ? [categoryPrefix, baseMessage].filter(Boolean).join("\n")
-    : baseMessage
+  // m11: instructions belong in the placeholder, not the textarea VALUE —
+  // otherwise the user has to delete our text before typing.
+  const defaultMessage = categoryPrefix ? `${categoryPrefix}\n` : undefined
 
   const {
     register,
@@ -90,6 +89,7 @@ export default function InquiryForm() {
       // to a booking request until a dedicated reservation type exists.
       inquiryType: isReservation ? "counseling" : "usage",
       plan: defaultPlan,
+      name: nameFromQuery,
       message: defaultMessage,
       agreement: false as unknown as true,
     },
@@ -336,7 +336,9 @@ export default function InquiryForm() {
                     <Textarea
                       id="message"
                       rows={5}
-                      placeholder="導入時期、気になる点、課題感などをお聞かせください。"
+                      placeholder={isReservation
+                        ? "ご希望の日程・時間帯（候補を複数いただけると調整しやすいです）と、ご相談内容をご記入ください。"
+                        : "導入時期、気になる点、課題感などをお聞かせください。"}
                       {...register("message")}
                     />
                     {errors.message && (

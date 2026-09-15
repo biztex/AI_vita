@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { API_CONFIG } from "@/lib/config/api"
 import { Loader2, AlertCircle, User, Settings, CreditCard, Brain, HeartPulse, Check, Sparkles, ArrowRight } from "lucide-react"
-import { useLiff } from "../_hooks/useLiff"
+import { useLiff, liffApiHeaders } from "../_hooks/useLiff"
 
 type AxelHomeSnapshot = {
   today: {
@@ -90,12 +90,12 @@ export default function LiffMyPage() {
     if (liff.status !== "ready") return
     setLoading(true)
     Promise.all([
-      fetch(`${API_CONFIG.BASE_URL}/line/liff/mypage?lineUserId=${encodeURIComponent(liff.lineUserId)}`)
+      fetch(`${API_CONFIG.BASE_URL}/line/liff/mypage?lineUserId=${encodeURIComponent(liff.lineUserId)}`, { headers: liffApiHeaders(liff) })
         .then((res) => {
           if (!res.ok) throw new Error(res.status === 404 ? "ユーザーが見つかりません。" : "読み込みに失敗しました。")
           return res.json() as Promise<MyPageData>
         }),
-      fetch(`${API_CONFIG.BASE_URL}/line/liff/onboarding-state?lineUserId=${encodeURIComponent(liff.lineUserId)}`)
+      fetch(`${API_CONFIG.BASE_URL}/line/liff/onboarding-state?lineUserId=${encodeURIComponent(liff.lineUserId)}`, { headers: liffApiHeaders(liff) })
         .then((res) => res.ok ? (res.json() as Promise<OnboardingState>) : null)
         .catch(() => null),
     ])
@@ -118,6 +118,7 @@ export default function LiffMyPage() {
     try {
       const res = await fetch(
         `${API_CONFIG.BASE_URL}/line/liff/billing-portal?lineUserId=${encodeURIComponent(liff.lineUserId)}`,
+        { headers: liffApiHeaders(liff) },
       )
       const json = await res.json()
       if (json.available && json.url) {
@@ -160,7 +161,7 @@ export default function LiffMyPage() {
           <span className="text-xs font-medium opacity-80">マイページ</span>
         </div>
         <h1 className="mt-1 text-xl font-bold text-white">
-          {liff.status === "ready" ? liff.displayName : (data.displayName ?? data.name ?? "ゲスト")}
+          {liff.status === "ready" && liff.displayName ? liff.displayName : (data.displayName ?? data.name ?? "ゲスト")}
         </h1>
         {data.email && <p className="mt-1 text-xs text-white/60">{data.email}</p>}
       </div>

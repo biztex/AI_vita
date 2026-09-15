@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { API_CONFIG } from "@/lib/config/api"
 import { Loader2, CheckCircle2, AlertCircle, PenLine } from "lucide-react"
-import { useLiff } from "../_hooks/useLiff"
+import { useLiff, liffApiHeaders } from "../_hooks/useLiff"
 
 const STATE_LEVELS = [
   { v: 1 as const, label: "良い" },
@@ -38,7 +38,7 @@ export default function LiffLogPage() {
     try {
       const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/log`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...liffApiHeaders(liff) },
         body: JSON.stringify({
           lineUserId: liff.lineUserId,
           stateLevel,
@@ -52,7 +52,7 @@ export default function LiffLogPage() {
       try {
         const advRes = await fetch(`${API_CONFIG.BASE_URL}/line/liff/advice`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...liffApiHeaders(liff) },
           body: JSON.stringify({ lineUserId: liff.lineUserId }),
         })
         if (advRes.ok) {
@@ -139,7 +139,7 @@ export default function LiffLogPage() {
           <span className="text-xs font-medium opacity-80">AXEL / 今日の記録</span>
         </div>
         <h1 className="mt-1 text-xl font-bold text-white">3秒コンディション</h1>
-        <p className="mt-1 text-xs text-white/60">{liff.displayName} さん — 状態と疲労をタップ</p>
+        <p className="mt-1 text-xs text-white/60">{liff.displayName}さん — 状態と疲労をタップ</p>
       </div>
 
       <form onSubmit={handleSubmit} className="mx-auto mt-4 w-full max-w-md space-y-4 px-4">

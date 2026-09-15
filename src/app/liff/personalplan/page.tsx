@@ -6,7 +6,7 @@ import {
   Loader2, AlertCircle, ClipboardCheck, RefreshCw, CalendarClock, History, ChevronDown,
   Utensils, Moon, Dumbbell, Wine, Target, NotebookPen, GlassWater, type LucideIcon,
 } from "lucide-react"
-import { useLiff } from "../_hooks/useLiff"
+import { useLiff, liffApiHeaders } from "../_hooks/useLiff"
 
 type PlanPayload = Record<string, unknown>
 
@@ -132,8 +132,8 @@ export default function LiffPersonalPlanPage() {
     if (isRefresh) setRefreshing(true); else setLoading(true)
     setFetchError(null)
     try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/personalplan?lineUserId=${encodeURIComponent(liff.lineUserId)}`)
-      if (!res.ok) throw new Error(res.status === 404 ? "ユーザーが見つかりません。" : "読み込みに失敗しました。")
+      const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/personalplan?lineUserId=${encodeURIComponent(liff.lineUserId)}`, { headers: liffApiHeaders(liff) })
+      if (!res.ok) throw new Error("読み込みに失敗しました。")
       setData(await res.json() as PersonalPlanData)
     } catch (err: any) {
       setFetchError(err.message || "読み込みに失敗しました。")
@@ -159,6 +159,15 @@ export default function LiffPersonalPlanPage() {
         <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-6">
           <AlertCircle className="h-10 w-10 text-amber-500" />
           <p className="text-center text-sm text-amber-900">{errorMsg}</p>
+          {liff.status !== "error" && (
+            <button
+              type="button"
+              onClick={() => load()}
+              className="mt-1 rounded-lg bg-[#1E3A5F] px-5 py-2 text-xs font-semibold text-white"
+            >
+              再試行
+            </button>
+          )}
         </div>
       </div>
     )
@@ -171,7 +180,8 @@ export default function LiffPersonalPlanPage() {
   const payloadEntries = plan
     ? Object.entries(plan.payload).filter(([k]) => k !== "alert_thresholds")
     : []
-  const history = data.history ?? []
+  // 過去のプラン履歴 must not include the CURRENT plan (m1)
+  const history = (data.history ?? []).filter((h: any) => !h.isActive)
 
   return (
     <div className="min-h-screen pb-10" style={{ background: "#f0f4f8" }}>
@@ -194,7 +204,7 @@ export default function LiffPersonalPlanPage() {
         </div>
         <h1 className="mt-1 text-xl font-bold text-white">パーソナルプラン</h1>
         <p className="mt-1 text-sm text-white/70">
-          {liff.status === "ready" ? liff.displayName : ""} さん専用の栄養プラン
+          {liff.status === "ready" && liff.displayName ? `${liff.displayName}さん専用の栄養プラン` : "あなた専用の栄養プラン"}
         </p>
       </div>
 
@@ -204,8 +214,14 @@ export default function LiffPersonalPlanPage() {
           <div className="mt-2 rounded-2xl bg-white p-8 text-center shadow-sm">
             <ClipboardCheck className="mx-auto h-10 w-10 text-gray-300" />
             <p className="mt-3 text-sm leading-relaxed text-gray-500">
-              管理栄養士のカウンセリング後に、あなた専用のプランがここに表示されます
+              管理栄養士のカウンセリング後に、あなた専用のプランがここに表示されます。
             </p>
+            <a
+              href="https://liff.line.me/2009125242-ka7XZSEQ/reservation"
+              className="mt-4 inline-block rounded-xl bg-[#1E3A5F] px-5 py-2.5 text-xs font-semibold text-white"
+            >
+              面談を予約する
+            </a>
           </div>
         ) : (
           <>
@@ -222,9 +238,17 @@ export default function LiffPersonalPlanPage() {
                 {formatFullDate(plan.nextReviewAt)}
               </p>
               {plan.nextReviewAt && new Date(plan.nextReviewAt).getTime() < Date.now() ? (
-                <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-800">
-                  見直し時期の目安を過ぎています。カウンセリングのご予約をおすすめします。次回のカウンセリングまでは、現在のプランをもとにAXELがサポートを続けます。
-                </p>
+                <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2">
+                  <p className="text-[12px] font-semibold text-amber-800">
+                    見直し時期の目安を過ぎています。カウンセリングのご予約をおすすめします。次回のカウンセリングまでは、現在のプランをもとにAXELがサポートを続けます。
+                  </p>
+                  <a
+                    href="https://liff.line.me/2009125242-ka7XZSEQ/reservation"
+                    className="mt-2 inline-block rounded-lg bg-[#1E3A5F] px-4 py-2 text-[11px] font-semibold text-white"
+                  >
+                    面談を予約する
+                  </a>
+                </div>
               ) : (
                 <p className="mt-2 text-[11.5px] leading-relaxed text-gray-500">
                   次回のカウンセリングまでは、現在のプランをもとにAXELがサポートを続けます。
@@ -233,11 +257,6 @@ export default function LiffPersonalPlanPage() {
               {plan.effectiveFrom && (
                 <p className="mt-1 text-[11px] text-gray-400">
                   適用開始：{formatShortDate(plan.effectiveFrom)}
-                </p>
-              )}
-              {plan.updatedAt && (
-                <p className="text-[11px] text-gray-400">
-                  最終更新日：{formatShortDate(plan.updatedAt)}
                 </p>
               )}
             </div>

@@ -4,8 +4,15 @@ import { useEffect, useState } from "react"
 
 type LiffState =
   | { status: "loading" }
-  | { status: "ready"; lineUserId: string; displayName: string }
+  | { status: "ready"; lineUserId: string; displayName: string; idToken: string | null }
   | { status: "error"; message: string }
+
+/** Authorization header for /line/liff/* API calls — the backend verifies the
+ *  LIFF ID token against LINE and derives the user id from it (security fix:
+ *  endpoints no longer have to trust the raw lineUserId query param). */
+export function liffApiHeaders(state: LiffState): Record<string, string> {
+  return state.status === "ready" && state.idToken ? { Authorization: `Bearer ${state.idToken}` } : {}
+}
 
 const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID_PAGES!
 
@@ -51,7 +58,7 @@ export function useLiff(): LiffState {
         const ctxUserId = liff.getContext()?.userId || liff.getDecodedIDToken()?.sub || null
         if (ctxUserId) {
           if (!cancelled) {
-            setState({ status: "ready", lineUserId: ctxUserId, displayName: "" })
+            setState({ status: "ready", lineUserId: ctxUserId, displayName: "", idToken: liff.getIDToken() })
           }
           liff.getProfile().then((profile) => {
             if (!cancelled) {
@@ -68,6 +75,7 @@ export function useLiff(): LiffState {
               status: "ready",
               lineUserId: profile.userId,
               displayName: profile.displayName,
+              idToken: liff.getIDToken(),
             })
           }
         }

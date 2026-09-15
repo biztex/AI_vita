@@ -4,6 +4,7 @@ import { ENV } from '../env';
 import { handleLineEvent } from '../services/lineService';
 import { buildLineLoginUrl, handleLineLoginCallback } from '../services/lineLoginService';
 import { processChat } from '../services/chatService';
+import { requireLiffAuth } from '../middlewares/liffAuth';
 import { requireAuth } from '../middlewares/auth';
 import { prisma } from '../prisma';
 import { maybePushVitaThresholdAlert } from '../services/vitaAlertService';
@@ -146,7 +147,10 @@ function normalizeGriiceReport(raw: any) {
     provider: raw.provider ?? null,
     constitution,
     nutritionStrategy,
-    muscleFiber: raw.muscleFiber ?? null,
+    muscleFiber:
+      raw.muscleFiber && typeof raw.muscleFiber === 'object' && typeof raw.muscleFiber.score === 'number'
+        ? raw.muscleFiber
+        : null,
   };
 }
 
@@ -322,7 +326,7 @@ r.post('/morning-push', requireAuth(), async (req: any, res: any, next: any) => 
 // ── LIFF page routes (no JWT – identified by lineUserId) ──────────────────────
 
 // POST /line/liff/log – save a daily log entry (今日を記録する)
-r.post('/liff/log', async (req: Request, res: Response) => {
+r.post('/liff/log', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const { lineUserId, condition, decisions, meals, memo, stateLevel, fatigueLevel, comment } = req.body as {
       lineUserId?: string;
@@ -381,7 +385,7 @@ r.post('/liff/log', async (req: Request, res: Response) => {
 });
 
 // POST /line/liff/event-log – save decision event log (重要意思決定・迷い度)
-r.post('/liff/event-log', async (req: Request, res: Response) => {
+r.post('/liff/event-log', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const { lineUserId, hasImportantDecision, hesitationLevel, content } = req.body as {
       lineUserId?: string;
@@ -570,7 +574,7 @@ r.post('/genetics/manual', requireAuth(), async (req: any, res: any) => {
 //   PLAN_ACTIVE    — active subscription, no gene data yet
 //   REPORT_READY   — gene data present, no active nutrition plan
 //   ACTIVE         — gene data + active nutrition plan
-r.get('/liff/onboarding-state', async (req: Request, res: Response) => {
+r.get('/liff/onboarding-state', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const lineUserId = req.query.lineUserId as string;
     if (!lineUserId) return res.status(400).json({ error: 'lineUserId is required' });
@@ -620,7 +624,7 @@ r.get('/liff/onboarding-state', async (req: Request, res: Response) => {
 });
 
 // GET /line/liff/karte?lineUserId=... – 私のカルテ (accumulated data)
-r.get('/liff/karte', async (req: Request, res: Response) => {
+r.get('/liff/karte', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const lineUserId = req.query.lineUserId as string;
     if (!lineUserId) {
@@ -690,7 +694,9 @@ r.get('/liff/karte', async (req: Request, res: Response) => {
         source: 'legacy_daily_log' as const,
       }));
 
-    const eventLogs = [...eventLogsFromTable, ...legacyEventLogs].slice(0, 30);
+    const eventLogs = [...eventLogsFromTable, ...legacyEventLogs]
+      .sort((a, b) => new Date(b.logDate).getTime() - new Date(a.logDate).getTime())
+      .slice(0, 30);
 
     const nutritionPlan = await findActiveVitaNutritionPlan(lineUserId, lineUser.appUserId);
 
@@ -701,8 +707,9 @@ r.get('/liff/karte', async (req: Request, res: Response) => {
         ? 'AXEL'
         : (lineUser.userMode === 'VITAAI' ? 'VITAAI' : 'EXECUWELL'),
       activeSubscriptionType: activeSub?.subscriptionType ?? null,
-      profile: lineUser.appUser?.profile ?? null,
-      subscription: lineUser.appUser?.subscription ?? null,
+      // SECURITY/minimization (review m9): the page renders displayName,
+      // effectiveMode, genetics, plan and logs — never ship the raw profile
+      // object (full gene JSON + hearing payload) or subscription here.
       logs,
       eventLogs,
       genetics: {
@@ -729,7 +736,7 @@ r.get('/liff/karte', async (req: Request, res: Response) => {
 });
 
 // POST /line/liff/advice – immediate VitaAI advice using latest logs + design context
-r.post('/liff/advice', async (req: Request, res: Response) => {
+r.post('/liff/advice', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const { lineUserId, note } = req.body as { lineUserId?: string; note?: string };
     if (!lineUserId) {
@@ -763,7 +770,7 @@ r.post('/liff/advice', async (req: Request, res: Response) => {
 });
 
 // GET /line/liff/plan?lineUserId=... – 戦略書を見る (AI proposals history)
-r.get('/liff/plan', async (req: Request, res: Response) => {
+r.get('/liff/plan', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const lineUserId = req.query.lineUserId as string;
     if (!lineUserId) {
@@ -795,7 +802,7 @@ r.get('/liff/plan', async (req: Request, res: Response) => {
 
 // POST /line/liff/mode – switch the LINE user's service mode (EXECUWELL ⇔ VITAAI)
 // Identified by lineUserId (no web auth) so it works from the LIFF mypage.
-r.post('/liff/mode', async (req: Request, res: Response) => {
+r.post('/liff/mode', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const { lineUserId, mode } = req.body as { lineUserId?: string; mode?: string };
     if (!lineUserId) return res.status(400).json({ error: 'lineUserId is required' });
@@ -813,7 +820,7 @@ r.post('/liff/mode', async (req: Request, res: Response) => {
 });
 
 // POST /line/liff/morning-push – toggle morning push from LIFF mypage
-r.post('/liff/morning-push', async (req: Request, res: Response) => {
+r.post('/liff/morning-push', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const { lineUserId, enabled } = req.body as { lineUserId?: string; enabled?: boolean };
     if (!lineUserId) return res.status(400).json({ error: 'lineUserId is required' });
@@ -831,7 +838,7 @@ r.post('/liff/morning-push', async (req: Request, res: Response) => {
 });
 
 // GET /line/liff/mypage?lineUserId=... – マイページ (plan & settings)
-r.get('/liff/mypage', async (req: Request, res: Response) => {
+r.get('/liff/mypage', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const lineUserId = req.query.lineUserId as string;
     if (!lineUserId) {
@@ -1043,7 +1050,7 @@ async function ownerIdFor(lineUserId: string): Promise<string | null> {
 }
 
 // GET /line/liff/report — AXELレポート: everything AXEL understands about you
-r.get('/liff/report', async (req: Request, res: Response) => {
+r.get('/liff/report', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const lineUserId = req.query.lineUserId as string;
     if (!lineUserId) return res.status(400).json({ error: 'lineUserId is required' });
@@ -1082,7 +1089,7 @@ r.get('/liff/report', async (req: Request, res: Response) => {
 });
 
 // GET /line/liff/personalplan — パーソナルプラン: nutritionist plan + history
-r.get('/liff/personalplan', async (req: Request, res: Response) => {
+r.get('/liff/personalplan', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const lineUserId = req.query.lineUserId as string;
     if (!lineUserId) return res.status(400).json({ error: 'lineUserId is required' });
@@ -1106,7 +1113,7 @@ r.get('/liff/personalplan', async (req: Request, res: Response) => {
 });
 
 // GET /line/liff/personality — 性格診断: existing result (or null → take it)
-r.get('/liff/personality', async (req: Request, res: Response) => {
+r.get('/liff/personality', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const lineUserId = req.query.lineUserId as string;
     if (!lineUserId) return res.status(400).json({ error: 'lineUserId is required' });
@@ -1124,7 +1131,7 @@ r.get('/liff/personality', async (req: Request, res: Response) => {
 });
 
 // POST /line/liff/personality — save a completed diagnostic (scored client-side)
-r.post('/liff/personality', async (req: Request, res: Response) => {
+r.post('/liff/personality', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const { lineUserId, answers, result } = req.body ?? {};
     if (!lineUserId || !answers || !result) return res.status(400).json({ error: 'lineUserId, answers, result required' });
@@ -1146,7 +1153,7 @@ r.post('/liff/personality', async (req: Request, res: Response) => {
 
 // GET /line/liff/billing-portal — マイページ: open Stripe billing portal
 // (change payment method / view invoices / cancel) for the linked account.
-r.get('/liff/billing-portal', async (req: Request, res: Response) => {
+r.get('/liff/billing-portal', requireLiffAuth(), async (req: Request, res: Response) => {
   try {
     const lineUserId = req.query.lineUserId as string;
     if (!lineUserId) return res.status(400).json({ error: 'lineUserId is required' });
@@ -1166,7 +1173,7 @@ r.get('/liff/billing-portal', async (req: Request, res: Response) => {
 });
 
 // GET /line/liff/reservation — 面談予約: booking config (external tool)
-r.get('/liff/reservation', async (_req: Request, res: Response) => {
+r.get('/liff/reservation', requireLiffAuth(), async (_req: Request, res: Response) => {
   res.json({
     bookingUrl: ENV.RESERVATION_URL,
     types: [

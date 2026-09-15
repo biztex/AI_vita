@@ -5,7 +5,7 @@ import { API_CONFIG } from "@/lib/config/api"
 import {
   Loader2, AlertCircle, ClipboardList, RefreshCw, Pill, Brain, Dna, Sparkles, ChevronDown, Activity,
 } from "lucide-react"
-import { useLiff } from "../_hooks/useLiff"
+import { useLiff, liffApiHeaders } from "../_hooks/useLiff"
 
 type DailyLog = {
   id: string
@@ -256,7 +256,7 @@ export default function LiffKartePage() {
     if (isRefresh) setRefreshing(true); else setLoading(true)
     setFetchError(null)
     try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/karte?lineUserId=${encodeURIComponent(liff.lineUserId)}`)
+      const res = await fetch(`${API_CONFIG.BASE_URL}/line/liff/karte?lineUserId=${encodeURIComponent(liff.lineUserId)}`, { headers: liffApiHeaders(liff) })
       if (!res.ok) throw new Error(res.status === 404 ? "ユーザーが見つかりません。" : "読み込みに失敗しました。")
       setData(await res.json())
     } catch (err: any) {
@@ -319,9 +319,7 @@ export default function LiffKartePage() {
         <div className="flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5" />
-            <span className="text-xs font-medium opacity-80">
-              {data.effectiveMode === "AXEL" ? "AXEL / 健康記録" : "VitaAI / 健康記録"}
-            </span>
+            <span className="text-xs font-medium opacity-80">AXEL / 健康記録</span>
           </div>
           <button
             type="button"
@@ -335,7 +333,7 @@ export default function LiffKartePage() {
         </div>
         <h1 className="mt-1 text-xl font-bold text-white">健康記録</h1>
         <p className="mt-1 text-sm leading-relaxed text-white/70">
-          {liff.status === "ready" ? liff.displayName : data.displayName} さんの遺伝子検査の結果と、日々の体調の記録をまとめて確認できます。
+          {liff.status === "ready" && liff.displayName ? liff.displayName : data.displayName}さんの遺伝子検査の結果と、日々の体調の記録をまとめて確認できます。
         </p>
       </div>
 
@@ -374,8 +372,8 @@ export default function LiffKartePage() {
             {report && report.nutritionStrategy.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 px-1">
-                  <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#2D5A8E" }}>栄養戦略ガイド</p>
-                  <span className="text-[10px] text-gray-400">（6カテゴリ）</span>
+                  <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#2D5A8E" }}>検査結果：栄養戦略ガイド</p>
+                  <span className="text-[10px] text-gray-400">（{report.nutritionStrategy.length}カテゴリ）</span>
                 </div>
                 {report.nutritionStrategy.map((n) => (
                   <NutritionCard key={n.label} cat={n} />
@@ -387,8 +385,8 @@ export default function LiffKartePage() {
             {report && report.constitution.length > 0 && (
               <div className="rounded-2xl bg-white p-4 shadow-sm">
                 <div className="mb-3 flex items-center gap-2">
-                  <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#2D5A8E" }}>体質傾向</p>
-                  <span className="text-[10px] text-gray-400">（11カテゴリ — タップで詳細）</span>
+                  <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#2D5A8E" }}>検査結果：体質傾向</p>
+                  <span className="text-[10px] text-gray-400">（{report.constitution.length}カテゴリ — タップで詳細）</span>
                 </div>
                 <div className="space-y-2">
                   {report.constitution.map((c) => (
@@ -437,10 +435,11 @@ export default function LiffKartePage() {
 
         {/* Nutrition Plan summary */}
         {hasNutritionPlan && (
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <a href="https://liff.line.me/2009125242-ka7XZSEQ/personalplan" className="block rounded-2xl bg-white p-4 shadow-sm transition-colors active:bg-gray-50">
             <div className="mb-2 flex items-center gap-2">
               <Pill className="h-4 w-4" style={{ color: "#3A7ABD" }} />
               <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>パーソナルプラン</p>
+              <span className="ml-auto text-[10px] text-gray-400">詳しく見る →</span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-500">バージョン</span>
@@ -452,7 +451,7 @@ export default function LiffKartePage() {
                 <span className="text-gray-700">{formatDay(data.nutritionPlan!.nextReviewAt)}</span>
               </div>
             )}
-          </div>
+          </a>
         )}
 
         {/* Summary strip */}
@@ -460,7 +459,7 @@ export default function LiffKartePage() {
           <div className="rounded-xl bg-white p-3 shadow-sm">
             <p className="text-[11px] font-semibold text-gray-400">記録</p>
             <p className="mt-1 text-2xl font-bold tabular-nums" style={{ color: "#1E3A5F" }}>{data.logs.length}</p>
-            <p className="text-[10px] text-gray-400">件（直近30日）</p>
+            <p className="text-[10px] text-gray-400">件（最新30件まで表示）</p>
           </div>
           <div className="rounded-xl bg-white p-3 shadow-sm">
             <p className="text-[11px] font-semibold text-gray-400">判断ログ</p>
@@ -474,7 +473,7 @@ export default function LiffKartePage() {
           <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
             <ClipboardList className="mx-auto h-10 w-10 text-gray-300" />
             <p className="mt-3 text-sm text-gray-500">まだ記録がありません。</p>
-            <p className="mt-1 text-xs text-gray-400">「今日を記録する」からログを追加してください。</p>
+            <p className="mt-1 text-xs text-gray-400">「今日を記録する」から今日の体調を記録できます。</p>
             <a
               href="https://liff.line.me/2009125242-ka7XZSEQ/log"
               className="mt-4 inline-block rounded-lg bg-[#1E3A5F] px-4 py-2 text-xs font-semibold text-white"
