@@ -24,10 +24,15 @@ export default function LoginPage() {
   // After the user clicks the verification email link, Supabase redirects
   // here with ?verified=1 — greet them in Japanese instead of a bare page.
   // (window.location instead of useSearchParams to avoid a Suspense boundary.)
+  const [nextPath, setNextPath] = useState<string | null>(null)
   useEffect(() => {
-    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("verified") === "1") {
-      setJustVerified(true)
-    }
+    if (typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("verified") === "1") setJustVerified(true)
+    // Post-login return destination (set by ProtectedRoute). Same-origin
+    // paths only — reject anything that could act as an open redirect.
+    const next = params.get("next")
+    if (next && next.startsWith("/") && !next.startsWith("//")) setNextPath(next)
   }, [])
 
   const {
@@ -44,7 +49,7 @@ export default function LoginPage() {
 
     try {
       await login(data.email, data.password)
-      router.push("/dashboard")
+      router.push(nextPath ?? "/dashboard")
     } catch (err: any) {
       const errorMessage = translateSupabaseAuthError(err)
       setError(errorMessage)

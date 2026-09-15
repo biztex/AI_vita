@@ -19,8 +19,13 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   useEffect(() => {
     // Only redirect if auth has finished loading AND user is not authenticated
     if (!loading && !user) {
-      console.log("[ProtectedRoute] No user found, redirecting to login")
-      router.push("/auth/login")
+      // Preserve the intended destination (incl. query params — the LINE plan
+      // carousel threads ?plan=&lineUserId= through here; losing them would
+      // break the post-payment auto-link).
+      const next = typeof window !== "undefined"
+        ? encodeURIComponent(window.location.pathname + window.location.search)
+        : ""
+      router.push(next ? `/auth/login?next=${next}` : "/auth/login")
     } else if (!loading && user && requireAdmin && user.role !== "admin") {
       console.log("[ProtectedRoute] User is not admin, redirecting to dashboard")
       router.push("/dashboard")
