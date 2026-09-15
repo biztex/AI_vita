@@ -42,13 +42,34 @@ export function useLiff(): LiffState {
 
         // Logged in — clear the one-shot guard for future navigations.
         sessionStorage.removeItem("liff_login_attempted")
-        const profile = await liff.getProfile()
-        if (!cancelled) {
-          setState({
-            status: "ready",
-            lineUserId: profile.userId,
-            displayName: profile.displayName,
-          })
+
+        // PERF: liff.getContext()/getDecodedIDToken() expose the userId
+        // synchronously after init — no network call. Using them lets every
+        // page start its own data fetch one LINE-API roundtrip sooner than
+        // awaiting getProfile(). The display name arrives right after and
+        // fills in via a state update.
+        const ctxUserId = liff.getContext()?.userId || liff.getDecodedIDToken()?.sub || null
+        if (ctxUserId) {
+          if (!cancelled) {
+            setState({ status: "ready", lineUserId: ctxUserId, displayName: "" })
+          }
+          liff.getProfile().then((profile) => {
+            if (!cancelled) {
+              setState((prev) =>
+                prev.status === "ready" ? { ...prev, displayName: profile.displayName } : prev,
+              )
+            }
+          }).catch(() => { /* name stays blank — pages fall back to server-side name */ })
+        } else {
+          // External browser or missing context — original slower path.
+          const profile = await liff.getProfile()
+          if (!cancelled) {
+            setState({
+              status: "ready",
+              lineUserId: profile.userId,
+              displayName: profile.displayName,
+            })
+          }
         }
       } catch (err: any) {
         if (!cancelled) {

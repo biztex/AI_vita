@@ -160,15 +160,15 @@ export default function TermsPage() {
         <p className="mt-4 border-t border-white/15 pt-3 text-xs text-white/50">制定日：2026年9月15日</p>
       </div>
 
-      {/* Body on white cards — the site background is dark navy, so legal text
-          always sits on a light surface for readability */}
+      {/* Dark glass cards on the navy background — matches the brand aesthetic;
+          light text on navy keeps strong contrast (white/80 on #0F2342) */}
       <div className="mt-6 space-y-4">
         {SECTIONS.map((s) => (
-          <section key={s.title} className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="text-[15px] font-bold text-[#1E3A5F]">{s.title}</h2>
+          <section key={s.title} className="rounded-xl bg-white/[0.05] p-6 ring-1 ring-white/10">
+            <h2 className="text-[15px] font-bold text-[#C9A86A]">{s.title}</h2>
             <div className="mt-2 space-y-2">
               {s.body.map((p, i) => (
-                <p key={i} className="text-[13.5px] leading-relaxed text-gray-700">
+                <p key={i} className="text-[13.5px] leading-relaxed text-white/80">
                   {s.body.length > 1 ? `${i + 1}. ` : ""}{p}
                 </p>
               ))}

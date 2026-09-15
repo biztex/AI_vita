@@ -81,9 +81,10 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2 group">
-          <div className="relative rounded-lg bg-white/90 px-2 py-1 shadow-sm">
+          {/* white-text logo variant — legible on the navy header without a chip */}
+          <div className="relative">
             <Image
-              src="/img/logo.png"
+              src="/img/logo-white.png"
               alt="VitaAI / ExecuWell"
               width={100}
               height={70}
