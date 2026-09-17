@@ -19,7 +19,7 @@ export function Footer() {
               </h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              判断と健康をひとつに支える、AIコンシェルジュ
+              相談と健康を支える、AIコンシェルジュ
             </p>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">

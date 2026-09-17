@@ -315,7 +315,16 @@ export default function LiffReportPage() {
               </SectionCard>
             )}
 
-            {/* Personality diagnostic */}
+            {/* Personality diagnostic — pointer when not yet taken (item 5/7) */}
+            {!diagnostic && (
+              <a
+                href="https://liff.line.me/2009125242-ka7XZSEQ/personality"
+                className="block rounded-2xl border border-dashed border-gray-300 bg-white p-4 text-center shadow-sm"
+              >
+                <p className="text-sm text-gray-600">性格診断を受けると、ここに結果が表示されます。</p>
+                <span className="mt-2 inline-block rounded-lg bg-[#1E3A5F] px-4 py-2 text-xs font-semibold text-white">性格診断を受ける（約3分）</span>
+              </a>
+            )}
             {diagnostic && (
               <SectionCard icon={<Brain className="h-4 w-4" style={{ color: "#3A7ABD" }} />} title="性格診断">
                 <div className="flex flex-wrap gap-2">

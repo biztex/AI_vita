@@ -11,6 +11,7 @@ type OnboardingState = {
   step: "PENDING" | "LINKED" | "PLAN_ACTIVE" | "REPORT_READY" | "ACTIVE"
   details: {
     hasAppUser: boolean
+    hasDiagnostic?: boolean
     activeSubscriptionType: "VITAAI" | "EXECUWELL" | "INTEGRATED" | null
     hasGeneData: boolean
     hasNutritionPlan: boolean
@@ -19,7 +20,6 @@ type OnboardingState = {
 }
 
 type Step = {
-  key: OnboardingState["step"]
   label: string
   title: string
   desc: string
@@ -29,7 +29,6 @@ type Step = {
 
 const STEPS: Step[] = [
   {
-    key: "PENDING",
     label: "STEP 1",
     title: "アカウント連携",
     desc:
@@ -39,38 +38,42 @@ const STEPS: Step[] = [
   },
   // プラン選択はご契約時に完了しているため、流れには含めない（client item 10）
   {
-    key: "PLAN_ACTIVE",
     label: "STEP 2",
+    title: "性格診断（約3分）",
+    desc:
+      "かんたんな質問に答えるだけで、AXELがあなたの考え方や伝わりやすい話し方を理解します。",
+    icon: <Sparkles className="h-5 w-5" />,
+    cta: { href: "https://liff.line.me/2009125242-ka7XZSEQ/personality", label: "性格診断を受ける" },
+  },
+  {
+    label: "STEP 3",
     title: "遺伝子検査キットお届け",
     desc:
       "ご自宅に検査キットをお届けし、ご返送いただきます。結果到着時に LINE で自動通知いたします。",
     icon: <Dna className="h-5 w-5" />,
   },
   {
-    key: "REPORT_READY",
-    label: "STEP 3",
+    label: "STEP 4",
     title: "管理栄養士による初回面談",
     desc:
       "遺伝子分析結果をもとに、管理栄養士がパーソナルプランを作成。AXEL がその内容を即時参照します。",
     icon: <Users className="h-5 w-5" />,
   },
   {
-    key: "ACTIVE",
-    label: "STEP 4",
+    label: "STEP 5",
     title: "AXEL 利用開始",
     desc:
-      "判断と健康を統合的に支える AXEL の日々のサポートが始まります。約3か月ごとの定期カウンセリングでプランを見直します。",
+      "相談と健康を統合的に支える AXEL の日々のサポートが始まります。約3か月ごとの定期カウンセリングでプランを見直します。",
     icon: <Activity className="h-5 w-5" />,
   },
 ]
 
-function getStatus(stepKey: OnboardingState["step"], currentStep: OnboardingState["step"]): "done" | "current" | "todo" {
-  const order: OnboardingState["step"][] = ["PENDING", "LINKED", "PLAN_ACTIVE", "REPORT_READY", "ACTIVE"]
-  const cur = order.indexOf(currentStep)
-  const idx = order.indexOf(stepKey)
-  if (idx < cur) return "done"
-  if (idx === cur) return "current"
-  return "todo"
+function flowIndex(onb: OnboardingState): number {
+  if (onb.step === "PENDING") return 0
+  if (!onb.details.hasDiagnostic) return 1 // 性格診断がまだ
+  if (onb.step === "LINKED" || onb.step === "PLAN_ACTIVE") return 2
+  if (onb.step === "REPORT_READY") return 3
+  return 5 // ACTIVE — all done
 }
 
 export default function LiffOnboardingPage() {
@@ -122,12 +125,12 @@ export default function LiffOnboardingPage() {
           <span className="text-[11px] font-semibold uppercase tracking-[0.3em]">AXEL Journey</span>
         </div>
         <h1 className="mt-3 font-serif text-2xl leading-snug text-white">
-          判断と健康を統合的に支える、
+          相談と健康を統合的に支える、
           <br />
           <span className="text-[#C9A86A]">AXEL</span> の始め方。
         </h1>
         <p className="mt-3 text-[13px] leading-relaxed text-white/65">
-          4つのステップで、AXEL の日々のサポートが始まります。各段階の進捗をご確認いただけます。
+          5つのステップで、AXEL の日々のサポートが始まります。各段階の進捗をご確認いただけます。
         </p>
       </div>
 
@@ -135,10 +138,11 @@ export default function LiffOnboardingPage() {
         <ol className="relative space-y-4">
           {/* Vertical connector line behind icons */}
           <div className="pointer-events-none absolute left-[26px] top-7 bottom-7 w-px bg-white/15" />
-          {STEPS.map((s) => {
-            const status = getStatus(s.key, onb.step)
+          {STEPS.map((s, i) => {
+            const cur = flowIndex(onb)
+            const status: "done" | "current" | "todo" = i < cur ? "done" : i === cur ? "current" : "todo"
             return (
-              <li key={s.key} className="relative flex gap-4">
+              <li key={s.label} className="relative flex gap-4">
                 <span
                   className={`relative z-10 flex h-[54px] w-[54px] flex-shrink-0 items-center justify-center rounded-full border-2 transition-all ${
                     status === "done"

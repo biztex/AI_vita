@@ -28,10 +28,6 @@ const TYPE_DETAILS: Record<string, { label: string; description: string }> = {
     label: "初回カウンセリング",
     description: "遺伝子検査の結果をもとに、管理栄養士があなた専用のプランを設計する最初の面談です。",
   },
-  followup: {
-    label: "再カウンセリング",
-    description: "体調や食事で気になることが出てきた時に、随時ご相談いただける面談です。",
-  },
   review: {
     label: "定期カウンセリング",
     description: "約3か月ごとに、プランの効果を確認し内容を見直す定期面談です。",

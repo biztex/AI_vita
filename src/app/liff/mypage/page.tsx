@@ -44,6 +44,7 @@ type OnboardingState = {
   step: "PENDING" | "LINKED" | "PLAN_ACTIVE" | "REPORT_READY" | "ACTIVE"
   details: {
     hasAppUser: boolean
+    hasDiagnostic?: boolean
     activeSubscriptionType: "VITAAI" | "EXECUWELL" | "INTEGRATED" | null
     hasGeneData: boolean
     hasNutritionPlan: boolean
@@ -53,13 +54,13 @@ type OnboardingState = {
 
 // 利用開始までの流れ（client item 10: プラン選択は契約時に完了しているため
 // 表示から除外。「体験開始」→「利用開始」。ACTIVE 到達後はカードごと非表示）
-const FLOW_STEPS = ["アカウント連携", "遺伝子検査", "管理栄養士面談", "AXEL 利用開始"]
-const FLOW_INDEX: Record<OnboardingState["step"], number> = {
-  PENDING: 0,
-  LINKED: 1,
-  PLAN_ACTIVE: 1,
-  REPORT_READY: 2,
-  ACTIVE: 4,
+const FLOW_STEPS = ["アカウント連携", "性格診断", "遺伝子検査", "管理栄養士面談", "AXEL 利用開始"]
+function flowIndex(onb: OnboardingState): number {
+  if (onb.step === "PENDING") return 0
+  if (!onb.details.hasDiagnostic) return 1 // 性格診断がまだ
+  if (onb.step === "LINKED" || onb.step === "PLAN_ACTIVE") return 2
+  if (onb.step === "REPORT_READY") return 3
+  return 5 // ACTIVE — all done
 }
 
 function formatDate(iso: string | null): string {
@@ -175,12 +176,12 @@ export default function LiffMyPage() {
               <ArrowRight className="h-4 w-4" style={{ color: "#2D5A8E" }} />
               <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>AXEL ご利用の流れ</p>
               <span className="ml-auto rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
-                {Math.min(FLOW_INDEX[onb.step], FLOW_STEPS.length)} / {FLOW_STEPS.length}
+                {Math.min(flowIndex(onb), FLOW_STEPS.length)} / {FLOW_STEPS.length}
               </span>
             </div>
             <ol className="space-y-2">
               {FLOW_STEPS.map((label, i) => {
-                const currentIdx = FLOW_INDEX[onb.step]
+                const currentIdx = flowIndex(onb)
                 const status: "done" | "current" | "todo" = i < currentIdx ? "done" : i === currentIdx ? "current" : "todo"
                 return (
                   <li key={label} className="flex items-center gap-3 text-[13px]">
@@ -305,18 +306,18 @@ export default function LiffMyPage() {
           </div>
         )}
 
-        {/* AXELの2つの知見（旧サービスモードの置き換え） */}
+        {/* AXELのコンシェルジュ（旧サービスモードの置き換え） */}
         <div className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
             <Sparkles className="h-4 w-4" style={{ color: "#C9A86A" }} />
-            <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>AXELの2つの知見</p>
+            <p className="text-xs font-semibold" style={{ color: "#2D5A8E" }}>AXELのコンシェルジュ</p>
           </div>
           <div className="space-y-2.5">
             <div className="flex items-start gap-2.5">
               <Brain className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-400" />
               <div>
                 <p className="text-[13px] font-semibold text-gray-700">ExecuWell — 相談コンシェルジュ</p>
-                <p className="text-[11px] leading-relaxed text-gray-400">経営・仕事・大切な判断のご相談を受け持ちます。</p>
+                <p className="text-[11px] leading-relaxed text-gray-400">仕事から日常まで、さまざまなご相談を受け持ちます。</p>
               </div>
             </div>
             <div className="flex items-start gap-2.5">
@@ -364,7 +365,7 @@ export default function LiffMyPage() {
           </a>
         </div>
 
-        <p className="pt-2 text-center text-[11px] text-gray-400">エグゼ＆ビータ｜公式 @389rupfv</p>
+        <p className="pt-2 text-center text-[11px] text-gray-400">AXEL｜公式 @389rupfv</p>
       </div>
 
       {/* toast */}

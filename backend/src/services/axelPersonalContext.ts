@@ -26,6 +26,10 @@ export function formatDiagnosticBlock(d: any | null): string | null {
   if (tendency) lines.push(`思考・行動の傾向：${tendency}`);
   if (d.discLabel) lines.push(`対人・仕事のスタイル：${d.discLabel}`);
   if (d.cognitiveTrend) lines.push(`物事の捉え方：${d.cognitiveTrend}`);
+  lines.push(
+    '※ この診断は、伝え方・励まし方・継続支援・コミュニケーションの調整に使う。' +
+    '栄養・健康面の判断根拠には、遺伝子検査結果と管理栄養士のプランを優先する。',
+  );
   const top3 = Array.isArray(d.enneagramTop3) ? d.enneagramTop3 : [];
   const names = top3.map((n: any) => ENNEAGRAM_NAMES[Number(n)]).filter(Boolean);
   if (names.length) lines.push(`内面の動機：${names.join('・')}の傾向`);

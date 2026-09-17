@@ -110,7 +110,7 @@ const RICH_MENU_BODY = {
     },
     {
       bounds: { x: COL, y: ROW, width: W - COL, height: ROW },
-      action: { type: 'uri' as const, label: '検査結果', uri: liff('karte') },
+      action: { type: 'uri' as const, label: '検査結果・健康記録', uri: liff('karte') },
     },
     // Row 3 (last row absorbs rounding: height to bottom edge)
     {

@@ -319,7 +319,7 @@ export default function LiffKartePage() {
         <div className="flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5" />
-            <span className="text-xs font-medium opacity-80">AXEL / 健康記録</span>
+            <span className="text-xs font-medium opacity-80">AXEL / 検査結果・健康記録</span>
           </div>
           <button
             type="button"
@@ -331,7 +331,7 @@ export default function LiffKartePage() {
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
           </button>
         </div>
-        <h1 className="mt-1 text-xl font-bold text-white">健康記録</h1>
+        <h1 className="mt-1 text-xl font-bold text-white">検査結果・健康記録</h1>
         <p className="mt-1 text-sm leading-relaxed text-white/70">
           {liff.status === "ready" && liff.displayName ? liff.displayName : data.displayName}さんの遺伝子検査の結果と、日々の体調の記録をまとめて確認できます。
         </p>
@@ -372,7 +372,7 @@ export default function LiffKartePage() {
             {report && report.nutritionStrategy.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 px-1">
-                  <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#2D5A8E" }}>検査結果：栄養戦略ガイド</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#2D5A8E" }}>栄養戦略ガイド</p>
                   <span className="text-[10px] text-gray-400">（{report.nutritionStrategy.length}カテゴリ）</span>
                 </div>
                 {report.nutritionStrategy.map((n) => (
@@ -385,7 +385,7 @@ export default function LiffKartePage() {
             {report && report.constitution.length > 0 && (
               <div className="rounded-2xl bg-white p-4 shadow-sm">
                 <div className="mb-3 flex items-center gap-2">
-                  <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#2D5A8E" }}>検査結果：体質傾向</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#2D5A8E" }}>体質傾向</p>
                   <span className="text-[10px] text-gray-400">（{report.constitution.length}カテゴリ — タップで詳細）</span>
                 </div>
                 <div className="space-y-2">

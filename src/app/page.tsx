@@ -234,7 +234,7 @@ export default function LandingPage() {
                 <>
                   <span className="text-[#C9A86A]">AXEL</span>とは、
                   <br className="sm:hidden" />
-                  判断と健康をひとつに支える AI です。
+                  相談と健康をひとつに支える AI です。
                 </>
               }
               lead="ExecuWell（判断支援エンジン）と VitaAI（健康支援エンジン）が、ひとつの AXEL として連携稼働。ユーザーは「判断」と「身体」を分けず、ひとりの経営者として相談できます。"
@@ -299,7 +299,7 @@ export default function LandingPage() {
                 </div>
                 <p className="text-xs font-semibold tracking-wide text-white/90">統合 AI コンシェルジュ</p>
                 <ul className="mt-4 space-y-2.5 text-[13px] leading-relaxed text-white/65">
-                  <li>・判断と健康をひとつの応答に</li>
+                  <li>・相談と健康をひとつの応答に</li>
                   <li>・思考特性＋遺伝子＋ログを横断</li>
                   <li>・経営陣を統合的に支える</li>
                 </ul>
@@ -423,7 +423,7 @@ export default function LandingPage() {
               {
                 step: "05",
                 title: "AXEL 体験スタート",
-                desc: "判断と健康を統合的に支える AXEL の日常運用が始まります。3ヶ月ごとに見直し。",
+                desc: "相談と健康を統合的に支える AXEL の日々のサポートが始まります。3ヶ月ごとに見直し。",
                 icon: <Activity className="h-4 w-4" />,
               },
             ].map((s, i) => (

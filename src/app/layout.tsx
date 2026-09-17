@@ -21,7 +21,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "AXEL ｜ 判断と健康を、ひとつに。経営陣のための統合 AI コンシェルジュ",
+  title: "AXEL ｜ 相談と健康を、ひとつに。統合 AI コンシェルジュ",
   description:
     "AXEL は、判断支援（ExecuWell）と健康支援（VitaAI）をひとつに統合した、経営陣のための AI コンシェルジュ。遺伝子分析・管理栄養士監修の個別設計シート・24時間相談を、ひとつのサービスとして提供します。",
   icons: {

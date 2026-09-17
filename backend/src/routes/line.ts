@@ -506,7 +506,7 @@ async function applyGeneticsResult(opts: {
       await pushText(
         lu.lineUserId,
         '【AXEL】遺伝子分析結果が届きました。\n' +
-          'メニューの「検査結果」（健康記録）から、12の体質領域に基づく分析をご確認いただけます。\n' +
+          'メニューの「検査結果・健康記録」から、12の体質領域に基づく分析をご確認いただけます。\n' +
           'https://liff.line.me/2009125242-ka7XZSEQ/karte',
       );
     }
@@ -594,6 +594,11 @@ r.get('/liff/onboarding-state', requireLiffAuth(), async (req: Request, res: Res
 
     const hasAppUser = !!lu.appUserId;
     const activeSub = lu.appUser?.stripeSubscriptions?.[0] ?? null;
+    // 性格診断 completion — shown as its own step in the ご利用の流れ (client item 10)
+    const ownerId = lu.appUser?.supabaseUserId ?? null;
+    const hasDiagnostic = ownerId
+      ? !!(await prisma.myAIDiagnostic.findUnique({ where: { ownerId }, select: { id: true } }).catch(() => null))
+      : false;
     const hasGene = !!(lu.appUser?.profile?.vitaAI?.geneData ?? lu.appUser?.profile?.vitaAI?.geneticSummary);
     const plan = lu.appUserId
       ? await findActiveVitaNutritionPlan(lineUserId, lu.appUserId).catch(() => null)
@@ -611,6 +616,7 @@ r.get('/liff/onboarding-state', requireLiffAuth(), async (req: Request, res: Res
       step,
       details: {
         hasAppUser,
+        hasDiagnostic,
         activeSubscriptionType: activeSub?.subscriptionType ?? null,
         hasGeneData: hasGene,
         hasNutritionPlan: hasPlan,
@@ -1177,8 +1183,8 @@ r.get('/liff/reservation', requireLiffAuth(), async (_req: Request, res: Respons
   res.json({
     bookingUrl: ENV.RESERVATION_URL,
     types: [
+      // 運用は「初回」と「約3か月ごとの定期」の2本立て（client 2026-09-17 item 1）
       { key: 'initial', label: '初回カウンセリング' },
-      { key: 'followup', label: '再カウンセリング' },
       { key: 'review', label: '定期カウンセリング（約3か月ごと）' },
     ],
   });

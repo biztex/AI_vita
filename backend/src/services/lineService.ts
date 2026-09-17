@@ -659,18 +659,30 @@ async function handleFollow(event: line.FollowEvent): Promise<void> {
   // it always appears (independent of the LLM greeting / any outage).
   const usageGuide =
     'このトーク画面から、いつでもそのまま話しかけてください。\n文字・画像・音声でご利用いただけます。';
+  // First-time flow guide (client 2026-09-17 item 7): friend-add lands users
+  // before any diagnostic/gene data exists — show them the path explicitly.
+  const flowGuide =
+    '【はじめての方へ ── AXELの始め方】\n' +
+    '① 性格診断（約3分）… メニューの「性格診断」から\n' +
+    '② 遺伝子検査 … 検査キットをご返送ください\n' +
+    '③ 管理栄養士との初回面談 … あなた専用プランを作成\n' +
+    '④ あとは、このトークでいつでもご相談ください\n\n' +
+    'まずは①の性格診断がおすすめです。\n' +
+    '全体の流れ：https://liff.line.me/2009125242-ka7XZSEQ/onboarding';
   try {
     await lineClient.replyMessage({
       replyToken: event.replyToken,
       messages: [
         { type: 'text', text: greeting.slice(0, 5000) },
         { type: 'text', text: usageGuide },
+        { type: 'text', text: flowGuide },
       ],
     });
   } catch (replyErr) {
     // Fall back to push if the reply token was consumed/expired
     await pushText(lineUserId, greeting).catch(() => {});
     await pushText(lineUserId, usageGuide).catch(() => {});
+    await pushText(lineUserId, flowGuide).catch(() => {});
   }
   await persistLineExchange(lineUserId, null, greeting);
 }
@@ -829,7 +841,7 @@ async function handlePostback(event: line.PostbackEvent): Promise<void> {
     await replyText(
       event.replyToken,
       `${label}を中心にお応えするモードに変更しました。\n` +
-      '統合プランをご契約の場合は、判断と健康を1つの応答で統合します。\n' +
+      '統合プランをご契約の場合は、ご相談と健康サポートを1つの応答で統合します。\n' +
       'お話を続けるには、そのままメッセージを送ってください。',
     );
     return;
