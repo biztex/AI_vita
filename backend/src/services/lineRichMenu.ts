@@ -91,7 +91,7 @@ const liff = (route: string) => `https://liff.line.me/${LIFF_ID}/${route}`;
 const RICH_MENU_BODY = {
   size: { width: W, height: H },
   selected: true,
-  name: 'AXEL 6項目ナビ (クライアント2026-08-11設計)',
+  name: 'AXEL 6項目ナビ v3 (新デザイン画像+検査結果・健康記録 2026-09-17)',
   chatBarText: 'メニュー',
   areas: [
     // Row 1
