@@ -14,6 +14,7 @@ import {
   type OnboardingAnswers,
 } from './lineConversationStore';
 import { respondAsAxel } from './axelEngine';
+import { startWellnessSession, endWellnessSession } from './axelWellnessLog';
 import { transcribeAudio } from './axelVoice';
 import { buildPlanCarousel } from './axelPlans';
 
@@ -664,9 +665,9 @@ async function handleFollow(event: line.FollowEvent): Promise<void> {
   const flowGuide =
     '【はじめての方へ ── AXELの始め方】\n' +
     '① 性格診断（約3分）… メニューの「性格診断」から\n' +
-    '② 遺伝子検査 … 検査キットをご返送ください\n' +
-    '③ 管理栄養士との初回面談 … あなた専用プランを作成\n' +
-    '④ あとは、このトークでいつでもご相談ください\n\n' +
+    '② 管理栄養士との初回カウンセリング … メニューの「面談予約」から\n' +
+    '③ 遺伝子検査 … 検査キットをご返送ください。結果とあわせて専用プランを作成します\n' +
+    '④ あとは、このトークでいつでもご相談ください（健康・栄養・美容はメニュー上部のボタンから）\n\n' +
     'まずは①の性格診断がおすすめです。\n' +
     '全体の流れ：https://liff.line.me/2009125242-ka7XZSEQ/onboarding';
   try {
@@ -755,6 +756,7 @@ async function handlePostback(event: line.PostbackEvent): Promise<void> {
   };
 
   if (data === 'open_chat') {
+    endWellnessSession(lineUserId);
     // 相談する — AXEL receives you, general focus (no topic bias)
     clearStaleCheckIn();
     const reply = await respondAsAxel({ kind: 'open_chat_shortcut', lineUserId, focus: 'general' });
@@ -764,6 +766,7 @@ async function handlePostback(event: line.PostbackEvent): Promise<void> {
   }
 
   if (data === 'open_chat_health') {
+    endWellnessSession(lineUserId);
     // 健康について相談する — pre-select health framing
     clearStaleCheckIn();
     const reply = await respondAsAxel({ kind: 'open_chat_shortcut', lineUserId, focus: 'health' });
@@ -772,7 +775,20 @@ async function handlePostback(event: line.PostbackEvent): Promise<void> {
     return;
   }
 
+  if (data === 'open_chat_wellness') {
+    // 健康・栄養・美容を相談 (β, client 2026-09-30) — opens a recorded
+    // wellness session: every exchange until another consult button / 60 min
+    // idle is summarised into the 相談記録 for the dietitian.
+    clearStaleCheckIn();
+    const reply = await respondAsAxel({ kind: 'open_chat_shortcut', lineUserId, focus: 'wellness' });
+    startWellnessSession(lineUserId, reply);
+    await replyText(event.replyToken, reply);
+    await persistExchange('健康・栄養・美容について相談したい', reply);
+    return;
+  }
+
   if (data === 'open_chat_judgment') {
+    endWellnessSession(lineUserId);
     // 判断について相談する — pre-select judgment framing
     clearStaleCheckIn();
     const reply = await respondAsAxel({ kind: 'open_chat_shortcut', lineUserId, focus: 'judgment' });
@@ -782,6 +798,7 @@ async function handlePostback(event: line.PostbackEvent): Promise<void> {
   }
 
   if (data === 'daily_log_start') {
+    endWellnessSession(lineUserId);
     // 今日の状態を確認する — AXEL asks "today how are you" naturally, no QR form
     // We mark a soft "expecting check-in" phase so the next user text is
     // also saved as a daily log memo (but the conversation is fully open).
@@ -795,6 +812,7 @@ async function handlePostback(event: line.PostbackEvent): Promise<void> {
   // Legacy "show_status" (今の私) — no longer in rich menu but preserved for
   // any legacy postback source (e.g. old Flex cards, deep links).
   if (data === 'show_status') {
+    endWellnessSession(lineUserId);
     clearStaleCheckIn();
     const reply = await respondAsAxel({ kind: 'reflection_request', lineUserId });
     await replyText(event.replyToken, reply);

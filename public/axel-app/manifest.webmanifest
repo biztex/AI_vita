@@ -1,0 +1,16 @@
+{
+  "name": "AXEL",
+  "short_name": "AXEL",
+  "description": "AXEL の LINE トークをワンタップで開きます",
+  "start_url": "/axel/go?src=home",
+  "scope": "/axel",
+  "display": "browser",
+  "background_color": "#0F2342",
+  "theme_color": "#0F2342",
+  "lang": "ja",
+  "icons": [
+    { "src": "/axel-app/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/axel-app/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/axel-app/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

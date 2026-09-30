@@ -45,6 +45,12 @@ export const ENV = {
   NEWS_DIGEST: (process.env.NEWS_DIGEST || 'off') as 'on' | 'off',
   // External booking URL for the 面談予約 LIFF page (initial/re/review counseling).
   RESERVATION_URL: process.env.RESERVATION_URL || 'https://execuwell.jp/contact?type=reservation',
+  // Per-type external scheduler pages (TimeRex / Google カレンダー予約スケジュール
+  // etc., client 2026-09-30 item 4). When set, the 面談予約 button opens that
+  // slot-picking page; when empty, it falls back to RESERVATION_URL (contact form).
+  // Swap URLs in .env + `pm2 restart axel-backend` — no rebuild needed.
+  RESERVATION_URL_INITIAL: process.env.RESERVATION_URL_INITIAL || '',
+  RESERVATION_URL_REVIEW: process.env.RESERVATION_URL_REVIEW || '',
   // SMTP (optional - if absent, emails are skipped and output is logged)
   SMTP_HOST: process.env.SMTP_HOST,
   SMTP_PORT: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,

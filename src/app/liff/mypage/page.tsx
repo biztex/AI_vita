@@ -54,7 +54,7 @@ type OnboardingState = {
 
 // 利用開始までの流れ（client item 10: プラン選択は契約時に完了しているため
 // 表示から除外。「体験開始」→「利用開始」。ACTIVE 到達後はカードごと非表示）
-const FLOW_STEPS = ["アカウント連携", "性格診断", "遺伝子検査", "管理栄養士面談", "AXEL 利用開始"]
+const FLOW_STEPS = ["アカウント連携", "性格診断", "初回カウンセリング・遺伝子検査", "検査結果・パーソナルプラン", "AXEL 利用開始"]
 function flowIndex(onb: OnboardingState): number {
   if (onb.step === "PENDING") return 0
   if (!onb.details.hasDiagnostic) return 1 // 性格診断がまだ

@@ -45,19 +45,21 @@ const STEPS: Step[] = [
     icon: <Sparkles className="h-5 w-5" />,
     cta: { href: "https://liff.line.me/2009125242-ka7XZSEQ/personality", label: "性格診断を受ける" },
   },
+  // 初回カウンセリングは遺伝子検査結果の前に1回（client 2026-09-26）
   {
     label: "STEP 3",
-    title: "遺伝子検査キットお届け",
+    title: "初回カウンセリング・遺伝子検査",
     desc:
-      "ご自宅に検査キットをお届けし、ご返送いただきます。結果到着時に LINE で自動通知いたします。",
-    icon: <Dna className="h-5 w-5" />,
+      "管理栄養士との初回カウンセリングで、体調や生活習慣、目標を伺います。あわせてご自宅に遺伝子検査キットをお届けしますので、ご返送ください。",
+    icon: <Users className="h-5 w-5" />,
+    cta: { href: "https://liff.line.me/2009125242-ka7XZSEQ/reservation", label: "初回カウンセリングを予約" },
   },
   {
     label: "STEP 4",
-    title: "管理栄養士による初回面談",
+    title: "検査結果・パーソナルプラン",
     desc:
-      "遺伝子分析結果をもとに、管理栄養士がパーソナルプランを作成。AXEL がその内容を即時参照します。",
-    icon: <Users className="h-5 w-5" />,
+      "検査結果が届くと LINE でお知らせします。結果をもとに管理栄養士がパーソナルプランを作成し、AXEL がその内容を参照してサポートします。",
+    icon: <Dna className="h-5 w-5" />,
   },
   {
     label: "STEP 5",

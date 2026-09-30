@@ -29,6 +29,7 @@
 
 import OpenAI from 'openai';
 import { ENV } from '../env';
+import { activeWellnessSession, recordWellnessTurn } from './axelWellnessLog';
 import { prisma } from '../prisma';
 import {
   getConversationState,
@@ -223,10 +224,12 @@ export type AxelInput =
    *   - undefined | 'general' → open door, no topic bias
    *   - 'health' → open the conversation around health themes
    *   - 'judgment' → open the conversation around management judgment
+   *   - 'wellness' → 「健康・栄養・美容を相談」 button (β): opens a recorded
+   *     wellness session (axelWellnessLog) — health/nutrition/beauty framing
    * The user is still free to redirect the conversation at any point;
    * `focus` only shapes AXEL's opening line.
    */
-  | { kind: 'open_chat_shortcut'; lineUserId: string; focus?: 'general' | 'health' | 'judgment' }
+  | { kind: 'open_chat_shortcut'; lineUserId: string; focus?: 'general' | 'health' | 'judgment' | 'wellness' }
   | { kind: 'check_in_shortcut'; lineUserId: string }
   | { kind: 'reflection_request'; lineUserId: string }
   | { kind: 'first_greeting'; lineUserId: string; lineDisplayName?: string | null }
@@ -552,6 +555,8 @@ export function buildSystemPrompt(input: AxelInput, ctx: ContextSummary, researc
       const focusLabel =
         input.focus === 'health'
           ? '健康まわりの話がしたい様子'
+          : input.focus === 'wellness'
+          ? '健康・栄養・美容について相談したい様子。体調・食事・睡眠・肌や髪など、何から話してもいいと伝わるように'
           : input.focus === 'judgment'
             ? '経営・判断まわりの話がしたい様子'
             : '話題は自由';
@@ -594,10 +599,19 @@ export function buildSystemPrompt(input: AxelInput, ctx: ContextSummary, researc
       break;
   }
 
+  // — 「健康・栄養・美容を相談」 session in progress (β): keep the frame so a
+  //   follow-up like 「それって朝も?」 is read in the wellness context. Nutrition
+  //   specifics still defer to the gene results + dietitian plan (see context).
+  if ((input.kind === 'text' || input.kind === 'image') && activeWellnessSession(input.lineUserId)) {
+    parts.push(
+      `【進行中の相談】\n「健康・栄養・美容を相談」から始まった相談の続きです。話題が明らかに変わらない限り、この文脈で受け止めてください。`,
+    );
+  }
+
   // — Focus buttons: guarantee the last on-topic memory is visible even when
   //   buried past the last-6 recency window of memoryPromptBlock —
-  if (input.kind === 'open_chat_shortcut' && (input.focus === 'health' || input.focus === 'judgment')) {
-    const tag = input.focus === 'health' ? '健康' : '経営';
+  if (input.kind === 'open_chat_shortcut' && (input.focus === 'health' || input.focus === 'wellness' || input.focus === 'judgment')) {
+    const tag = input.focus === 'judgment' ? '経営' : '健康';
     const tagged = recentMemoriesByTag(input.lineUserId, tag, 2);
     if (tagged.length > 0) {
       const topics = Array.from(new Set(tagged.map((m) => m.topic)));
@@ -721,6 +735,8 @@ export async function respondAsAxel(input: AxelInput): Promise<string> {
           : input.kind === 'open_chat_shortcut'
             ? input.focus === 'health'
               ? '（健康について相談ボタンを押しました。健康・体調・睡眠・疲労・食事などの話題を待っています）'
+              : input.focus === 'wellness'
+                ? '（「健康・栄養・美容を相談」ボタンを押しました。体調・食事・栄養・睡眠・肌や髪などの話題を待っています）'
               : input.focus === 'judgment'
                 ? '（判断について相談ボタンを押しました。経営判断・組織・資金調達・戦略などの話題を待っています）'
                 : '（相談ボタンを押しました。何かを話したい場面です）'
@@ -801,6 +817,13 @@ export async function respondAsAxel(input: AxelInput): Promise<string> {
     // Fire-and-forget: never blocks the reply; falls back to the old
     // heuristics internally if the updater model call fails.
     try {
+      // 健康・栄養・美容の相談記録 (β): append this exchange to the open
+      // wellness session (no-op when none is open) and refresh its summary.
+      if (input.kind === 'text' || input.kind === 'check_in_reply') {
+        recordWellnessTurn(input.lineUserId, input.text, reply);
+      } else if (input.kind === 'image') {
+        recordWellnessTurn(input.lineUserId, input.caption?.trim() ? `（画像）${input.caption.trim()}` : '（画像を送信）', reply);
+      }
       if (input.kind === 'text' || input.kind === 'check_in_reply') {
         void runUnderstandingUpdate({
           lineUserId: input.lineUserId,

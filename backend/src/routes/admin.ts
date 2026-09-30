@@ -5,6 +5,7 @@ import { requireAuth, requireAdmin } from "../middlewares/auth";
 import { buildUserContextPrompt } from "../services/chatService";
 import { processChat } from "../services/chatService";
 import { resetRichMenu } from "../services/lineRichMenu";
+import { listWellnessSessions, resummarizeProvisional } from "../services/axelWellnessLog";
 
 const r = Router();
 
@@ -102,6 +103,60 @@ r.post("/test-chat", requireAuth(), requireAdmin(), async (req: any, res: any, n
 // ── POST /admin/line/reset-rich-menu ──
 // Force-deletes the current default rich menu and recreates it from the latest spec.
 // Call this whenever the rich menu layout or actions have been updated.
+// ── GET /admin/wellness-consultations ──
+// 健康・栄養・美容の相談記録 (β, client 2026-09-30). Sessions started from the
+// rich-menu button, newest first, with the dietitian-facing summary.
+//   ?lineUserId=U…   one user only
+//   ?format=csv      spreadsheet export (UTF-8 BOM so Excel opens it in JA)
+//   ?turns=1         include the full exchange (JSON only)
+r.get("/wellness-consultations", requireAuth(), requireAdmin(), async (req: any, res: any, next: any) => {
+  try {
+    const lineUserId = typeof req.query.lineUserId === "string" ? req.query.lineUserId : undefined;
+    const sessions = listWellnessSessions(lineUserId);
+    const users = await prisma.lineUser.findMany({
+      where: { lineUserId: { in: Array.from(new Set(sessions.map((s) => s.lineUserId))) } },
+      select: { lineUserId: true, displayName: true },
+    });
+    const nameOf = new Map(users.map((u) => [u.lineUserId, u.displayName ?? ""]));
+
+    if (req.query.format === "csv") {
+      const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      const header = ["開始日時", "最終更新", "LINE表示名", "lineUserId", "区分", "相談の主題", "要約", "確認したい点", "要フォロー", "やり取り数"];
+      const rows = sessions.map((s) => [
+        s.startedAt, s.lastAt, nameOf.get(s.lineUserId) ?? "", s.lineUserId,
+        (s.summary?.categories ?? []).join("・"), s.summary?.topic ?? "", s.summary?.gist ?? "",
+        (s.summary?.keyPoints ?? []).join(" / "), s.summary?.followUp ? "○" : "",
+        s.turns.filter((t) => t.role === "user").length,
+      ].map(esc).join(","));
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", 'attachment; filename="wellness_consultations.csv"');
+      res.send("\uFEFF" + [header.map(esc).join(","), ...rows].join("\r\n"));
+      return;
+    }
+
+    const withTurns = req.query.turns === "1";
+    res.json({
+      data: sessions.map(({ turns, ...s }) => ({
+        ...s,
+        displayName: nameOf.get(s.lineUserId) ?? null,
+        userMessageCount: turns.filter((t) => t.role === "user").length,
+        ...(withTurns ? { turns } : {}),
+      })),
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// POST /admin/wellness-consultations/resummarize — upgrade placeholder summaries
+r.post("/wellness-consultations/resummarize", requireAuth(), requireAdmin(), async (_req, res, next) => {
+  try {
+    res.json({ ok: true, attempted: await resummarizeProvisional() });
+  } catch (e) {
+    next(e);
+  }
+});
+
 r.post("/line/reset-rich-menu", requireAuth(), requireAdmin(), async (_req, res, next) => {
   try {
     await resetRichMenu();

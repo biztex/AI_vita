@@ -1,12 +1,16 @@
 /**
- * LINE Rich Menu – AXEL (2026-08-11 client-designed 6-item navigation)
+ * LINE Rich Menu – AXEL (2026-08-11 client-designed 6-item navigation,
+ * + 2026-09-30 top button 「健康・栄養・美容を相談」)
  *
- * Layout (2500 x 1686 px / 3 rows × 2 columns). Per the client's screen design,
- * the menu is NOT for consultation — users just talk in the normal chat with
- * text / image / voice. The menu is the entry to information, reservation, and
- * account screens (LIFF pages).
+ * Layout (2500 x 1686 px): one full-width consultation button on top, then
+ * the client's 3 rows × 2 columns of screen entries. Users still just talk in
+ * the normal chat; the top button opens a *recorded* wellness consultation
+ * (axelWellnessLog) whose summaries accumulate for the dietitian (β).
+ * Image: scripts/build-richmenu-v4.py (BANNER_H / ROW_H must match below).
  *
- *  ┌────────────────────────┬────────────────────────┐
+ *  ┌─────────────────────────────────────────────────┐
+ *  │  健康・栄養・美容を相談                         │  → postback open_chat_wellness
+ *  ├────────────────────────┬────────────────────────┤
  *  │  ① AXELレポート        │  ② パーソナルプラン    │  → /report      /personalplan
  *  ├────────────────────────┼────────────────────────┤
  *  │  ③ 性格診断            │  ④ 検査結果            │  → /personality /karte
@@ -14,8 +18,8 @@
  *  │  ⑤ 面談予約            │  ⑥ マイページ          │  → /reservation /mypage
  *  └────────────────────────┴────────────────────────┘
  *
- * All six actions are `uri` actions opening a LIFF page. No consultation
- * postbacks (removed per the client's 2026-08-11 direction).
+ * The six cards are `uri` actions opening a LIFF page; the top button is the
+ * only postback (client 2026-09-30, β 健康・栄養・美容の相談記録).
  */
 
 import * as fs from 'fs';
@@ -61,7 +65,8 @@ const W = 2500;   // total width  (LINE recommended)
 const H = 1686;   // total height (LINE recommended)
 
 const COL = Math.floor(W / 2);  // 1250px – one column unit
-const ROW = Math.floor(H / 3);  // 562px  – one row unit (3-row layout)
+const BANNER_H = 396;           // top consultation button
+const ROW = Math.floor((H - BANNER_H) / 3);  // 430px – one card row
 
 // LIFF deep-link base. Rich-menu buttons open LIFF pages by route.
 const LIFF_ID = ENV.LIFF_ID_PAGES || '2009125242-ka7XZSEQ';
@@ -91,34 +96,46 @@ const liff = (route: string) => `https://liff.line.me/${LIFF_ID}/${route}`;
 const RICH_MENU_BODY = {
   size: { width: W, height: H },
   selected: true,
-  name: 'AXEL 6項目ナビ v3 (新デザイン画像+検査結果・健康記録 2026-09-17)',
+  name: 'AXEL 6項目ナビ v4 (+健康・栄養・美容を相談 2026-09-30)',
   chatBarText: 'メニュー',
   areas: [
+    // Top: 健康・栄養・美容を相談 — opens a recorded consultation; keyboard
+    // opens right away so the user can just type.
+    {
+      bounds: { x: 0, y: 0, width: W, height: BANNER_H },
+      action: {
+        type: 'postback' as const,
+        label: '健康・栄養・美容を相談',
+        data: 'open_chat_wellness',
+        displayText: '健康・栄養・美容について相談したい',
+        inputOption: 'openKeyboard' as const,
+      },
+    },
     // Row 1
     {
-      bounds: { x: 0, y: 0, width: COL, height: ROW },
+      bounds: { x: 0, y: BANNER_H, width: COL, height: ROW },
       action: { type: 'uri' as const, label: 'AXELレポート', uri: liff('report') },
     },
     {
-      bounds: { x: COL, y: 0, width: W - COL, height: ROW },
+      bounds: { x: COL, y: BANNER_H, width: W - COL, height: ROW },
       action: { type: 'uri' as const, label: 'パーソナルプラン', uri: liff('personalplan') },
     },
     // Row 2
     {
-      bounds: { x: 0, y: ROW, width: COL, height: ROW },
+      bounds: { x: 0, y: BANNER_H + ROW, width: COL, height: ROW },
       action: { type: 'uri' as const, label: '性格診断', uri: liff('personality') },
     },
     {
-      bounds: { x: COL, y: ROW, width: W - COL, height: ROW },
+      bounds: { x: COL, y: BANNER_H + ROW, width: W - COL, height: ROW },
       action: { type: 'uri' as const, label: '検査結果・健康記録', uri: liff('karte') },
     },
     // Row 3 (last row absorbs rounding: height to bottom edge)
     {
-      bounds: { x: 0, y: ROW * 2, width: COL, height: H - ROW * 2 },
+      bounds: { x: 0, y: BANNER_H + ROW * 2, width: COL, height: H - BANNER_H - ROW * 2 },
       action: { type: 'uri' as const, label: '面談予約', uri: liff('reservation') },
     },
     {
-      bounds: { x: COL, y: ROW * 2, width: W - COL, height: H - ROW * 2 },
+      bounds: { x: COL, y: BANNER_H + ROW * 2, width: W - COL, height: H - BANNER_H - ROW * 2 },
       action: { type: 'uri' as const, label: 'マイページ', uri: liff('mypage') },
     },
   ],

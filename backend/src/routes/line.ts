@@ -1180,12 +1180,15 @@ r.get('/liff/billing-portal', requireLiffAuth(), async (req: Request, res: Respo
 
 // GET /line/liff/reservation — 面談予約: booking config (external tool)
 r.get('/liff/reservation', requireLiffAuth(), async (_req: Request, res: Response) => {
+  // 運用は「初回」と「約3か月ごとの定期」の2本立て（client 2026-09-17 item 1）。
+  // β: slot booking via an external scheduler when configured (2026-09-30 item 4).
+  const typed = (key: string, label: string, url: string) =>
+    url ? { key, label, url, scheduler: true } : { key, label };
   res.json({
     bookingUrl: ENV.RESERVATION_URL,
     types: [
-      // 運用は「初回」と「約3か月ごとの定期」の2本立て（client 2026-09-17 item 1）
-      { key: 'initial', label: '初回カウンセリング' },
-      { key: 'review', label: '定期カウンセリング（約3か月ごと）' },
+      typed('initial', '初回カウンセリング', ENV.RESERVATION_URL_INITIAL),
+      typed('review', '定期カウンセリング（約3か月ごと）', ENV.RESERVATION_URL_REVIEW),
     ],
   });
 });

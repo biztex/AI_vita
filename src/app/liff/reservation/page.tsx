@@ -10,6 +10,10 @@ import { useLiff, liffApiHeaders } from "../_hooks/useLiff"
 type ReservationType = {
   key: string
   label: string
+  /** External booking page (TimeRex / Google カレンダー予約 etc.) for this type. */
+  url?: string
+  /** true when `url` is a slot-picking scheduler rather than the contact form. */
+  scheduler?: boolean
 }
 
 type ReservationData = {
@@ -26,7 +30,7 @@ const TYPE_ICONS = [CalendarPlus, CalendarCheck, CalendarClock] as const
 const TYPE_DETAILS: Record<string, { label: string; description: string }> = {
   initial: {
     label: "初回カウンセリング",
-    description: "遺伝子検査の結果をもとに、管理栄養士があなた専用のプランを設計する最初の面談です。",
+    description: "遺伝子検査の前に1回。管理栄養士が現在の体調・生活習慣・目標を伺い、今後の進め方をご案内します。",
   },
   review: {
     label: "定期カウンセリング",
@@ -129,7 +133,11 @@ export default function LiffReservationPage() {
               return (
                 <a
                   key={t.key}
-                  href={withCategory(data.bookingUrl, t.key, liff.status === "ready" && liff.displayName ? liff.displayName : undefined)}
+                  href={
+                    t.scheduler && t.url
+                      ? t.url
+                      : withCategory(t.url || data.bookingUrl, t.key, liff.status === "ready" && liff.displayName ? liff.displayName : undefined)
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-colors hover:border-[#C9A86A]/40 hover:bg-[#C9A86A]/5 active:bg-gray-50"
@@ -147,7 +155,7 @@ export default function LiffReservationPage() {
                     )}
                     <p className="mt-1 flex items-center gap-1 text-[11px] text-gray-400">
                       <ExternalLink className="h-3 w-3" />
-                      予約フォームを開く
+                      {t.scheduler ? "空き日時を選んで予約する" : "予約フォームを開く"}
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-300" />
@@ -177,7 +185,9 @@ export default function LiffReservationPage() {
 
         {/* Note */}
         <p className="px-1 text-[10px] leading-relaxed text-gray-400">
-          ※ 現在は予約フォームが別画面で開きます。アプリ内で日時を選べる予約カレンダーは今後追加予定です。
+          {types.some((t) => t.scheduler)
+            ? "※ 予約ページが別画面で開きます。ご予約の際は、LINEの表示名またはご登録のお名前をご入力ください。"
+            : "※ 現在は予約フォームが別画面で開きます。ご希望の日時をご記入いただければ、担当者より調整のご連絡をいたします。"}
         </p>
       </div>
     </div>

@@ -27,6 +27,7 @@
 import OpenAI from 'openai';
 import { ENV } from '../env';
 import { tuningParams } from './openaiParams';
+import { activeWellnessSession } from './axelWellnessLog';
 import {
   updateConversationState,
   getConversationState,
@@ -262,7 +263,11 @@ export function applyUnderstandingUpdate(
         gist: u.memory.gist,
         feeling: u.memory.feeling,
         followUp: u.memory.followUp,
-        tags: u.memory.tags,
+        // Consultations made through 「健康・栄養・美容を相談」 are tagged so
+        // AXEL's own recall (recentMemoriesByTag '健康') finds them too.
+        tags: activeWellnessSession(lineUserId)
+          ? Array.from(new Set([...(u.memory.tags ?? []), '健康', '健康・栄養・美容']))
+          : u.memory.tags,
       };
       addMemory(lineUserId, m);
     }
