@@ -26,6 +26,17 @@ pg_dump "$PG_URL" --no-owner --no-privileges | gzip > "$OUT"
 SIZE=$(du -h "$OUT" | cut -f1)
 echo "[db-backup] $(date '+%F %T') wrote $OUT ($SIZE)"
 
+# AXEL JSON stores (memory / conversation state / decision journal /
+# 健康・栄養・美容の相談記録) live outside Postgres — archive them too.
+# Restore: tar -xzf <file>.tar.gz -C /   (then pm2 restart axel-backend)
+STORE_DIR="${AXEL_STORE_DIR:-/home/dev/axel-data}"
+if [ -d "$STORE_DIR" ]; then
+  STORES="$BACKUP_DIR/axel-stores-$STAMP.tar.gz"
+  tar -czf "$STORES" -C / "${STORE_DIR#/}"
+  echo "[db-backup] $(date '+%F %T') wrote $STORES ($(du -h "$STORES" | cut -f1))"
+fi
+
 # Prune old dumps beyond KEEP
 ls -1t "$BACKUP_DIR"/axel-db-*.sql.gz 2>/dev/null | tail -n +$((KEEP+1)) | xargs -r rm -f
+ls -1t "$BACKUP_DIR"/axel-stores-*.tar.gz 2>/dev/null | tail -n +$((KEEP+1)) | xargs -r rm -f
 echo "[db-backup] retained latest $KEEP dumps in $BACKUP_DIR"

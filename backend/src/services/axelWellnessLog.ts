@@ -12,7 +12,7 @@
  * Unlike axelMemory (a rolling 40-item prompt aid), this store is durable
  * and uncapped per user: it is the data the β period accumulates for the
  * future 管理栄養士向け画面. Same JSON-file storage as the other AXEL stores
- * (/var/lib/axel, covered by the nightly backup).
+ * (next to memory.json; archived by scripts/db-backup.sh).
  */
 
 import * as fs from 'fs';
@@ -60,7 +60,10 @@ const MAX_TURN_CHARS = 1500;
 
 // ─── Storage ──────────────────────────────────────────────────────────
 
-const PREFERRED = process.env.AXEL_WELLNESS_FILE || '/var/lib/axel/wellness_consultations.json';
+// Default sits next to the other AXEL stores (AXEL_MEMORY_FILE's directory).
+const PREFERRED =
+  process.env.AXEL_WELLNESS_FILE ||
+  path.join(path.dirname(process.env.AXEL_MEMORY_FILE || '/var/lib/axel/memory.json'), 'wellness_consultations.json');
 const FALLBACK = '/tmp/axel_wellness_consultations.json';
 
 function resolveFile(): string {
